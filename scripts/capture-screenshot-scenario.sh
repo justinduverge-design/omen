@@ -21,7 +21,7 @@
 #   scripts/capture-screenshot-scenario.sh ios     <scenario-key> <out.png> [device-name] [content-size-category]
 #
 # Examples:
-#   scripts/capture-screenshot-scenario.sh android command-center.demo-connected out.png
+#   scripts/capture-screenshot-scenario.sh android desk.demo out.png
 #   scripts/capture-screenshot-scenario.sh android help-support.available big.png 1.3
 #   scripts/capture-screenshot-scenario.sh ios help-support.available se.png "iPhone SE (3rd generation)"
 #

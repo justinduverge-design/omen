@@ -29,6 +29,8 @@ final class CommandCenterViewModel: ObservableObject {
     @Published private(set) var ledger: OmenLedgerPreviewState?
     /// The contested record, the Ledger's headline ("11 of 14 close calls held up.").
     @Published private(set) var ledgerHeadline: String?
+    @Published private(set) var ledgerRecord: MovesHistory.Record?
+    @Published private(set) var ledgerSeason: Int?
 
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
@@ -42,7 +44,7 @@ final class CommandCenterViewModel: ObservableObject {
 
     /// `quiet-week.v1`. `nil` means "no quiet-week answer yet, or not eligible" — the Command
     /// tab keeps rendering the ordinary desk in either case. Only a mapped, eligible
-    /// `OmenQuietState` swaps the desk for the quiet screen; see `quietWeekState`.
+    /// `OmenQuietState` becomes the Desk's "This week" hold card; see `quietWeekState`.
     @Published private(set) var quietWeek: QuietWeekResponse?
 
     /// The whole `league-overview.v1` read. Until the lock's Command Center was mounted this was
@@ -107,6 +109,12 @@ final class CommandCenterViewModel: ObservableObject {
     /// The lock's Command Center, from the same reads the legacy screen used. `nil` until the
     /// shell has loaded; sections resolve independently, so a dead matchup read never blanks the
     /// waiver or Ledger sections beside it.
+    /// "Week 7" from the dashboard summary, for any screen's eyebrow. Nil until the summary has loaded.
+    var weekLabel: String? {
+        guard case .loaded(let summary) = viewState else { return nil }
+        return summary.gameWeek?.week.map { "Week \($0)" }
+    }
+
     func deskState(railCount: Int, railIndex: Int) -> OmenDeskState? {
         switch viewState {
         case .loaded(let summary):
@@ -328,10 +336,14 @@ final class CommandCenterViewModel: ObservableObject {
 
     private func loadLedger(accessToken: String, platform: String, leagueId: String) async {
         ledger = .loading
+        ledgerRecord = nil
+        ledgerSeason = nil
         switch await movesRepository.fetchMoves(accessToken: accessToken, platform: platform, leagueId: leagueId) {
         case .success(let history):
             ledger = history.ledgerState
             ledgerHeadline = history.contestedHeadline
+            ledgerRecord = history.record
+            ledgerSeason = history.season
         case .failure(let error):
             // A 401 here is not routed to re-auth: the summary call that just succeeded used
             // the same token, so this is far more likely a route-level problem than a dead

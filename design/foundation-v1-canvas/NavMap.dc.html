@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Navigation map</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.tab{border-radius:16px;padding:14px 16px;background:#3A2A0A;border:1.5px solid #C4933B}
+.tab .n{font-family:'Wix Madefor Display';font-size:20px;font-weight:800;color:#F5F0E8}
+.tab .s{font-size:12.5px;color:#D8A648;margin-top:2px}
+.push{border-radius:14px;padding:11px 14px;background:#2A2A27;border:1px solid #3A3A36;margin-left:16px}
+.push .n{font-size:14.5px;font-weight:700}
+.push .s{font-size:12px;color:#A79E90;margin-top:2px;line-height:1.4}
+.deep{margin-left:32px}
+.sheet{border-radius:14px;padding:11px 14px;background:#1F1F1D;border:1.5px dashed #6B675F;margin-left:16px}
+.sheet .n{font-size:14.5px;font-weight:700}
+.sheet .s{font-size:12px;color:#A79E90;margin-top:2px}
+.key{display:flex;gap:22px;align-items:center;font-size:13px;color:#BDB5A9}
+.sw{display:inline-block;width:22px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:8px}
+</style>
+</helmet>
+<div style="width:1600px;height:1000px;background:#171715;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;border-radius:24px;padding:36px 40px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end">
+    <div>
+      <div class="d" style="font-size:30px;font-weight:800">Every screen, how you get in, how you get out</div>
+      <div style="font-size:14.5px;color:#BDB5A9;margin-top:6px">Pushed screens: back button at top left plus swipe from the left edge. Sheets: drag down or Close. Tabs are always one tap away except inside the trade builder and the support form.</div>
+    </div>
+    <div class="key">
+      <span><span class="sw" style="background:#3A2A0A;border:1.5px solid #C4933B"></span>Tab</span>
+      <span><span class="sw" style="background:#2A2A27;border:1px solid #3A3A36"></span>Pushed, back to parent</span>
+      <span><span class="sw" style="background:#1F1F1D;border:1.5px dashed #6B675F"></span>Sheet, Close or drag down</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:22px;margin-top:28px">
+    <div class="col">
+      <div class="tab"><div class="n">Desk</div><div class="s">Team Rolodex · flick between teams</div></div>
+      <div class="sheet"><div class="n">Team switcher</div><div class="s">tap team control, or long-press Desk tab</div></div>
+      <div class="push"><div class="n">Player</div><div class="s">tap any player · back to Desk</div></div>
+      <div class="push"><div class="n">Waivers</div><div class="s">"Needs you" add · back to Desk</div></div>
+      <div class="push"><div class="n">Ledger</div><div class="s">"Omen's record" · back to Desk</div></div>
+      <div class="push deep"><div class="n">Ledger receipt</div><div class="s">tap a call · back to Ledger</div></div>
+      <div class="push"><div class="n">Account</div><div class="s">avatar, top right · back to Desk</div></div>
+      <div class="push deep"><div class="n">Support · Privacy · Sources · How Omen decides</div><div class="s">back to Account</div></div>
+      <div class="sheet deep"><div class="n">Delete account</div><div class="s">from Privacy · Cancel</div></div>
+    </div>
+
+    <div class="col">
+      <div class="tab"><div class="n">Omen</div><div class="s">this week's move · team control at top</div></div>
+      <div class="push"><div class="n">Full argument</div><div class="s">"See the full argument" · back to Omen</div></div>
+      <div class="push"><div class="n">Player</div><div class="s">tap Start or Sit card · back to Omen</div></div>
+      <div class="push"><div class="n">Ledger</div><div class="s">footer record line · back to Omen</div></div>
+      <div class="push"><div class="n">Trade builder, prefilled</div><div class="s">trade call: "Check it in the builder"</div></div>
+      <div class="sheet"><div class="n">Report this</div><div class="s">quiet link at the foot · Cancel</div></div>
+    </div>
+
+    <div class="col">
+      <div class="tab"><div class="n">Trade</div><div class="s">chooser · team control at top</div></div>
+      <div class="push"><div class="n">Find a trade</div><div class="s">one card at a time · back to Trade</div></div>
+      <div class="push"><div class="n">Trade builder</div><div class="s">back to Trade · Clear top right · tabs hidden</div></div>
+      <div class="push deep"><div class="n">Player</div><div class="s">info button on a row · back keeps your picks</div></div>
+      <div class="sheet deep"><div class="n">Verdict</div><div class="s">Adjust closes it, picks kept</div></div>
+      <div class="sheet deep"><div class="n">Share</div><div class="s">from the verdict · Done</div></div>
+      <div class="push"><div class="n">Three-team</div><div class="s">"Add a third team" · Remove third team</div></div>
+      <div class="push"><div class="n">Judge an offer</div><div class="s">back to Trade</div></div>
+    </div>
+
+    <div class="col">
+      <div class="tab"><div class="n">League</div><div class="s">standings · team control at top</div></div>
+      <div class="push"><div class="n">Player</div><div class="s">tap any player · back to League</div></div>
+      <div class="push"><div class="n">Trade builder, prefilled</div><div class="s">"Who needs what you have" card</div></div>
+      <div class="push"><div class="n">Waivers</div><div class="s">"Waiver wire" link · back to League</div></div>
+      <div style="height:18px"></div>
+      <div class="tab" style="background:#262624;border-color:#4A4A45"><div class="n">Getting in</div><div class="s" style="color:#A79E90">before the tabs exist</div></div>
+      <div class="push"><div class="n">Welcome → Email code → Connect → League pick</div><div class="s">each has Back · "Look around with a sample league" on Welcome and Connect</div></div>
+      <div class="push"><div class="n">Connect failed</div><div class="s">Try again · Add by league ID · back to Connect</div></div>
+      <div class="sheet"><div class="n">Passkey offer</div><div class="s">once, after first sign-in · Not now</div></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1000}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

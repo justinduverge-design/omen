@@ -416,35 +416,39 @@ final class LeagueOverviewTests: XCTestCase {
     }
 }
 
-// MARK: - League screen matchup strip (Build 12 defect sweep D1, D7)
+// MARK: - League screen (foundation v1)
 
 extension LeagueOverviewTests {
-    private func scoutState(_ overview: LeagueOverview) -> OmenScoutTableState {
-        OmenScoutTableState.from(
-            overview: overview,
-            waiver: .unread(capability: "Waivers", sentence: "Not read."),
-            tradeTargets: .unread(capability: "Trade targets", sentence: "Not read.")
+    private func leagueState(_ overview: LeagueOverview) -> OmenLeagueState {
+        OmenLeagueState(overview: overview, targets: [], targetsNote: nil, waiver: nil)
+    }
+
+    /// The playoff line is the page's headline; the table keeps provider order, record and rank.
+    func testLeagueLeadsWithThePlayoffLineAndKeepsTheTable() throws {
+        let state = leagueState(try decode(matchup: sides(status: "pregame")))
+        XCTAssertEqual(state.headline, "3rd of 12")
+        XCTAssertEqual(state.standings.map(\.name), ["Team Slops"])
+        XCTAssertEqual(state.standings.first?.record, "6\u{2013}2")
+        XCTAssertEqual(state.standings.first?.isYou, true)
+        XCTAssertNil(state.standingsNote)
+    }
+
+    /// A missing points column stays missing on the page, never 0.
+    func testMissingPointsForStaysEmpty() throws {
+        let state = leagueState(try decode(matchup: sides(status: "pregame")))
+        XCTAssertNil(state.standings.first?.pointsFor)
+    }
+
+    /// An unreadable table or a quiet week is said in words, never as a code or a blank.
+    func testUnreadableSectionsAreSaidInWords() throws {
+        let overview = try decode(
+            matchup: sides(status: "pregame"),
+            standings: #"{"status":"unavailable","playoff_picture":null,"teams":[]}"#,
+            activity: #"{"status":"empty","unavailable_families":[],"items":[]}"#
         )
-    }
-
-    /// Before kickoff neither side has points. That is a read matchup, not an unread one.
-    func testPregameMatchupWithoutPointsIsReadNotUnread() throws {
-        let overview = try decode(matchup: sides(status: "pregame", youPoints: "null", themPoints: "null"))
-        guard case .read(let strip) = scoutState(overview).strip else {
-            return XCTFail("a pregame matchup must render, got \(scoutState(overview).strip)")
-        }
-        XCTAssertEqual(strip.myScore, "\u{2014}")
-        XCTAssertEqual(strip.theirScore, "\u{2014}")
-    }
-
-    /// The reason is a code; the screen says it in words and never shows the code.
-    func testMatchupReasonCodesBecomeSentences() throws {
-        let notStarted = try decode(matchup: #"{"status":"no_matchup","you":null,"opponent":null,"unavailable_reason":"league_not_started"}"#)
-        guard case .unread(_, let sentence) = scoutState(notStarted).strip else { return XCTFail("expected unread") }
-        XCTAssertTrue(sentence.contains("hasn\u{2019}t set its teams"))
-
-        let failed = try decode(matchup: #"{"status":"unavailable","you":null,"opponent":null,"unavailable_reason":"provider_failed"}"#)
-        guard case .unread(_, let failedSentence) = scoutState(failed).strip else { return XCTFail("expected unread") }
-        XCTAssertFalse(failedSentence.contains("provider_failed"))
+        let state = leagueState(overview)
+        XCTAssertTrue(state.standings.isEmpty)
+        XCTAssertEqual(state.standingsNote?.contains("didn\u{2019}t send the standings"), true)
+        XCTAssertEqual(state.activityNote, "Quiet week. No trades or adds yet.")
     }
 }

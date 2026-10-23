@@ -26,25 +26,19 @@ final class TradeFindReviewViewModel: ObservableObject {
         case failed(OmenApiError)
     }
 
-    enum SaveState: Equatable { case idle, saving, saved, error, expired }
-
     @Published private(set) var viewState: ViewState = .loading
     @Published private(set) var candidates: [TradeFindCandidate] = []
     @Published private(set) var currentIndex: Int = 0
     @Published private(set) var response: TradeFindResponse?
-    @Published private(set) var saveStates: [String: SaveState] = [:]
 
     private let repository: TradeFindRepository
-    private let saveAction: TradeFindSaveAction
     private let sessionManager: SessionManager
 
     init(
         repository: TradeFindRepository,
-        saveAction: TradeFindSaveAction,
         sessionManager: SessionManager
     ) {
         self.repository = repository
-        self.saveAction = saveAction
         self.sessionManager = sessionManager
     }
 
@@ -94,7 +88,7 @@ final class TradeFindReviewViewModel: ObservableObject {
 
     /// "ESPN" / "Yahoo" / "Sleeper" — the degraded sentence names the provider that actually
     /// failed, not always ESPN.
-    static func providerName(_ platform: String) -> String {
+    nonisolated static func providerName(_ platform: String) -> String {
         switch platform.lowercased() {
         case "espn": return "ESPN"
         case "yahoo": return "Yahoo"
@@ -137,7 +131,6 @@ final class TradeFindReviewViewModel: ObservableObject {
             }
             candidates = payload.candidates
             currentIndex = 0
-            saveStates = [:]
             viewState = candidates.isEmpty ? .zeroCandidates : .reviewing
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
@@ -145,39 +138,12 @@ final class TradeFindReviewViewModel: ObservableObject {
         }
     }
 
-    /// E069 — `Pass`, and the swipe-left gesture's committed equivalent. Local only: "Pass never
-    /// calls a network endpoint" (acceptance check). Advances regardless of whether this
-    /// candidate was already saved — saving keeps the card up for continued review, and Pass is
-    /// the "done looking at this one" action independent of it.
+    /// "Next trade". Local only: passing never calls the network.
     func pass() {
         guard currentIndex < candidates.count else { return }
         currentIndex += 1
         if currentIndex >= candidates.count {
             viewState = .batchExhausted
         }
-    }
-
-    /// E070 — `Save for later`, and the swipe-right gesture's committed equivalent. Calls the
-    /// save interface with the candidate's `id` and its `reasoning` verbatim, then flips that
-    /// candidate's button to `Saved ✓`. Never advances the stack and never navigates — there is
-    /// no saved-trades destination yet (T4).
-    @discardableResult
-    func save() async -> TradeFindSaveOutcome? {
-        guard let candidate = currentCandidate else { return nil }
-        // A swipe can land on a card that is already saved or mid-save; the button disables for
-        // the same states, so the gesture does too.
-        if saveStates[candidate.id] == .saving || saveStates[candidate.id] == .saved { return nil }
-        saveStates[candidate.id] = .saving
-        let outcome = await saveAction.save(candidateId: candidate.id, reasoning: candidate.reasoning)
-        switch outcome {
-        case .saved: saveStates[candidate.id] = .saved
-        case .error: saveStates[candidate.id] = .error
-        case .expired: saveStates[candidate.id] = .expired
-        }
-        return outcome
-    }
-
-    func saveState(for candidateId: String) -> SaveState {
-        saveStates[candidateId] ?? .idle
     }
 }

@@ -27,59 +27,6 @@ enum ScreenshotScenarios {
             label: "Onboarding — connect your league",
             content: { AnyView(OnboardingConnectScreenshotHost()) }
         ),
-        "command-center.demo-connected": ScreenshotScenario(
-            label: "Command Center — demo/mock connected",
-            content: {
-                AnyView(FauxShell(
-                    scenarioKey: "command-center.demo-connected",
-                    commandContentOverride: AnyView(OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {},
-                        fitProbeIdentifier: "chrome.fit.command-center"
-                    ))
-                ))
-            }
-        ),
-        // The `carousel != nil` branch — a real multi-league account. Every other Command
-        // Center scenario runs the stacked layout, which is why three clipping bugs reached
-        // the founder's phone before anything here could catch them.
-        "command-center.carousel": ScreenshotScenario(
-            label: "Command Center — six leagues, live carousel",
-            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel")) }
-        ),
-        "command-center.carousel-provider-down": ScreenshotScenario(
-            label: "Command Center — carousel with one provider failing",
-            content: { AnyView(CarouselScenarioHost(scenarioKey: "command-center.carousel-provider-down", failingPlatform: "espn")) }
-        ),
-        "command-center.long-matchup": ScreenshotScenario(
-            label: "Command Center — long fantasy team names in matchup",
-            content: {
-                AnyView(FauxShell(
-                    commandContentOverride: AnyView(OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.longNameDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {}
-                    ))
-                ))
-            }
-        ),
-        "command-center.disconnected": ScreenshotScenario(
-            label: "Command Center — real user, disconnected",
-            content: {
-                AnyView(FauxShell(
-                    initialTab: .command,
-                    commandContentOverride: AnyView(OmenNoLeagueScreen(onConnect: {}))
-                ))
-            }
-        ),
-        // `M5` slices F and G. Added 2026-08-30 with `F-VET-B03`: the two newest screens in
-        // the product had no scenario at all, so nothing — not the harness, not an
-        // accessibility audit, not any UI test — could reach them without a real account.
         "trade.verdict": ScreenshotScenario(
             label: "Trade — personalized verdict",
             content: { AnyView(FauxShell(scenarioKey: "trade.verdict", initialTab: .trade)) }
@@ -97,13 +44,27 @@ enum ScreenshotScenarios {
             content: { AnyView(FauxShell(scenarioKey: "trade.prefilled", initialTab: .trade)) }
         ),
         "trade.find-review": ScreenshotScenario(
-            label: "Trade — Find a trade, swipe review",
+            label: "Trade — Find a trade, one swap",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: nil)) }
         ),
         "trade.find-unavailable": ScreenshotScenario(
             label: "Trade — Find a trade, provider has no projections",
             content: { AnyView(FindReviewScenarioHost(unavailableReason: "projections_unavailable", platform: "yahoo")) }
         ),
+        // The Desk on the foundation (2026-10-21).
+        "desk.ready": ScreenshotScenario(label: "Desk \u{2014} three teams, a move, needs, your team", content: { AnyView(DeskScenario(phase: .ready)) }),
+        "desk.loading": ScreenshotScenario(label: "Desk \u{2014} reading leagues", content: { AnyView(DeskScenario(phase: .loading)) }),
+        "desk.no-league": ScreenshotScenario(label: "Desk \u{2014} no league yet", content: { AnyView(DeskScenario(phase: .noLeague)) }),
+        "desk.failed": ScreenshotScenario(label: "Desk \u{2014} leagues could not be read", content: { AnyView(DeskScenario(phase: .failed(message: "We couldn\u{2019}t reach Omen. Check your connection and try again."))) }),
+        "desk.demo": ScreenshotScenario(label: "Desk \u{2014} demo", content: { AnyView(DeskScenario(phase: .ready, demo: true)) }),
+        "player.page": ScreenshotScenario(label: "Player \u{2014} Omen's read first", content: { AnyView(NavigationStack { OmenPlayerScreen(page: FoundationFixtures.pukaPage, tradeTitle: "Shop Puka Nacua in a trade", onTrade: {}) }) }),
+        "trade.chooser": ScreenshotScenario(label: "Trade \u{2014} chooser", content: { AnyView(OmenTradeChooserView(teamControl: ("espn", "Titans"), onFind: {}, onBuild: {}, onJudge: {})) }),
+        "trade.builder": ScreenshotScenario(label: "Trade \u{2014} builder, your roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}) }) }),
+        "trade.builder-theirs": ScreenshotScenario(label: "Trade \u{2014} builder, their roster", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, showingTheirs: true) }) }),
+        "trade.three-team": ScreenshotScenario(label: "Trade \u{2014} three-team, who sends what", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: false), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
+        "trade.three-team-judged": ScreenshotScenario(label: "Trade \u{2014} three-team judged", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: true), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
+        "foundation.players": ScreenshotScenario(label: "Foundation v1: player pieces", content: { AnyView(FoundationPlayersGallery()) }),
+        "foundation.teams": ScreenshotScenario(label: "Foundation v1: team pieces and states", content: { AnyView(FoundationTeamsGallery()) }),
         "league.loaded": ScreenshotScenario(
             label: "League — live matchup, standings, empty activity",
             content: { AnyView(FauxShell(scenarioKey: "league.loaded", initialTab: .league)) }
@@ -149,20 +110,6 @@ enum ScreenshotScenarios {
             label: "J1 4/6 — ESPN consent, before the sheet opens",
             content: { AnyView(OnboardingConnectScreenshotHost(autoSelectProvider: .espn)) }
         ),
-        "journey-j1.nominal.06-command-no-league": ScreenshotScenario(
-            label: "J1 6/6 — signed in, no league connected",
-            content: {
-                AnyView(FauxShell(
-                    initialTab: .command,
-                    commandContentOverride: AnyView(OmenNoLeagueScreen(
-                        onConnect: {}
-                    ))
-                ))
-            }
-        ),
-        // J1 "Getting in" — the degraded pass. The journey has no capability profile, so per
-        // `screen-journeys-v1.md` the provider failure path IS the degraded pass, and ESPN on
-        // iPhone is the only confirmed beta failure on record.
         "journey-j1.degraded.05-connect-failed": ScreenshotScenario(
             label: "J1 degraded 5/6 — ESPN refused a stale session",
             content: {
@@ -185,82 +132,37 @@ enum ScreenshotScenarios {
         "journey-j3.nominal.01-omen-call": ScreenshotScenario(
             label: "J3 nominal 1/3 — Omen call",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.journeyNominal,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.journeyNominal, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.nominal.02-omen-evidence": ScreenshotScenario(
             label: "J3 nominal 2/3 — full argument",
             content: {
-                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
-                    payload: OmenDecisionFixtures.journeyNominalPayload,
-                    weekLabel: "Week 7",
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenFullArgumentScreen(payload: OmenDecisionFixtures.journeyNominalPayload))))
             }
         ),
         "journey-j3.nominal.03-start-sit": ScreenshotScenario(
             label: "J3 nominal 3/3 — inline Start/Sit detail",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.journeyNominal,
-                    startSitDetail: J3ScreenshotFixtures.nominalStartSit,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.journeyNominal, startSit: J3ScreenshotFixtures.nominalStartSit, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.degraded.01-omen-call": ScreenshotScenario(
             label: "J3 degraded 1/3 — Omen call",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.degraded,
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.degraded, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         "journey-j3.degraded.02-omen-evidence": ScreenshotScenario(
             label: "J3 degraded 2/3 — unavailable and unused inputs",
             content: {
-                AnyView(j3Shell(AnyView(OmenEvidenceScreen(
-                    payload: OmenDecisionFixtures.journeyDegradedPayload,
-                    weekLabel: "Week 7",
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenFullArgumentScreen(payload: OmenDecisionFixtures.journeyDegradedPayload))))
             }
         ),
         "journey-j3.degraded.03-start-sit": ScreenshotScenario(
             label: "J3 degraded 3/3 — inline incomplete Start/Sit read",
             content: {
-                AnyView(j3Shell(AnyView(OmenDecisionScreen(
-                    state: OmenDecisionFixtures.degraded,
-                    startSitDetail: J3ScreenshotFixtures.degradedStartSit,
-                    onRetryStartSit: {},
-                    weekLabel: "Week 7",
-                    providerName: "ESPN",
-                    onMakeMove: {},
-                    onDecline: {},
-                    onOpenAccount: {},
-                    context: J3ScreenshotFixtures.context
-                ))))
+                AnyView(j3Shell(AnyView(OmenCallView(state: OmenDecisionFixtures.degraded, startSit: J3ScreenshotFixtures.degradedStartSit, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {}))))
             }
         ),
         // J2 — "the desk". The numbering is the storyboard order: arrive at Command, open the
@@ -276,192 +178,29 @@ enum ScreenshotScenarios {
         // degraded one, and that is the contract rather than a convenience: the neutral variant
         // requires *all* positive quiet evidence, so it cannot occur in a pass where a provider
         // failed. Straight fires on exactly that.
-        "journey-j2.nominal.01-command-center": ScreenshotScenario(
-            label: "J2 nominal 1/4 — the desk, everything read",
-            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
-                state: J2ScreenshotFixtures.nominalDesk,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenLeague: {},
-                onOpenLedger: {}
-            )))) }
-        ),
-        "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(
-            label: "J2 nominal 2/4 — the switcher sheet over the desk",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
-                state: J2ScreenshotFixtures.nominalSwitchSheet,
-                onSelectFilter: { _ in },
-                onSelectRow: { _ in },
-                onToggleFavorite: { _ in },
-                onDismiss: {},
-                backdrop: {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {}
-                    )
-                }
-            )))) }
-        ),
-        "journey-j2.nominal.03-switch-loading": ScreenshotScenario(
-            label: "J2 nominal 3/4 — mid-switch, nothing reused",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
-                context: J2ScreenshotFixtures.davantesContext,
-                weekLabel: "Week 7 · Sunday",
-                footnote: J2ScreenshotFixtures.switchingFootnote,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.nominal.04-command-quiet": ScreenshotScenario(
-            label: "J2 nominal 4/4 — a quiet week, neutral variant",
-            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
-                state: J2ScreenshotFixtures.quietNeutral,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.degraded.01-command-center": ScreenshotScenario(
-            label: "J2 degraded 1/4 — dead matchup read beside a live wire",
-            content: { AnyView(j2Shell(AnyView(OmenCommandDeskScreen(
-                state: J2ScreenshotFixtures.degradedDesk,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenLeague: {},
-                onOpenLedger: {}
-            )))) }
-        ),
-        "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(
-            label: "J2 degraded 2/4 — switcher naming the provider it could not list",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
-                state: J2ScreenshotFixtures.degradedSwitchSheet,
-                onSelectFilter: { _ in },
-                onSelectRow: { _ in },
-                onToggleFavorite: { _ in },
-                onDismiss: {},
-                backdrop: {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.degradedDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {}
-                    )
-                }
-            )))) }
-        ),
-        "journey-j2.degraded.03-switch-loading": ScreenshotScenario(
-            label: "J2 degraded 3/4 — mid-switch after a partial read",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchLoadingScreen(
-                context: J2ScreenshotFixtures.davantesContext,
-                weekLabel: "Week 7 · Sunday",
-                footnote: J2ScreenshotFixtures.switchingFootnote,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j2.degraded.04-command-quiet-straight": ScreenshotScenario(
-            label: "J2 degraded 4/4 — a quiet week after a loss, straight variant",
-            content: { AnyView(j2Shell(AnyView(OmenCommandQuietScreen(
-                state: J2ScreenshotFixtures.quietStraight,
-                context: J2ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        // J4, "settling an argument". Trade is the front door, so these open on the Trade tab.
-        //
-        // Numbered in the order a user meets them: build a deal, look at the other roster, get
-        // the read, send it. `TradeVerdict` holds the third seat in the nominal pass and
-        // `TradeNeedsContext` holds it in the degraded one — same seat, two states of the same
-        // answer. See `J4ScreenshotFixtures` for why that split is a contract and not a choice.
-        "journey-j4.nominal.01-trade-build": ScreenshotScenario(
-            label: "J4 nominal 1/4 — build a deal, third team available",
-            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
-                state: J4ScreenshotFixtures.nominalBuild,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onPrimaryAction: {},
-                onOpenPartnerPicker: {}
-            )))) }
-        ),
-        "journey-j4.nominal.02-trade-roster": ScreenshotScenario(
-            label: "J4 nominal 2/4 — picking from a roster Omen could read",
-            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
-                state: J4ScreenshotFixtures.nominalRoster,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onAddPlayer: { _ in }
-            )))) }
-        ),
+        "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(label: "J2 nominal 2/4 \u{2014} the team switcher", content: { AnyView(FoundationFixtures.switcher()) }),
+        "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(label: "J2 degraded 2/4 \u{2014} the team switcher", content: { AnyView(FoundationFixtures.switcher()) }),
+        "league.root": ScreenshotScenario(label: "League \u{2014} the tab root", content: { AnyView(OmenLeagueView(state: FoundationFixtures.league(degraded: false), teamControl: ("espn", "Titans of Slopsilonia"), onOpenWaivers: {})) }),
+        "waivers.move": ScreenshotScenario(label: "Waivers \u{2014} the one add", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: true), onOpenProvider: {}) }) }),
+        "journey-j4.nominal.01-trade-build": ScreenshotScenario(label: "J4 nominal 1/4 \u{2014} build a deal, third team available", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, onThreeTeam: {}) }) }),
+        "journey-j4.nominal.02-trade-roster": ScreenshotScenario(label: "J4 nominal 2/4 \u{2014} three-team, who sends what", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: false), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
         "journey-j4.nominal.03-trade-verdict": ScreenshotScenario(
             label: "J4 nominal 3/4 — the read, both sides and the caveat",
-            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictScreen(
-                state: J4ScreenshotFixtures.verdict,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onPrimaryAction: {},
-                onCounter: {},
-                onShare: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .verdict(J4ScreenshotFixtures.verdict), providerName: "ESPN", onAdjust: {}, onOpenProvider: {}, onShare: {})))) }
         ),
         "journey-j4.nominal.04-trade-share": ScreenshotScenario(
             label: "J4 nominal 4/4 — share the read, names off by default",
-            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
-                state: J4ScreenshotFixtures.nominalShare,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onToggleInclusion: { _ in },
-                onShare: {},
-                onCopyAsText: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareSheet(state: J4ScreenshotFixtures.nominalShare, onToggle: { _ in }, onShare: {}, onCopy: {}, onDone: {})))) }
         ),
-        "journey-j4.degraded.01-trade-build": ScreenshotScenario(
-            label: "J4 degraded 1/4 — a read built on inputs that did not all arrive",
-            content: { AnyView(j4Shell(AnyView(OmenTradeBuildScreen(
-                state: J4ScreenshotFixtures.degradedBuild,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onPrimaryAction: {},
-                onOpenPartnerPicker: {}
-            )))) }
-        ),
-        "journey-j4.degraded.02-trade-roster": ScreenshotScenario(
-            label: "J4 degraded 2/4 — no opponent rosters, permanently",
-            content: { AnyView(j4Shell(AnyView(OmenTradeRosterScreen(
-                state: J4ScreenshotFixtures.degradedRoster,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onSelectTab: { _ in },
-                onSelectPartner: { _ in },
-                onSelectFilter: { _ in },
-                onAddPlayer: { _ in }
-            )))) }
-        ),
+        "journey-j4.degraded.01-trade-build": ScreenshotScenario(label: "J4 degraded 1/4 \u{2014} three-team judged, set it up by hand", content: { AnyView(NavigationStack { OmenThreeTeamScreen(state: FoundationFixtures.threeTeam(judged: true), onPickThird: { _ in }, onRemoveThird: {}, onSend: { _, _, _ in }, onOpenPlayer: { _ in }, onJudge: {}, onAdjust: {}, onToggleStep: { _ in }, onCopyStep: { _ in }, onOpenProvider: {}) }) }),
+        "journey-j4.degraded.02-trade-roster": ScreenshotScenario(label: "J4 degraded 2/4 \u{2014} no opponent rosters", content: { AnyView(OmenStateBlock(kind: .notEnoughToGoOn, title: "Omen can\u{2019}t see the other teams yet", message: "Omen can't read the other teams' rosters for this provider yet.", actionTitle: "Judge an offer instead", action: {}).padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)) }),
         "journey-j4.degraded.03-trade-needs-context": ScreenshotScenario(
             label: "J4 degraded 3/4 — too close to call blind, and it says which input is missing",
-            content: { AnyView(j4Shell(AnyView(OmenTradeNeedsContextScreen(
-                state: J4ScreenshotFixtures.needsContext,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onConnect: {},
-                onShowAnyway: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeVerdictSheet(kind: .needsContext(J4ScreenshotFixtures.needsContext), onAdjust: {}, onConnect: {})))) }
         ),
         "journey-j4.degraded.04-trade-share": ScreenshotScenario(
             label: "J4 degraded 4/4 — the share service failed, and the read did not",
-            content: { AnyView(j4Shell(AnyView(OmenTradeShareScreen(
-                state: J4ScreenshotFixtures.degradedShare,
-                context: J4ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onToggleInclusion: { _ in },
-                onShare: {},
-                onCopyAsText: {}
-            )))) }
+            content: { AnyView(j4Shell(AnyView(OmenTradeShareSheet(state: J4ScreenshotFixtures.degradedShare, onToggle: { _ in }, onShare: {}, onCopy: {}, onDone: {})))) }
         ),
         // MARK: - J5, "the scout's nest"
         //
@@ -481,112 +220,18 @@ enum ScreenshotScenarios {
         //                     read and unused, in the foot line.
         //   waiver  degraded  `waiver_system` unavailable, named three times over; `roster` read
         //                     and unused, in the foot line.
-        "journey-j5.nominal.01-league-table": ScreenshotScenario(
-            label: "J5 nominal 1/3 — the scout\u{2019}s nest, everything read",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
-                state: J5ScreenshotFixtures.nominalTable,
-                context: J5ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenWaiver: {},
-                onBuildTrade: { _ in }
-            )))) }
-        ),
-        "journey-j5.nominal.02-league-waiver": ScreenshotScenario(
-            label: "J5 nominal 2/3 — the wire, one move and two alternatives",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
-                state: J5ScreenshotFixtures.nominalWire,
-                context: J5ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j5.nominal.03-waiver-no-move": ScreenshotScenario(
-            label: "J5 nominal 3/3 — nothing on the wire beats what you have",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
-                state: J5ScreenshotFixtures.noMoveWire,
-                context: J5ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                screenIdentifier: "j5.league-wire.no-move",
-                fitProbeIdentifier: "j5.fit.waiver-no-move"
-            )))) }
-        ),
-        "journey-j5.degraded.01-league-degraded": ScreenshotScenario(
-            label: "J5 degraded 1/3 — two sections live, two unread, each saying which",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
-                state: J5ScreenshotFixtures.degradedTable,
-                context: J5ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenWaiver: {},
-                onRetry: {}
-            )))) }
-        ),
-        "journey-j5.degraded.02-league-no-rosters": ScreenshotScenario(
-            label: "J5 degraded 2/3 — no rosters, so no trade read, permanently",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueTableScreen(
-                state: J5ScreenshotFixtures.noRostersTable,
-                context: J5ScreenshotFixtures.pukContext,
-                onOpenAccount: {},
-                onOpenWaiver: {}
-                // No `onRetry`, and the state carries no retry title. A permanent provider limit
-                // with a Try Again button is a promise the product cannot keep.
-            )))) }
-        ),
-        "journey-j5.degraded.03-waiver-not-determined": ScreenshotScenario(
-            label: "J5 degraded 3/3 — the waiver system itself is unknown",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
-                state: J5ScreenshotFixtures.notDeterminedWire,
-                context: J5ScreenshotFixtures.pukContext,
-                onOpenAccount: {},
-                screenIdentifier: "j5.league-wire.not-determined",
-                fitProbeIdentifier: "j5.fit.waiver-not-determined"
-            )))) }
-        ),
-        // MARK: J6 — "the receipts"
-        //
-        // `Ledger.dc.html` and `LedgerDetail.dc.html`, in the order a user meets them: the
-        // record, then one call in full. Both open on the **Omen** tab, which is where
-        // `CommandCenter`'s Ledger preview and its "See all" route live.
-        //
-        // Each pass carries both required classes:
-        //
-        //   ledger         degraded  `move_outcomes` unavailable, named with a sentence that
-        //                            survives truncation; `league_scoring` read and unused, in
-        //                            the foot line.
-        //   ledger-detail  degraded  `game_script` unavailable; `schedule_strength` read and
-        //                            explicitly not used — rendered with no evidence chip.
-        "journey-j6.nominal.01-ledger": ScreenshotScenario(
-            label: "J6 nominal 1/2 \u{2014} the record, verified and self-reported kept apart",
-            content: { AnyView(j6Shell(AnyView(OmenLedgerScreen(
-                state: J6ScreenshotFixtures.nominalLedger,
-                context: J6ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                onOpenCall: { _ in }
-            )))) }
-        ),
-        "journey-j6.nominal.02-ledger-detail": ScreenshotScenario(
-            label: "J6 nominal 2/2 \u{2014} one receipt in full, including the loss",
-            content: { AnyView(j6Shell(AnyView(OmenLedgerDetailScreen(
-                state: J6ScreenshotFixtures.nominalReceipt,
-                context: J6ScreenshotFixtures.titansContext,
-                onOpenAccount: {}
-            )))) }
-        ),
-        "journey-j6.degraded.01-ledger": ScreenshotScenario(
-            label: "J6 degraded 1/2 \u{2014} outcomes unread, follow-through unknown",
-            content: { AnyView(j6Shell(AnyView(OmenLedgerScreen(
-                state: J6ScreenshotFixtures.degradedLedger,
-                context: J6ScreenshotFixtures.pukContext,
-                onOpenAccount: {},
-                onOpenCall: { _ in }
-            )))) }
-        ),
-        "journey-j6.degraded.02-ledger-detail": ScreenshotScenario(
-            label: "J6 degraded 2/2 \u{2014} a receipt whose zone and evidence are incomplete",
-            content: { AnyView(j6Shell(AnyView(OmenLedgerDetailScreen(
-                state: J6ScreenshotFixtures.degradedReceipt,
-                context: J6ScreenshotFixtures.pukContext,
-                onOpenAccount: {}
-            )))) }
-        ),
+        "journey-j5.nominal.01-league-table": ScreenshotScenario(label: "J5 nominal 1/3 \u{2014} League: table, targets, the wire, the week", content: { AnyView(OmenLeagueView(state: FoundationFixtures.league(degraded: false), teamControl: ("espn", "Titans of Slopsilonia"), onOpenWaivers: {})) }),
+        "journey-j5.nominal.02-league-waiver": ScreenshotScenario(label: "J5 nominal 2/3 \u{2014} Waivers: the one add", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: true), onOpenProvider: {}) }) }),
+        "journey-j5.nominal.03-waiver-no-move": ScreenshotScenario(label: "J5 nominal 3/3 \u{2014} Waivers: nothing worth doing", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: false), onOpenProvider: {}) }) }),
+        "journey-j5.degraded.01-league-degraded": ScreenshotScenario(label: "J5 degraded 1/3 \u{2014} League without standings or rosters", content: { AnyView(OmenLeagueView(state: FoundationFixtures.league(degraded: true), teamControl: ("espn", "Titans of Slopsilonia"), onOpenWaivers: {})) }),
+        "journey-j5.degraded.02-league-no-rosters": ScreenshotScenario(label: "J5 degraded 2/3 \u{2014} League, other rosters unreadable", content: { AnyView(OmenLeagueView(state: FoundationFixtures.league(degraded: true), teamControl: ("espn", "Titans of Slopsilonia"), onOpenWaivers: {})) }),
+        "journey-j5.degraded.03-waiver-not-determined": ScreenshotScenario(label: "J5 degraded 3/3 \u{2014} Waivers, no bid sent", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: false), onOpenProvider: {}) }) }),
+        "journey-j6.nominal.01-ledger": ScreenshotScenario(label: "J6 nominal 1/2 \u{2014} the Ledger", content: { AnyView(NavigationStack { OmenLedgerScreen(state: FoundationFixtures.ledger(graded: true)) }) }),
+        "journey-j6.nominal.02-ledger-detail": ScreenshotScenario(label: "J6 nominal 2/2 \u{2014} one receipt", content: { AnyView(NavigationStack { OmenLedgerReceiptScreen(state: FoundationFixtures.receipt(closed: true)) }) }),
+        "journey-j6.degraded.01-ledger": ScreenshotScenario(label: "J6 degraded 1/2 \u{2014} the Ledger before any graded call", content: { AnyView(NavigationStack { OmenLedgerScreen(state: FoundationFixtures.ledger(graded: false)) }) }),
+        "journey-j6.degraded.02-ledger-detail": ScreenshotScenario(label: "J6 degraded 2/2 \u{2014} an open receipt", content: { AnyView(NavigationStack { OmenLedgerReceiptScreen(state: FoundationFixtures.receipt(closed: false)) }) }),
+        "ledger.root": ScreenshotScenario(label: "Ledger \u{2014} the season record", content: { AnyView(NavigationStack { OmenLedgerScreen(state: FoundationFixtures.ledger(graded: true)) }) }),
+        "ledger.receipt": ScreenshotScenario(label: "Ledger receipt \u{2014} one call, frozen", content: { AnyView(NavigationStack { OmenLedgerReceiptScreen(state: FoundationFixtures.receipt(closed: true)) }) }),
         // ----------------------------------------------------------------------------------
         // Chrome. `Account.dc.html` and `ReportPill.dc.html` — the last two artboards.
         //
@@ -642,12 +287,10 @@ enum ScreenshotScenarios {
         ),
         "account.about-data-sources": ScreenshotScenario(
             label: "About & data sources \u{2014} nflverse credit, provider data is the user's own",
-            content: { AnyView(NavigationStack { OmenAboutDataSourcesView() }) }
+            content: { AnyView(NavigationStack { OmenSourcesScreen() }) }
         ),
-        "chrome.report-pill.resting": ScreenshotScenario(
-            label: "Report pill \u{2014} in place on Command",
-            content: { AnyView(ChromeFixtures.reportPillOnCommand()) }
-        ),
+        "support.contact": ScreenshotScenario(label: "Contact support", content: { AnyView(OmenReportComposerSheet(title: "Contact support", screen: .account, connectionState: OmenBetaReportConnectionState(provider: .espn, state: .connected), repository: StubBetaReportRepository(), onDismiss: {}, schema: StubBetaReportRepository.schema, topic: .question)) }),
+        "account.how-calls": ScreenshotScenario(label: "How Omen makes a call", content: { AnyView(NavigationStack { OmenHowCallsScreen() }) }),
         "chrome.report-pill.composer": ScreenshotScenario(
             label: "Report pill \u{2014} the composer, showing exactly what it sends",
             content: { AnyView(ChromeFixtures.composer(.composing)) }
@@ -667,49 +310,7 @@ enum ScreenshotScenarios {
         // The REAL presented system sheet over a directory where every provider flags one league
         // `is_active` (as production does) while `active` names a single league: the capture must
         // show exactly one check mark.
-        "switcher.real-sheet": ScreenshotScenario(
-            label: "Team switcher — the system sheet, five teams over three providers, one check",
-            content: { AnyView(RealSwitcherSheetScreenshotHost()) }
-        ),
-        "switcher.team-sheet": ScreenshotScenario(
-            label: "Team switcher — pinned bar and the sheet, one favourite starred",
-            content: { AnyView(TeamSwitcherScreenshotHost()) }
-        ),
-        // §10.2 switcher. Rendered against a deterministic in-app stub rather than a live
-        // account, so the states are capturable without credentials — including the ones a
-        // real account would rarely show on demand (an unreadable directory, an empty one).
-        "league-switcher.loaded": ScreenshotScenario(
-            label: "League switcher — leagues across platforms",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .loaded)) }
-        ),
-        "league-switcher.empty": ScreenshotScenario(
-            label: "League switcher — nothing connected",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .empty)) }
-        ),
-        "league-switcher.failed": ScreenshotScenario(
-            label: "League switcher — directory unreadable",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .failed)) }
-        ),
-        "help-support.available": ScreenshotScenario(
-            label: "Help + Support — available",
-            content: { AnyView(OmenHelpSupportView(contextDescription: "Need help with your current Omen flow? Start with a topic below.")) }
-        ),
-        "help-support.no-account": ScreenshotScenario(
-            label: "Help + Support — no account",
-            content: { AnyView(OmenHelpSupportView(state: .noAccount)) }
-        ),
-        "help-support.offline": ScreenshotScenario(
-            label: "Help + Support — offline",
-            content: { AnyView(OmenHelpSupportView(state: .offline)) }
-        ),
-        "help-support.submission-unavailable": ScreenshotScenario(
-            label: "Help + Support — feedback unavailable",
-            content: { AnyView(OmenHelpSupportView(state: .submissionUnavailable)) }
-        ),
-        "help-support.provider-recovery": ScreenshotScenario(
-            label: "Help + Support — provider recovery",
-            content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
-        ),
+        "switcher.sheet": ScreenshotScenario(label: "Team switcher \u{2014} every team, one checked, one signed out", content: { AnyView(FoundationFixtures.switcher()) }),
         // The retired Command screen carried six Waiver Watch states. The current v2 wire
         // contract has three different, server-backed meanings: confirmed opportunity,
         // no credible move, and waiver-system not determined. Only `no-credible-move` is the
@@ -718,16 +319,7 @@ enum ScreenshotScenarios {
         // not have a current `waiver-analysis.v1` wire body; keeping their keys by relabelling a
         // different screen would create false evidence. The current equivalents that do exist
         // are already covered by the J5 journey scenarios immediately above.
-        "waiver-watch.no-credible-move": ScreenshotScenario(
-            label: "The wire — no credible move",
-            content: { AnyView(j5Shell(AnyView(OmenLeagueWireScreen(
-                state: J5ScreenshotFixtures.noMoveWire,
-                context: J5ScreenshotFixtures.titansContext,
-                onOpenAccount: {},
-                screenIdentifier: "j5.league-wire.no-move",
-                fitProbeIdentifier: "j5.fit.waiver-no-move"
-            )))) }
-        ),
+        "waiver-watch.no-credible-move": ScreenshotScenario(label: "The wire \u{2014} no credible move", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: false), onOpenProvider: {}) }) }),
         // M6-ContextualHelp. The sheet body is captured directly rather than through a tap:
         // screenshot mode has no interaction, and the content is what needs proving.
         "contextual-help.command-center": ScreenshotScenario(
@@ -797,28 +389,8 @@ enum ScreenshotScenarios {
     private static func j4Shell(_ content: AnyView) -> some View {
         FauxShell(
             initialTab: .trade,
-            tradeContentOverride: AnyView(
-                OmenTradeModeContainer(selectedMode: .constant(.build)) { mode in
-                    mode == .build ? content : AnyView(EmptyView())
-                }
-            )
+            tradeContentOverride: AnyView(NavigationStack { content })
         )
-    }
-
-    /// J5 opens on the League tab. All six of its artboards live in that destination — the wire
-    /// included, because `CONTRACTS.md` places Waiver as a section *inside* League rather than as
-    /// a fifth tab. A J5 capture that opened on Command would photograph the wrong screen and
-    /// prove nothing, which is the mistake the `initialTab` seam exists to prevent.
-    private static func j5Shell(_ content: AnyView) -> some View {
-        FauxShell(initialTab: .league, leagueContentOverride: content)
-    }
-
-    /// J6 opens on the Omen tab. Both artboards draw the Omen tab lit, and the only production
-    /// route into either of them is the Command Center Ledger preview's "See all" and its rows —
-    /// which live in the Omen destination. Opening on Command would photograph the preview
-    /// rather than the Ledger.
-    private static func j6Shell(_ content: AnyView) -> some View {
-        FauxShell(initialTab: .omen, omenContentOverride: content)
     }
 
     /// Read the launch-argument value that names the current scenario, if any.
@@ -898,53 +470,32 @@ private struct OnboardingAuthScreenshotHost: View {
     }
 }
 
-/// `OmenTradeFindReviewScreen` against a stubbed repository and save action: no network, no
-/// session. A fixture batch (one fair swap with its reasoning) or a server "unavailable" answer.
+/// Find a trade from fixtures (frame FindTrade): one swap, or the honest "unavailable" answer.
 private struct FindReviewScenarioHost: View {
-    var platform: String
-    @StateObject private var viewModel: TradeFindReviewViewModel
-
-    init(unavailableReason: String?, platform: String = "sleeper") {
-        self.platform = platform
-        let candidate = """
-        {
-          "id": "tok.find_2_waddle_pollard", "opponent_team_id": "2", "opponent_team_name": "Davante's Inferno",
-          "give": { "name": "Jaylen Waddle", "position": "WR", "team": "MIA", "projected_points": 14.8 },
-          "receive": { "name": "Tony Pollard", "position": "RB", "team": "TEN", "projected_points": 16.2 },
-          "user_lineup_delta": 4.2, "opponent_lineup_delta": 1.1,
-          "reasoning": {
-            "fills_need_for": ["user"],
-            "user_receives": { "position": "RB", "need": { "status": "hole", "have": 2, "required": 3 } },
-            "opponent_receives": { "position": "WR", "need": { "status": "surplus", "have": 6, "required": 3 } },
-            "evidence": ["live_roster_depth", "live_lineup_projection_delta"]
-          }
-        }
-        """
-        let json: String
-        if let unavailableReason {
-            json = """
-            { "contract_version": "trade-find.v1", "status": "unavailable", "platform": "\(platform)",
-              "league_id": "l", "week": 7, "reason": "\(unavailableReason)", "candidates": [] }
-            """
-        } else {
-            json = """
-            { "contract_version": "trade-find.v1", "status": "ok", "platform": "\(platform)",
-              "league_id": "l", "team_id": "1", "week": 7,
-              "bounds": { "teams_considered": 5, "teams_skipped_for_cap": [] },
-              "degraded_teams": [], "budget_exceeded": false, "candidates": [\(candidate)] }
-            """
-        }
-        let response = try? JSONDecoder().decode(TradeFindResponse.self, from: Data(json.utf8))
-        let session = Session(userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999)
-        _viewModel = StateObject(wrappedValue: TradeFindReviewViewModel(
-            repository: StubTradeFindRepository(result: response.map { .success($0) } ?? .failure(.decode)),
-            saveAction: StubTradeFindSaveAction(),
-            sessionManager: SessionManager(store: InMemorySecureSessionStore(initial: session), nowEpochSeconds: { 1_000 })
-        ))
-    }
+    var unavailableReason: String?
+    var platform = "sleeper"
 
     var body: some View {
-        OmenTradeFindReviewScreen(viewModel: viewModel, platform: platform, leagueId: "l", teamId: "1", week: 7)
+        NavigationStack {
+            OmenFindTradeScreen(state: state, onOpenInBuilder: {}, onNext: {}, onRetry: {}, onOpenPlayer: { _ in }, onBack: {})
+        }
+    }
+
+    private var state: OmenFindTradeState {
+        if let unavailableReason {
+            let copy = OmenFindTradeState.unavailableCopy(reason: unavailableReason, platform: platform)
+            return OmenFindTradeState(phase: .unavailable(title: copy.title, message: copy.message, retry: false))
+        }
+        let flowers = OmenPlayerSummary(id: "zf", name: "Zay Flowers", position: "WR", team: "BAL", number: 4, omenPoints: 13.9, providerPoints: 13.1, providerName: "ESPN", grade: 77, lead: .omen)
+        return OmenFindTradeState(
+            phase: .reviewing(.init(
+                id: "c1", partnerName: "Gibbs me some Rice", partnerNeed: "Needs WR",
+                send: FoundationFixtures.smith, receive: flowers,
+                yourGain: 1.9, theirGain: 2.4,
+                theCatch: "Flowers has a Week 14 bye, your first playoff week."
+            ), index: 0, total: 4),
+            teamsRead: 9
+        )
     }
 }
 
@@ -1085,13 +636,7 @@ private struct FauxShell: View {
                 if let commandContentOverride {
                     commandContentOverride
                 } else {
-                    OmenCommandDeskScreen(
-                        state: J2ScreenshotFixtures.nominalDesk,
-                        context: J2ScreenshotFixtures.titansContext,
-                        onOpenAccount: {},
-                        onOpenLeague: {},
-                        onOpenLedger: {}
-                    )
+                    DeskScenario(phase: .ready)
                 }
             }
                 .tabItem { CommandCenterTab.command.label }
@@ -1101,21 +646,7 @@ private struct FauxShell: View {
                 if let omenContentOverride {
                     omenContentOverride
                 } else {
-                    OmenDecisionScreen(
-                        state: omenState,
-                        // Supplied so the capture exercises the header eyebrow and the provider handoff.
-                        // Both are optional on the screen by design: absent week means no eyebrow, and
-                        // absent provider means no "make this move" button, because neither may be
-                        // guessed. A capture that never passes them would silently prove only the
-                        // degraded half of the layout.
-                        weekLabel: "Week 7",
-                        providerName: "ESPN",
-                        onMakeMove: {},
-                        onDecline: {},
-                        onOpenFullArgument: {},
-                        onReviewTrade: { _ in },
-                        onFindOtherTrades: {}
-                    )
+                    OmenCallView(state: omenState, weekLabel: "Week 7", providerName: "ESPN", onMakeMove: {}, onReviewTrade: { _ in }, onFindOtherTrades: {})
                 }
             }
             .tabItem { CommandCenterTab.omen.label }
@@ -1130,17 +661,23 @@ private struct FauxShell: View {
                 if let tradeContentOverride {
                     tradeContentOverride
                 } else {
-                    OmenTradeModeContainer(selectedMode: .constant(.type)) { mode in
-                        switch mode {
-                        case .type:
-                            OmenTradeScreen(
-                                state: tradeState,
-                                offer: tradeOffer,
-                                prefill: scenarioKey == "trade.prefilled" ? Self.prefilledTrade : nil
+                    if ["trade.empty", "trade.prefilled", "trade.verdict"].contains(scenarioKey) {
+                        NavigationStack {
+                            OmenJudgeOfferScreen(
+                                state: OmenJudgeOfferState(
+                                    send: tradeOffer.send, receive: tradeOffer.receive,
+                                    partners: FoundationFixtures.builder.partners, partnerID: FoundationFixtures.builder.partnerID,
+                                    results: scenarioKey == "trade.empty" ? [
+                                        .init(id: "rr", name: "Rashee Rice", position: "WR", team: "KC", owner: "on Gibbs me some Rice", isCorrection: false),
+                                        .init(id: "rs", name: "Rashid Shaheed", position: "WR", team: "NO", owner: "free agent", isCorrection: false),
+                                    ] : []
+                                ),
+                                onQuery: { _, _ in }, onAdd: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onJudge: {},
+                                side: .receive, query: scenarioKey == "trade.empty" ? "Rash" : ""
                             )
-                        case .find, .build:
-                            EmptyView()
                         }
+                    } else {
+                        OmenTradeChooserView(onFind: {}, onBuild: {}, onJudge: {})
                     }
                 }
             }
@@ -1151,7 +688,11 @@ private struct FauxShell: View {
                 if let leagueContentOverride {
                     leagueContentOverride
                 } else {
-                    OmenLeagueScreen(state: leagueState)
+                    if case .loaded(let overview) = leagueState {
+                        OmenLeagueView(state: OmenLeagueState(overview: overview, targets: [], targetsNote: nil, waiver: nil))
+                    } else {
+                        OmenLeagueView(state: OmenLeagueState(phase: .loading))
+                    }
                 }
             }
             .tabItem { CommandCenterTab.league.label }
@@ -1185,20 +726,6 @@ private struct FauxShell: View {
         return .loaded(overview)
     }
 
-    private var tradeState: TradeViewModel.ViewState {
-        guard let result = Self.decodeTrade(Self.tradeVerdictJSON) else { return .failed(.decode) }
-        return (scenarioKey == "trade.empty" || scenarioKey == "trade.prefilled") ? .idle : .loaded(result)
-    }
-
-    /// What `TradeViewModel.applyPrefill` records for the `omen.trade-call` fixture, so the two screens in the
-    /// journey show the same deal.
-    private static var prefilledTrade: TradeViewModel.Prefill {
-        TradeViewModel.Prefill(
-            giveName: "Sample WR1", receiveName: "Sample RB1", partnerName: "Sample Rivals",
-            receivePlayerKey: "sample-rb1", platform: "espn"
-        )
-    }
-
     private var tradeOffer: TradeOffer {
         if scenarioKey == "trade.prefilled" {
             return TradeOffer(
@@ -1207,7 +734,10 @@ private struct FauxShell: View {
             )
         }
         return scenarioKey == "trade.empty"
-            ? TradeOffer()
+            ? TradeOffer(
+                send: [TradePlayer(name: "Trey McBride", position: "TE", team: "ARI")],
+                receive: [TradePlayer(name: "Jake Ferguson", position: "TE", team: "DAL")]
+            )
             : TradeOffer(
                 send: [TradePlayer(name: "A.J. Brown", position: "WR", team: "PHI")],
                 receive: [TradePlayer(name: "Garrett Wilson", position: "WR", team: "NYJ")]
@@ -1395,17 +925,6 @@ private enum J3ScreenshotFixtures {
        {"name":"weather","state":"not_requested","used":false,"kind":"limitation","source":null,"statement":null}]}
     """)
 
-    /// E005–E012's context. Generic for the same reason the player names are: a capture that
-    /// escapes into a deck must not read as a real person's league.
-    static let context = OmenFirstCallContext(
-        crest: "TTO",
-        teamName: "Titans of Slopsilonia",
-        platform: .espn,
-        leagueName: "Slops Saloon",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
     private static func decode(_ json: String) -> StartSitDetail {
         do {
             return try JSONDecoder().decode(StartSitDetail.self, from: Data(json.utf8))
@@ -1413,489 +932,6 @@ private enum J3ScreenshotFixtures {
             preconditionFailure("Malformed J3 screenshot fixture: \(error)")
         }
     }
-}
-
-/// Screenshot host for the §10.2 switcher. The sheet itself takes a view model, so this
-/// supplies one backed by `StubLeagueDirectoryRepository` and renders the sheet's body
-/// inline rather than as a presented sheet — a modal presentation does not appear in a
-/// `simctl io screenshot` of the host window.
-struct LeagueSwitcherScreenshotHost: View {
-    enum Kind { case loaded, empty, failed }
-    let kind: Kind
-
-    @StateObject private var viewModel: LeagueSwitcherViewModel
-
-    init(kind: Kind) {
-        self.kind = kind
-        let result: Result<LeagueDirectory, OmenApiError>
-        switch kind {
-        case .loaded: result = .success(LeagueSwitcherScreenshotHost.sampleDirectory())
-        case .empty: result = .success(LeagueSwitcherScreenshotHost.emptyDirectory())
-        case .failed: result = .failure(.network)
-        }
-        _viewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
-            repository: StubLeagueDirectoryRepository(directory: result),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            )
-        ))
-    }
-
-    var body: some View {
-        OmenLeagueSwitcherSheet(
-            viewModel: viewModel,
-            onSelected: { _ in },
-            onConnectAnother: {},
-            onManageConnections: {},
-            onDismiss: {}
-        )
-    }
-
-    private static func decode(_ json: String) -> LeagueDirectory {
-        // Force-unwrapped deliberately: this is screenshot-only fixture data that ships with
-        // the app, and a malformed fixture should fail loudly in a capture run rather than
-        // render an empty screen that looks like a real empty state.
-        try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
-    }
-
-    /// Shared with `TeamSwitcherScreenshotHost` so both switcher captures describe the
-    /// same user rather than drifting into two different fixture worlds.
-    static func screenshotDirectory() -> LeagueDirectory { sampleDirectory() }
-
-    private static func sampleDirectory() -> LeagueDirectory {
-        decode("""
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":{"platform":"sleeper","league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans"},
-         "platforms":[
-          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans","is_active":true},
-            {"league_id":"L-fam","league_name":"Family League","season":2026,"scoring_format":"ppr","team_id":"5","team_name":"Titans Too","is_active":false}]},
-          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":"ESPN does not expose a league list to Omen, so only the connected league is shown.","leagues":[
-            {"league_id":"884411","league_name":null,"season":2026,"scoring_format":null,"team_id":"9","team_name":"Sunday Scaries","is_active":false}]},
-          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
-        """)
-    }
-
-    private static func emptyDirectory() -> LeagueDirectory {
-        decode("""
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":null,
-         "platforms":[
-          {"platform":"sleeper","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
-          {"platform":"espn","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
-          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
-        """)
-    }
-}
-
-/// Presents the production `OmenTeamPicker` sheet, not an inline imitation of it.
-struct RealSwitcherSheetScreenshotHost: View {
-    @StateObject private var viewModel: LeagueCarouselViewModel
-    @State private var presented = true
-
-    init() {
-        let json = """
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":{"platform":"yahoo","league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out"},
-         "platforms":[
-          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":null,"leagues":[
-            {"league_id":"E1","league_name":"EB Football","season":2026,"team_id":"8","team_name":"Titans of Slopsilonia","is_active":true},
-            {"league_id":"E2","league_name":"Fantasy Madness","season":2026,"team_id":"3","team_name":"Davante\u{2019}s Inferno","is_active":false},
-            {"league_id":"884411","league_name":null,"season":2026,"team_id":"9","team_name":null,"is_active":false}]},
-          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"S1","league_name":"Omen App Data","season":2026,"team_id":"1","team_name":"Hall Pass Heroes","is_active":true}]},
-          {"platform":"yahoo","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out","is_active":true}]}]}
-        """
-        let directory = try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
-        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
-            directoryRepository: StubLeagueDirectoryRepository(directory: .success(directory)),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            ),
-            preferences: InMemoryLeagueSwitcherPreferences(
-                favorites: ["screenshot": LeagueFavorites(ordered: ["espn:E1"])]
-            )
-        ))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            OmenTeamPicker(
-                viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {},
-                externalPresentation: $presented
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            Text("Desk").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
-                .padding(.horizontal, OmenSpacing.step16)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(OmenColor.bg)
-        .task { await viewModel.load(userID: "screenshot") }
-    }
-}
-
-/// Screenshot host for the 2026-09-05 team switcher: the pinned context bar and the sheet's
-/// body, rendered together against one deterministic directory.
-///
-/// Both are shown inline. A presented `.sheet` does not appear in a `simctl io screenshot` of
-/// the host window, and the bar is the half where the shipped defect lived — a scroll that ran
-/// off the right edge with no pinned control — so a capture that showed only the sheet would
-/// miss exactly what this change fixes.
-///
-/// One favourite is pre-seeded through the injected preferences store, because the ordering
-/// rule and the platinum star are the two things a reviewer needs to *see* rather than read.
-struct TeamSwitcherScreenshotHost: View {
-    @StateObject private var viewModel: LeagueCarouselViewModel
-
-    init() {
-        let preferences = InMemoryLeagueSwitcherPreferences(
-            // Sunday Scaries is the ESPN team and third in the server's order. Starring it
-            // proves the sort actually moved it, which a favourite that was already first
-            // could not.
-            favorites: ["screenshot": LeagueFavorites(ordered: ["espn:884411"])]
-        )
-        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
-            directoryRepository: StubLeagueDirectoryRepository(
-                directory: .success(LeagueSwitcherScreenshotHost.screenshotDirectory())
-            ),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            ),
-            preferences: preferences
-        ))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step24) {
-            OmenTeamPicker(viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {})
-                .padding(.horizontal, OmenSpacing.step16)
-            OmenTeamSwitcherSheet(
-                teams: teams,
-                platformFilters: filters,
-                selectedFilter: viewModel.selectedPlatform,
-                notice: nil,
-                // Live, not inert: the capture doubles as the manual check that a tap on the
-                // star toggles without switching, and a tap on the row switches.
-                onSelectFilter: { viewModel.selectedPlatform = $0 },
-                onSelectTeam: { team in
-                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
-                    Task { _ = await viewModel.commit(page) }
-                },
-                onToggleFavorite: { team in
-                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
-                    viewModel.toggleFavorite(page)
-                },
-                onAddLeague: {}
-            )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(OmenColor.bg)
-        .task { await viewModel.load(userID: "screenshot") }
-    }
-
-    private var teams: [OmenSwitcherTeam] {
-        viewModel.pages.map { page in
-            OmenSwitcherTeam(
-                id: page.id,
-                platform: page.platform == "espn" ? .espn : (page.platform == "yahoo" ? .yahoo : .sleeper),
-                teamName: page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName,
-                subtitle: Self.subtitle(page),
-                isActive: viewModel.isCurrent(page),
-                isFavorite: viewModel.isFavorite(page),
-                isCommitting: false
-            )
-        }
-    }
-
-    /// Mirrors `OmenTeamPicker.subtitle(_:)`. Kept in step deliberately: a capture that showed
-    /// a different second line than the real screen would be a screenshot of something that does
-    /// not exist.
-    private static func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
-        let provider = platformDisplayName(page.platform)
-        guard page.teamName?.isEmpty == false else { return OmenTeamPicker.unnamedTeamSubtitle(provider: provider) }
-        guard page.leagueName?.isEmpty == false else { return provider }
-        return "\(provider) · \(page.displayLeagueName)"
-    }
-
-    private var filters: [OmenSwitcherPlatformFilter] {
-        [OmenSwitcherPlatformFilter(id: LeagueCarouselViewModel.allPlatforms, label: "All", tone: .omen, count: viewModel.allPages.count)]
-            + viewModel.availablePlatforms.map { platform in
-                OmenSwitcherPlatformFilter(
-                    id: platform,
-                    label: platformDisplayName(platform),
-                    tone: platform == "espn" ? .espn : (platform == "yahoo" ? .yahoo : .sleeper),
-                    count: viewModel.allPages.filter { $0.platform == platform }.count
-                )
-            }
-    }
-}
-
-/// Owns the carousel view model for the lifetime of the capture and kicks off its load.
-private struct CarouselScenarioHost: View {
-    var scenarioKey: String
-    var failingPlatform: String?
-    @StateObject private var viewModel: LeagueCarouselViewModel
-
-    init(scenarioKey: String, failingPlatform: String? = nil) {
-        self.scenarioKey = scenarioKey
-        self.failingPlatform = failingPlatform
-        _viewModel = StateObject(
-            wrappedValue: CarouselFixtures.viewModel(failingPlatform: failingPlatform)
-        )
-    }
-
-    var body: some View {
-        FauxShell(
-            scenarioKey: scenarioKey,
-            commandContentOverride: AnyView(
-                OmenCommandDeskHost(
-                    state: CarouselFixtures.deskState(
-                        for: viewModel,
-                        failingPlatform: failingPlatform
-                    ),
-                    context: CarouselFixtures.context(for: viewModel),
-                    onOpenAccount: {},
-                    onOpenLeague: {},
-                    onReportProblem: {},
-                    carousel: viewModel,
-                    userID: "fixture",
-                    onContextChanged: { _ in }
-                )
-            )
-        )
-    }
-}
-
-/// J2's fixtures.
-///
-/// Copy is taken **verbatim from the artboards** wherever the artboard has any, because on these
-/// five screens the words are the design: `CommandQuiet` and `CommandQuietStraight` differ by two
-/// sentences and nothing else, and paraphrasing either would erase the voice fence the pair
-/// exists to draw.
-///
-/// Team and player names are the canvas's own invented ones. A capture that escapes into a deck
-/// must not read as a real person's league.
-enum J2ScreenshotFixtures {
-    // MARK: Context
-
-    static let titansContext = OmenScreenContext(
-        crest: "TTO",
-        teamName: "Titans of Slopsilonia",
-        platform: .espn,
-        leagueName: "Slops Saloon",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    /// The team being switched **to** on `SwitchLoading`.
-    static let davantesContext = OmenScreenContext(
-        crest: "DSI",
-        teamName: "Davante\u{2019}s Inferno",
-        platform: .espn,
-        leagueName: "EB Football",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    // MARK: CommandCenter
-
-    private static let waiverMove = OmenDeskWaiverMove(
-        addName: "Jaylen Wright",
-        addMeta: "RB · TEN",
-        addPoints: "11.4",
-        dropName: "Roschon Johnson",
-        dropMeta: "RB · CHI",
-        dropPoints: "4.1",
-        reasoning: "Pollard\u{2019}s out three weeks and Wright took almost every backup snap. Roschon is behind two healthy backs — you won\u{2019}t miss him.",
-        band: .confident,
-        risk: .low,
-        riskReason: nil
-    )
-
-    private static let ledgerLine = OmenDeskLedgerLine(
-        summary: "Start Stafford over Daniels",
-        meta: "This week · start / sit · you followed it",
-        outcome: .pending
-    )
-
-    static let nominalDesk = OmenDeskState(
-        weekLabel: "Week 7 · Sunday",
-        deadlineLabel: "Lineups lock",
-        deadlineTime: "1:00 PM",
-        matchup: .read(OmenDeskMatchup(
-            platform: .espn,
-            status: "Live · Q2",
-            leader: OmenDeskTeam(crest: "TTO", name: "Titans of Slopsilonia", record: "5–2 · you", score: "64.8", isMine: true),
-            trailer: OmenDeskTeam(crest: "GMR", name: "Gibbs me some Rice", record: "6–1", score: "51.2", isMine: false),
-            projection: "119.6 – 114.2",
-            projectionNote: "Projected · 5.4 ahead",
-            leadFraction: 0.66,
-            watch: "Four of your starters left; two of theirs."
-        )),
-        railCount: 4,
-        railIndex: 0,
-        waiver: .read(waiverMove),
-        ledger: .read(ledgerLine),
-        // The nominal artboard has no foot line and neither does this. Nothing was unread and
-        // nothing was read-and-ignored, so there is nothing honest to put there.
-        footnote: nil
-    )
-
-    /// Current-screen stress fixture for the screenshot key that historically exercised long
-    /// fantasy team names. It stays on the production desk composition instead of preserving
-    /// the retired Command screen solely for truncation evidence.
-    static let longNameDesk = OmenDeskState(
-        weekLabel: "Week 7 · Sunday",
-        deadlineLabel: "Lineups lock",
-        deadlineTime: "1:00 PM",
-        matchup: .read(OmenDeskMatchup(
-            platform: .espn,
-            status: "Live · Q2",
-            leader: OmenDeskTeam(
-                crest: "TTO",
-                name: "Justin's Absolutely Enormous Fantasy Team Name",
-                record: "5–2 · you",
-                score: "64.8",
-                isMine: true
-            ),
-            trailer: OmenDeskTeam(
-                crest: "GOS",
-                name: "G.O.A.T. SQUAD Championship Or Bust Edition",
-                record: "6–1",
-                score: "51.2",
-                isMine: false
-            ),
-            projection: "119.6 – 114.2",
-            projectionNote: "Projected · 5.4 ahead",
-            leadFraction: 0.66,
-            watch: "Four of your starters left; two of theirs."
-        )),
-        railCount: 4,
-        railIndex: 0,
-        waiver: .read(waiverMove),
-        ledger: .read(ledgerLine),
-        footnote: nil
-    )
-
-    /// The degraded desk.
-    ///
-    /// Two classes are visible at once, which is the whole requirement:
-    ///
-    ///   - `league_matchup` is **unavailable** — named, with a sentence, in the board's own place.
-    ///     It is not dropped to make room, because that is the one class the spec says must
-    ///     survive truncation.
-    ///   - `league_standings` is **live, used: false** — named in the foot line, `text-tertiary`,
-    ///     with no evidence styling and no implication that it decided anything.
-    ///
-    /// The waiver card and the ledger line are untouched, and that is the point of the frame:
-    /// a dead matchup read sits beside a live wire, and the screen says which is which.
-    static let degradedDesk = OmenDeskState(
-        weekLabel: "Week 7 · Sunday",
-        deadlineLabel: "Lineups lock",
-        deadlineTime: "1:00 PM",
-        matchup: .unread(
-            capability: "League matchup",
-            sentence: "ESPN did not return this week\u{2019}s scoreboard, so Omen has no live score for you. The wire and the ledger below read normally."
-        ),
-        railCount: 4,
-        railIndex: 0,
-        waiver: .read(waiverMove),
-        ledger: .read(ledgerLine),
-        footnote: OmenDeskFootnote(
-            text: "League standings were read and did not change this week\u{2019}s call.",
-            emphasis: nil
-        )
-    )
-
-    // MARK: SwitchSheet
-
-    private static let switchFilters = [
-        OmenSwitchFilter(id: "all", label: "All"),
-        OmenSwitchFilter(id: "espn", label: "ESPN"),
-        OmenSwitchFilter(id: "yahoo", label: "Yahoo"),
-        OmenSwitchFilter(id: "sleeper", label: "Sleeper")
-    ]
-
-    /// Favourites first, then everything else — in the order the directory returned them.
-    /// `orderPlatformsByFollowCount` is the single authority and clients must not re-sort, so
-    /// these arrays are written in final order and the screen never touches them.
-    private static let switchGroups = [
-        OmenSwitchGroup(title: "Favourites", rows: [
-            OmenSwitchRow(id: "tto", crest: "TTO", teamName: "Titans of Slopsilonia", subtitle: "ESPN", isFavorite: true, isActive: true),
-            OmenSwitchRow(id: "dsi", crest: "DSI", teamName: "Davante\u{2019}s Inferno", subtitle: "ESPN · EB Football", isFavorite: true, isActive: false)
-        ]),
-        OmenSwitchGroup(title: "All teams", rows: [
-            OmenSwitchRow(id: "pak", crest: "PAF", teamName: "Puk Around & Find Out", subtitle: "ESPN · Fantasy Madness", isFavorite: false, isActive: false),
-            // The artboard's own honest row: a league the provider named and a team it did not.
-            // "unnamed team" is the fallback and it is the caller's to decide, never the row's.
-            OmenSwitchRow(id: "dar", crest: "DAR", teamName: "League 884411", subtitle: "ESPN team \u{00B7} name not shared", isFavorite: false, isActive: false)
-        ])
-    ]
-
-    static let nominalSwitchSheet = OmenSwitchSheetState(
-        filters: switchFilters,
-        selectedFilterID: "espn",
-        groups: switchGroups
-    )
-
-    static let degradedSwitchSheet = OmenSwitchSheetState(
-        filters: switchFilters,
-        selectedFilterID: "espn",
-        groups: switchGroups,
-        // Named rather than silently absent. A user whose Yahoo teams vanished from this list
-        // would conclude they had lost them.
-        notice: "Yahoo did not answer, so any Yahoo teams are missing from this list. Your ESPN teams are all here."
-    )
-
-    // MARK: SwitchLoading
-
-    static let switchingFootnote = OmenDeskFootnote(
-        text: "Reading Davante\u{2019}s Inferno from ESPN.",
-        emphasis: "The previous team\u{2019}s numbers are gone, not reused."
-    )
-
-    // MARK: Quiet week
-
-    static let quietNeutral = OmenQuietState(
-        variant: .neutral,
-        weekLabel: "Week 8 · Bye",
-        headline: "Nothing worth waking you for.",
-        body: "You\u{2019}re on bye, your roster is healthy, and nobody on your waiver wire is worth a claim. Genuinely — go outside.",
-        band: .confident,
-        risk: .low,
-        nextRead: "Next read · Tuesday 3:00 AM waivers",
-        footnote: OmenDeskFootnote(
-            text: "3rd of 12, two games clear of the cut. Trade deadline in three weeks.",
-            emphasis: nil
-        )
-    )
-
-    static let quietStraight = OmenQuietState(
-        variant: .straight,
-        weekLabel: "Week 9 · After a loss",
-        headline: "Rough week. Nothing worth moving for.",
-        body: "You lost by four, Achane is out, and there is nobody on the wire who fixes that. Holding is the call.",
-        band: .confident,
-        risk: .low,
-        nextRead: "Next read · Tuesday 3:00 AM waivers",
-        footnote: OmenDeskFootnote(
-            text: "5th of 12. One game off the cut with six to play.",
-            emphasis: nil
-        )
-    )
 }
 
 /// J4, "settling an argument" — the fixtures behind the eight Trade captures.
@@ -1937,24 +973,8 @@ enum J4ScreenshotFixtures {
 
     // MARK: Context
 
-    /// The same team J2's desk runs as, so the switcher bar above J4 reads continuous with the
-    /// destination a user actually arrived from.
-    static let titansContext = OmenScreenContext(
-        crest: "TTO",
-        teamName: "Titans of Slopsilonia",
-        platform: .espn,
-        leagueName: "Slops Saloon",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
     // MARK: Capability
 
-    static let threeTeamsSupported = OmenTradeCapability(
-        maxTeams: 3,
-        threeTeamSupported: true,
-        threeTeamReason: nil
-    )
 
     // MARK: Partners and filters
 
@@ -1966,20 +986,6 @@ enum J4ScreenshotFixtures {
         OmenTradePartner(id: "puk", crest: "PUK", name: "Puk Around & Find Out", need: nil)
     ]
 
-    /// The artboard's six, including its `.fc.smart` one.
-    ///
-    /// "Fills my RB hole" rather than "Buy low": `.fc.smart` is a filter that names a
-    /// **conclusion** rather than a position, and a conclusion about *this* roster is what makes
-    /// it a different kind of control. "Buy low" is a category, which is what the plain chips
-    /// already are.
-    static let filters: [OmenTradeFilter] = [
-        OmenTradeFilter(id: "all", title: "All"),
-        OmenTradeFilter(id: "qb", title: "QB"),
-        OmenTradeFilter(id: "rb", title: "RB"),
-        OmenTradeFilter(id: "wr", title: "WR"),
-        OmenTradeFilter(id: "te", title: "TE"),
-        OmenTradeFilter(id: "fills-rb", title: "Fills my RB hole", isSmart: true)
-    ]
 
     // MARK: Inputs
 
@@ -2056,105 +1062,11 @@ enum J4ScreenshotFixtures {
 
     // MARK: TradeBuild
 
-    static let nominalBuild = OmenTradeBuildState(
-        kicker: "Two teams",
-        title: "Build a deal",
-        // The production Trade shell owns Find / Build / Type. The journey itself must not draw
-        // a second, competing Type / Build selector underneath it.
-        tabTitles: [],
-        selectedTabIndex: 0,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "all",
-        capability: threeTeamsSupported,
-        sides: sides,
-        read: nominalRead,
-        submission: submission,
-        primaryActionTitle: "Get Omen\u{2019}s read"
-    )
 
-    static let degradedBuild = OmenTradeBuildState(
-        kicker: "Two teams",
-        title: "Build a deal",
-        tabTitles: [],
-        selectedTabIndex: 0,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "all",
-        capability: threeTeamsSupported,
-        sides: sides,
-        read: degradedRead,
-        // No submission block. The handoff steps come from `trade-capabilities.v1`'s
-        // `submission` field, and this pass is the one where that read did not land — inventing
-        // three ESPN steps here would be the screen claiming a capability it does not have.
-        submission: nil,
-        primaryActionTitle: "Get Omen\u{2019}s read"
-    )
 
     // MARK: TradeRoster
 
-    static let nominalRoster = OmenTradeRosterState(
-        kicker: "Build a deal",
-        title: "Their roster",
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "rb",
-        capability: threeTeamsSupported,
-        rosters: .read(
-            teamName: "Davante\u{2019}s Inferno",
-            playerCount: 16,
-            rows: [
-                OmenTradeRosterState.Row(
-                    id: "pollard",
-                    name: "Tony Pollard",
-                    meta: "RB · TEN · RB 18",
-                    availability: .added
-                ),
-                OmenTradeRosterState.Row(
-                    id: "wright",
-                    name: "Jaylen Wright",
-                    meta: "RB · TEN · unranked",
-                    availability: .available
-                ),
-                OmenTradeRosterState.Row(
-                    id: "gibbs",
-                    name: "Jahmyr Gibbs",
-                    meta: "RB · DET · RB 3",
-                    availability: .theyNeedThis
-                )
-            ],
-            freshness: "Rosters read 6 minutes ago"
-        ),
-        note: "Gibbs is greyed because they are as thin at back as you are. Omen will still score it if you ask, but they will not take it."
-    )
 
-    /// Fact of record #16, rendered.
-    ///
-    /// The provider will not hand over the other teams' rosters for this league, so **Omen
-    /// issues no trade call at all** — and that is a permanent provider limit, not an outage.
-    /// There is no retry control on this frame and there must never be one: a retry says "try
-    /// again later", and later is not a thing that helps here.
-    static let degradedRoster = OmenTradeRosterState(
-        kicker: "Build a deal",
-        title: "Their roster",
-        tabTitles: ["Type a trade", "Build a trade"],
-        selectedTabIndex: 1,
-        partners: partners,
-        selectedPartnerID: "dsi",
-        filters: filters,
-        selectedFilterID: "rb",
-        capability: threeTeamsSupported,
-        rosters: .permanentlyUnavailable(
-            capability: "Opponent rosters",
-            sentence: "ESPN does not give Omen the other teams\u{2019} rosters in this league, so there is no trade call to make here. This will not change by trying again."
-        ),
-        note: nil
-    )
 
     // MARK: TradeVerdict
 
@@ -2247,570 +1159,6 @@ enum J4ScreenshotFixtures {
     )
 }
 
-// MARK: - J5 fixtures
-
-/// J5's six frames.
-///
-/// The two states that hinge on `waiver_system` are **decoded by the production parser** from
-/// server-shaped JSON, which is J3's pattern and the right one here: `WaiverNotDetermined` exists
-/// precisely because a client can mistake "system unknown" for "FAAB with no budget", and a
-/// hand-built Swift literal would prove the screen renders without proving the parser ever
-/// produces that state. The table fixtures are literals, as J2's are, because the Table screen's
-/// mapper is exercised by the real League destination rather than by a capture.
-enum J5ScreenshotFixtures {
-
-    // MARK: Context
-
-    static let titansContext = OmenScreenContext(
-        crest: "TTO",
-        teamName: "Titans of Slopsilonia",
-        platform: .espn,
-        leagueName: "Slops Saloon",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    /// The Yahoo league, which is where both permanent-limit frames live. Yahoo is a live,
-    /// entitled provider — this is a limit of what it exposes for this league type, not a
-    /// statement about the provider's availability.
-    static let pukContext = OmenScreenContext(
-        crest: "PAK",
-        teamName: "Puk Around & Find Out",
-        platform: .yahoo,
-        leagueName: "Fantasy Madness",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    // MARK: The table
-
-    private static let tableRows: [OmenScoutTableRow] = [
-        OmenScoutTableRow(rank: 1, crest: "GMR", teamName: "Gibbs me some Rice", form: [true, true, false, true, true], record: "6\u{2013}1", isMine: false),
-        OmenScoutTableRow(rank: 2, crest: "PAK", teamName: "Puk Around & Find Out", form: [true, false, true, true, true], record: "5\u{2013}2", isMine: false),
-        OmenScoutTableRow(rank: 3, crest: "TTO", teamName: "Titans of Slopsilonia", form: [true, true, true, false, true], record: "5\u{2013}2", isMine: true),
-        OmenScoutTableRow(rank: 4, crest: "DSI", teamName: "Davante\u{2019}s Inferno", form: [false, false, true, false, true], record: "4\u{2013}3", isMine: false),
-        OmenScoutTableRow(rank: 5, crest: "CHB", teamName: "Chubb Rock", form: [false, true, false, false, false], record: "3\u{2013}4", isMine: false)
-    ]
-
-    private static let tradeTargets = [
-        OmenScoutTradeTarget(crest: "DSI", teamName: "Davante\u{2019}s Inferno", read: "Thin at RB, three startable receivers. You have the reverse."),
-        OmenScoutTradeTarget(crest: "CHB", teamName: "Chubb Rock", read: "3\u{2013}4 and fading. Two backs on byes in weeks 9 and 11.")
-    ]
-
-    private static let waiverMove = OmenDeskWaiverMove(
-        addName: "Jaylen Wright",
-        addMeta: "RB \u{00B7} TEN",
-        addPoints: "11.4",
-        dropName: "Roschon Johnson",
-        dropMeta: "RB \u{00B7} CHI",
-        dropPoints: "4.1",
-        reasoning: "Pollard is out three weeks and Roschon sits behind two healthy backs \u{2014} you are not losing anything you will miss.",
-        band: .confident,
-        risk: .low,
-        riskReason: nil
-    )
-
-    /// `LeagueTable.dc.html`.
-    ///
-    /// The cut line is present because this fixture is a league whose playoff settings were
-    /// actually read. On ESPN that is **not** generally true — `settings_known` is `true` on
-    /// Sleeper only — so the real mapper drops the line on this provider and this frame is a
-    /// capture of the line's composition rather than a claim that ESPN supplies it.
-    static let nominalTable = OmenScoutTableState(
-        weekLabel: "Week 7 \u{00B7} 12 teams",
-        notice: nil,
-        strip: .read(OmenScoutStrip(platform: .espn, myScore: "64.8", theirScore: "51.2", status: "Live \u{00B7} Q2")),
-        table: .read(tableRows),
-        cutLine: OmenScoutCutLine(afterRank: 4, label: "Playoff cut"),
-        tradeTargets: .read(tradeTargets),
-        waiver: .read(waiverMove),
-        activity: .read([
-            OmenScoutActivityRow(category: "Standings", text: "Two teams are tied for the final playoff spot."),
-            OmenScoutActivityRow(category: "Standings", text: "You are one game from the playoff cut line.")
-        ]),
-        // Partial, and the sentence says which half is missing. ESPN does not give Omen
-        // transactions today, so the list is real and incomplete at the same time.
-        activityUnreadNote: "Transactions unavailable for ESPN right now \u{2014} adds, drops and trades are not in this list, which is unread rather than empty.",
-        footnote: nil,
-        retryTitle: nil
-    )
-
-    /// `LeagueDegraded.dc.html` — the `league` profile's degraded pass.
-    ///
-    /// Two sections live, two unread, and **each section says which it is** rather than the page
-    /// showing one banner and hoping. Both required classes are visible at once:
-    ///
-    ///   - `trade_rosters` and `league_activity` are `unavailable` — named, each with a sentence,
-    ///     each in its own section's place. Neither is dropped to make room.
-    ///   - `league_scoring` is `live, used: false` — named in the foot line, `text-tertiary`,
-    ///     with no evidence styling and no implication that it decided anything.
-    ///
-    /// `not_requested` inputs render nowhere at all, which is why there is no "playoff settings"
-    /// row: this profile never asked for them.
-    static let degradedTable = OmenScoutTableState(
-        weekLabel: "Week 7 \u{00B7} 12 teams",
-        notice: "ESPN is returning partial data right now. Two sections below are live and two are not. Each one says which it is.",
-        strip: .read(OmenScoutStrip(platform: .espn, myScore: "64.8", theirScore: "51.2", status: "Live \u{00B7} Q2")),
-        table: .read(Array(tableRows.prefix(3))),
-        // Absent, because a partial ESPN read is exactly the case where playoff settings are
-        // unproven. Drawing the line here would put a playoff claim on a degraded screen.
-        cutLine: nil,
-        tradeTargets: .unread(
-            capability: "Trade rosters",
-            sentence: "Reading other managers\u{2019} rosters needs a call ESPN is currently refusing. Omen issues no trade read without rosters \u{2014} it will not name a team it has not read."
-        ),
-        waiver: .read(waiverMove),
-        activity: .unread(
-            capability: "League activity",
-            sentence: "Adds, drops and trades are not in this list. The list is not empty \u{2014} it is unread, and those are different things."
-        ),
-        activityUnreadNote: nil,
-        footnote: OmenDeskFootnote(
-            text: "League scoring settings were read and did not change anything on this screen.",
-            emphasis: nil
-        ),
-        // A retry is legitimate here and only here: a refusing provider may stop refusing.
-        retryTitle: "Retry ESPN"
-    )
-
-    /// `LeagueNoRosters.dc.html`.
-    ///
-    /// A **permanent provider limit for this league**, not an outage — which is why the section
-    /// uses `providerLimit` rather than `unread`, why the section header reads "Not possible
-    /// here" rather than "Unavailable", and why `retryTitle` is nil. `CONTRACTS.md` is explicit:
-    /// "Do not build a retry for it."
-    static let noRostersTable = OmenScoutTableState(
-        weekLabel: "Week 7 \u{00B7} 10 teams",
-        notice: nil,
-        strip: .read(OmenScoutStrip(platform: .yahoo, myScore: "78.4", theirScore: "81.9", status: "Live \u{00B7} Q3")),
-        table: .read([
-            OmenScoutTableRow(rank: 1, crest: "RGB", teamName: "Regulation Blondes", form: [true, true, true, false, true], record: "5\u{2013}1", isMine: false),
-            OmenScoutTableRow(rank: 2, crest: "PAK", teamName: "Puk Around & Find Out", form: [true, false, true, true, true], record: "4\u{2013}2", isMine: true),
-            OmenScoutTableRow(rank: 3, crest: "MKM", teamName: "Mike\u{2019}s Marauders", form: [false, true, true, false, true], record: "4\u{2013}2", isMine: false)
-        ]),
-        cutLine: nil,
-        tradeTargets: .providerLimit(
-            capability: "Trade rosters",
-            sentence: "Yahoo does not expose other managers\u{2019} rosters for this league. Without them Omen cannot see who needs what, so it makes no trade read at all rather than guessing from the standings.",
-            consequence: "This is a permanent limit of the provider for this league type, not an outage. Omen\u{2019}s weekly call for this team will be a start/sit or a waiver move, never a trade. Everything else on this screen is unaffected."
-        ),
-        waiver: .read(waiverMove),
-        activity: .read([
-            OmenScoutActivityRow(category: "Standings", text: "Two teams are tied at 4\u{2013}2 behind the leader.")
-        ]),
-        activityUnreadNote: nil,
-        footnote: nil,
-        retryTitle: nil
-    )
-
-    // MARK: The wire
-
-    /// `LeagueWaiver.dc.html` — decoded, so the FAAB gate is proven rather than asserted.
-    static let nominalWire: OmenScoutWireState = OmenScoutWireState.from(
-        analysis: decodeWaiver(nominalWaiverJSON),
-        weekLabel: "Week 7 \u{00B7} Waiver"
-    )
-
-    /// `WaiverNotDetermined.dc.html` — the `waiver` profile's degraded pass.
-    ///
-    /// The payload says `"system": "not_determined"`, which is what ESPN and Yahoo return today.
-    /// The screen therefore shows **no** budget and **no** claim order — not a dashed one, not a
-    /// greyed one, none — and names the three answers it is withholding.
-    ///
-    /// The foot line carries the `live, used: false` half: the roster read succeeded and did not
-    /// decide anything here, because the player read does not depend on the waiver system.
-    static let notDeterminedWire: OmenScoutWireState = {
-        var state = OmenScoutWireState.from(
-            analysis: decodeWaiver(notDeterminedWaiverJSON),
-            weekLabel: "Week 7 \u{00B7} Waiver"
-        )
-        state = OmenScoutWireState(
-            weekLabel: state.weekLabel,
-            processLabel: state.processLabel,
-            processTime: state.processTime,
-            system: state.system,
-            notice: state.notice,
-            body: state.body,
-            footnote: OmenDeskFootnote(
-                text: "Your roster was read and did not change any of this \u{2014} the player read above does not depend on the waiver system.",
-                emphasis: nil
-            )
-        )
-        return state
-    }()
-
-    /// `WaiverNoMove.dc.html` — the one J5 artboard declared a **fit**.
-    ///
-    /// A literal rather than a decode, and the reason is a gap worth naming: the artboard draws a
-    /// **watch list** ("Jaylen Wright, if Pollard sits") and `waiver-analysis.v1` carries no such
-    /// field. Under the 2026-09-18 precedence rule the artboard's shape is binding and its
-    /// literal strings are not, so the block is built and the strings are fixture copy — and the
-    /// missing contract field is reported rather than quietly dropped or quietly invented.
-    static let noMoveWire = OmenScoutWireState(
-        weekLabel: "Week 7 \u{00B7} Waiver",
-        processLabel: nil,
-        processTime: nil,
-        system: .faab(budgetText: "Your budget $63 of $100", orderText: "Claim order 7 of 12"),
-        notice: nil,
-        body: .noMove(
-            headline: "Nothing on this wire beats what you have.",
-            body: "Omen checked all 143 free agents against your nine starting slots. The best of them projects 1.2 points above your weakest starter, which is noise.",
-            costTitle: "What it would have cost",
-            cost: "Claiming the best available means dropping Tyjae Spears, who is one Pollard injury from being startable. Doing nothing is the move this week.",
-            band: .confident,
-            risk: .low,
-            watchTitle: "Watch list",
-            watching: [
-                OmenScoutWireRow(title: "Jaylen Wright", detail: "RB \u{00B7} TEN \u{00B7} if Pollard sits", status: .watching),
-                OmenScoutWireRow(title: "Cade Otton", detail: "TE \u{00B7} TB \u{00B7} if Godwin misses week 8", status: .watching)
-            ]
-        ),
-        footnote: OmenDeskFootnote(
-            text: "Next read Tuesday 3:00 AM. Omen will wake you only if something changes.",
-            emphasis: nil
-        )
-    )
-
-    // MARK: Server-shaped payloads
-
-    private static func decodeWaiver(_ json: String) -> WaiverAnalysis {
-        // A fixture that cannot decode is a contract drift, and it should stop a capture rather
-        // than quietly render an empty screen. This is J3's rule and the crash is deliberate.
-        try! JSONDecoder().decode(WaiverAnalysis.self, from: Data(json.utf8))
-    }
-
-    private static let nominalWaiverJSON = """
-    {
-      "contract_version": "waiver-analysis.v1",
-      "state": "confirmed_opportunity",
-      "deadline": "Tue 3:00 AM",
-      "waiver_system": {
-        "system": "faab",
-        "budget_text": "Your budget $63 of $100",
-        "order_text": "Claim order 7 of 12"
-      },
-      "best_move": {
-        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
-        "drop": { "name": "Roschon Johnson", "position": "RB", "team": "CHI", "projected_points": 4.1 },
-        "improvement": 7.3,
-        "why_now": "Pollard is out three weeks and Wright took almost every backup snap on Sunday. Roschon sits behind two healthy backs \\u2014 you will not miss him.",
-        "bid": { "amount": 14, "basis": "two managers ahead of you need a back" }
-      },
-      "alternatives": [
-        {
-          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
-          "improvement": 2.1,
-          "tradeoff": "Projects 2.2 points below Wright against your lineup. Take this one only if you lose the Wright claim."
-        },
-        {
-          "player": { "name": "Cade Otton", "position": "TE", "team": "TB", "projected_points": 8.1 },
-          "improvement": 1.4,
-          "tradeoff": "There is no defensible drop for this one. Everyone on your bench is either starting somewhere or worth more than Otton. Named rather than forced."
-        }
-      ]
-    }
-    """
-
-    /// Note what is **absent**: no `bid`, and `system` is `not_determined`.
-    ///
-    /// `bid` being absent rather than `{"amount": 0}` is the contract's own rule — null, never
-    /// zero, when any input is missing — and this payload is the case that rule was written for.
-    private static let notDeterminedWaiverJSON = """
-    {
-      "contract_version": "waiver-analysis.v1",
-      "state": "confirmed_opportunity",
-      "waiver_system": { "system": "not_determined" },
-      "best_move": {
-        "add": { "name": "Jaylen Wright", "position": "RB", "team": "TEN", "projected_points": 11.4 },
-        "improvement": 7.3,
-        "why_now": "Wright took almost every backup snap on Sunday."
-      },
-      "alternatives": [
-        {
-          "player": { "name": "Jalen McMillan", "position": "WR", "team": "TB", "projected_points": 9.2 },
-          "improvement": 2.1,
-          "tradeoff": "The next best claim if the first one does not land."
-        }
-      ]
-    }
-    """
-}
-
-/// J6 — `Ledger.dc.html` and `LedgerDetail.dc.html`, as deterministic in-app fixtures.
-///
-/// ## The Ledger's rule is narrower than the general honesty rule, and these fixtures exist to
-/// prove it holds
-///
-/// `CONTRACTS.md`: *"verified outcomes, self-reported action, and unknown follow-through stay
-/// visually and semantically separate."* A fixture set that only contained verified rows would
-/// photograph beautifully and prove nothing. So `nominalLedger` deliberately carries all three
-/// on one screen:
-///
-///   - a verified `.followed` row with a verified outcome,
-///   - a `.passed(.selfReported)` row — the dotted registry §2.3 carrier,
-///   - and an `.unknown` row, whose follow-through nobody knows.
-///
-/// ## Why no fixture carries a raw `win` or `loss`
-///
-/// It is not expressible. `OmenLedgerOutcome` has no such case, which is the point of the type:
-/// the translation happens in `MovesHistory.ledgerOutcome(for:)` and a raw token cannot reach a
-/// screen state. `MovesHistoryTests` pins the mapping; there is nothing for a fixture to add.
-enum J6ScreenshotFixtures {
-
-    // MARK: Context
-
-    static let titansContext = OmenScreenContext(
-        crest: "TTO",
-        teamName: "Titans of Slopsilonia",
-        platform: .espn,
-        leagueName: "Slops Saloon",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    static let pukContext = OmenScreenContext(
-        crest: "PAK",
-        teamName: "Puk Around & Find Out",
-        platform: .yahoo,
-        leagueName: "Fantasy Madness",
-        onSwitch: {},
-        onAddLeague: {}
-    )
-
-    // MARK: Ledger — nominal
-
-    /// `Ledger.dc.html`, with the artboard's own rows.
-    ///
-    /// The artboard's second row is `You passed` + `Self-reported`, and it is the one row on the
-    /// screen whose action Omen did not observe. Keeping it here — rather than promoting it to a
-    /// verified pass because it photographs cleaner — is the whole journey.
-    static let nominalLedger = OmenLedgerState(
-        kicker: "11 calls",
-        groups: [
-            OmenLedgerGroup(
-                title: "Week 7",
-                count: "1 open",
-                calls: [
-                    OmenLedgerCall(
-                        id: "j6-w7-1",
-                        summary: "Start Stafford over Daniels",
-                        callType: "Start / sit",
-                        action: .followed(.verified),
-                        outcome: .pending,
-                        note: nil
-                    ),
-                    OmenLedgerCall(
-                        id: "j6-w7-2",
-                        summary: "Claim Wright, drop Johnson",
-                        callType: "Waiver",
-                        action: .passed(.selfReported),
-                        outcome: .notVerified,
-                        note: "Wright went for 94 and a score. Somebody else claimed him Wednesday."
-                    )
-                ]
-            ),
-            OmenLedgerGroup(
-                title: "Weeks 1\u{2013}6",
-                count: "9 closed",
-                calls: [
-                    OmenLedgerCall(
-                        id: "j6-w6-1",
-                        summary: "Trade Kupp for Nacua",
-                        callType: "Trade",
-                        action: .followed(.verified),
-                        outcome: .worked,
-                        note: nil
-                    ),
-                    OmenLedgerCall(
-                        id: "j6-w4-1",
-                        summary: "Bench Kyren Williams, Week 4",
-                        callType: "Start / sit",
-                        action: .followed(.verified),
-                        outcome: .didNotWork,
-                        note: "He went for 21.4. Omen was wrong \u{2014} the snap-share read didn\u{2019}t survive the game script."
-                    ),
-                    OmenLedgerCall(
-                        id: "j6-w3-1",
-                        summary: "Claim Tank Dell, Week 3",
-                        callType: "Waiver",
-                        action: .followed(.verified),
-                        outcome: .worked,
-                        note: nil
-                    )
-                ]
-            )
-        ],
-        unread: nil,
-        footnote: nil
-    )
-
-    // MARK: Ledger — degraded
-
-    /// The degraded pass: one input `unavailable`, one `live, used: false`.
-    ///
-    /// `move_outcomes` unavailable is the one that costs the reader something, so it is named
-    /// with a sentence and placed above the rows where truncation cannot reach it. Every row in
-    /// this pass therefore reads `Not verified` — which is a true statement about what Omen
-    /// could read, not a claim that the calls failed.
-    ///
-    /// The third row's `.unknown` action is the case that exists so an unread follow-through
-    /// never renders as an empty slot a reader completes as "followed".
-    static let degradedLedger = OmenLedgerState(
-        kicker: "4 calls",
-        groups: [
-            OmenLedgerGroup(
-                title: "Week 7",
-                count: "2 open",
-                calls: [
-                    OmenLedgerCall(
-                        id: "j6-d-1",
-                        summary: "Start Pollard over Mostert",
-                        callType: "Start / sit",
-                        action: .followed(.selfReported),
-                        outcome: .notVerified,
-                        note: nil
-                    ),
-                    OmenLedgerCall(
-                        id: "j6-d-2",
-                        summary: "Claim Jaylen Wright",
-                        callType: "Waiver",
-                        action: .unknown,
-                        outcome: .pending,
-                        note: "Yahoo did not hand back the transaction, so Omen does not know whether you made this move."
-                    )
-                ]
-            ),
-            OmenLedgerGroup(
-                title: "Week 6",
-                count: "2 closed",
-                calls: [
-                    OmenLedgerCall(
-                        id: "j6-d-3",
-                        summary: "Trade Chubb for Etienne",
-                        callType: "Trade",
-                        action: .passed(.selfReported),
-                        outcome: .notVerified,
-                        note: nil
-                    ),
-                    OmenLedgerCall(
-                        id: "j6-d-4",
-                        summary: "Bench Zay Flowers, Week 6",
-                        callType: "Start / sit",
-                        action: .unknown,
-                        outcome: .notVerified,
-                        note: nil
-                    )
-                ]
-            )
-        ],
-        unread: OmenLedgerUnread(
-            capability: "Move outcomes",
-            sentence: "Omen could not read how these calls turned out for this league. Every row below says \u{201C}Not verified\u{201D} because nobody checked \u{2014} not because the call was wrong."
-        ),
-        footnote: OmenDeskFootnote(
-            text: "League scoring was read and did not change any row here.",
-            emphasis: "did not change any row here"
-        )
-    )
-
-    // MARK: LedgerDetail — nominal
-
-    /// `LedgerDetail.dc.html`, the artboard's own receipt: the Week 4 Kyren Williams bench.
-    ///
-    /// It is a **loss**, and that is the artboard's choice, not an accident of fixture picking.
-    /// The screen's closing line is *"Losses stay in the Ledger — a record that only shows wins
-    /// is marketing."* A nominal capture of a winning receipt would make that sentence
-    /// decorative.
-    ///
-    /// `issuedLabel` is built through `OmenLedgerReceiptState.issuedLabel(issuedAt:timezone:)`
-    /// from a real timestamp and a real zone rather than hard-coded, so the fixture exercises
-    /// the formatter that `CONTRACTS.md`'s `issued_at_timezone` clause exists for.
-    static let nominalReceipt = OmenLedgerReceiptState(
-        kicker: "Week 4 \u{00B7} Start / sit",
-        issuedLabel: OmenLedgerReceiptState.issuedLabel(
-            issuedAt: "2026-09-29T07:00:00Z",
-            timezone: "America/New_York"
-        ),
-        callType: "Start / sit",
-        headline: "Bench Kyren Williams",
-        reasoning: "Snap share fell to 54% over two weeks while Blake Corum climbed to 38%.",
-        band: .leaning,
-        risk: .medium,
-        riskReason: nil,
-        status: "Closed",
-        action: .followed(.verified),
-        outcome: .didNotWork,
-        noteLead: "Williams went for 21.4.",
-        note: "Omen was wrong. The snap-share read was accurate and did not survive the game script \u{2014} the Rams trailed by seventeen and abandoned the committee.",
-        evidence: [
-            OmenReceiptEvidence(
-                key: "Snaps",
-                statement: "54% over two weeks, down from 71%.",
-                kind: .used
-            ),
-            OmenReceiptEvidence(
-                key: "Corum",
-                statement: "38% and rising in the same window.",
-                kind: .used
-            ),
-            OmenReceiptEvidence(
-                key: "Game script",
-                statement: "Not modelled. Omen had no view of this and it is what decided the game.",
-                kind: .couldNotRead
-            )
-        ],
-        fairnessNote: "This receipt is frozen as it was issued. Losses stay in the Ledger \u{2014} a record that only shows wins is marketing."
-    )
-
-    // MARK: LedgerDetail — degraded
-
-    /// The degraded receipt. Two things are wrong with it and they are different kinds of wrong.
-    ///
-    ///   1. `schedule_strength` was **read and not used** — `live, used: false`. It is named,
-    ///      de-emphasised, and carries **no** `Live` chip, because the chip is evidence styling
-    ///      and this input is not evidence for this call.
-    ///   2. `opponent_roster` was **unavailable**. Named, with a sentence, dashed.
-    ///
-    /// And the receipt arrived with `issued_at` but **no `issued_at_timezone`**, so the scope
-    /// line says the zone is missing rather than rendering a bare UTC wall-clock that would read
-    /// as the wrong day to anyone west of Greenwich. That is `issuedLabel`'s refusal, captured.
-    static let degradedReceipt = OmenLedgerReceiptState(
-        kicker: "Week 6 \u{00B7} Waiver",
-        issuedLabel: OmenLedgerReceiptState.issuedLabel(
-            issuedAt: "2026-10-13T07:00:00Z",
-            timezone: nil
-        ),
-        callType: "Waiver",
-        headline: "Claim Jaylen Wright",
-        reasoning: nil,
-        band: nil,
-        risk: nil,
-        riskReason: nil,
-        status: "Open",
-        action: .unknown,
-        outcome: .notVerified,
-        noteLead: nil,
-        note: "Yahoo did not hand back the transaction log for this week, so Omen cannot say whether you made this claim.",
-        evidence: [
-            OmenReceiptEvidence(
-                key: "Depth chart",
-                statement: "Pollard out three weeks; Wright the only back behind him.",
-                kind: .used
-            ),
-            OmenReceiptEvidence(
-                key: "Schedule strength",
-                statement: "Read, and it did not move this call.",
-                kind: .readNotUsed
-            ),
-            OmenReceiptEvidence(
-                key: "Opponent roster",
-                statement: "Unavailable. Yahoo does not expose other teams\u{2019} rosters for this league type, so Omen had no view of who else needed a back.",
-                kind: .couldNotRead
-            )
-        ],
-        fairnessNote: "This receipt is frozen as it was issued. Losses stay in the Ledger \u{2014} a record that only shows wins is marketing."
-    )
-}
 
 // MARK: - Chrome fixtures
 
@@ -2823,66 +1171,32 @@ enum J6ScreenshotFixtures {
 /// capturable at all.
 enum ChromeFixtures {
     static let connections: [OmenAccountConnection] = [
-        OmenAccountConnection(
-            id: "espn",
-            platform: .espn,
-            teamName: "Titans of Slopsilonia",
-            leagueName: "Slops Saloon FF Showdown"
-        ),
-        OmenAccountConnection(
-            id: "sleeper",
-            platform: .sleeper,
-            teamName: "Davante\u{2019}s Inferno",
-            leagueName: "EB Football"
-        ),
-        OmenAccountConnection(
-            id: "yahoo",
-            platform: .yahoo,
-            teamName: "Puk Around & Find Out",
-            leagueName: "Fantasy Madness"
-        )
+        OmenAccountConnection(id: "espn", platform: "espn", leagueName: "Slops Saloon"),
+        OmenAccountConnection(id: "sleeper", platform: "sleeper", leagueName: "Dynasty Degens"),
+        OmenAccountConnection(id: "yahoo", platform: "yahoo", leagueName: "Work League", needsSignIn: true),
     ]
 
     static func account(_ connections: OmenAccountConnections) -> some View {
-        // Account has no bottom tab bar of its own in the artboard — E060's TabNav is drawn
-        // because Account is presented over the shell. `FauxShell`'s Command tab is the
-        // closest honest mount: it keeps the permanent four tabs in the frame without
-        // claiming Account is a fifth one.
-        chromeShell(AnyView(
+        NavigationStack {
             OmenAccountScreen(
-                state: OmenAccountState(
-                    identity: "justin@slopssaloon.com",
-                    identityProvider: "Apple ID",
-                    avatarInitials: "JD",
-                    connections: connections
-                ),
-                onOpenIdentity: {},
+                state: OmenAccountState(initials: "JD", identity: "justin@slopssaloon.com", identityDetail: "Signed in \u{00B7} passkeys", connections: connections, version: "Omen 1.0 (12)"),
+                onOpen: { _ in },
+                onConnect: {},
                 onDisconnect: { _ in },
-                onAddLeague: {},
+                onContactSupport: {},
                 onReportProblem: {},
-                onOpenHelpCentre: {},
-                onOpenPrivacyAndData: {},
-                onOpenAbout: {},
                 onSignOut: {}
             )
-        ))
+        }
     }
 
     static func privacyAndData() -> some View {
-        chromeShell(AnyView(
-            sheetFrame(AnyView(OmenPrivacyAndDataSheet(onExport: nil, onDelete: {}, onDismiss: {})))
-        ))
+        NavigationStack { OmenPrivacyScreen(onDelete: {}) }
     }
 
-    /// The real phrase gate, with nothing typed into it.
-    ///
-    /// `DeleteAccountConfirmationView` rather than a stand-in, because the whole point of the
-    /// frame is that the confirm control is **disabled until the phrase matches** — and a
-    /// stand-in would be a picture of a different button. The session manager is built on
-    /// `InMemorySecureSessionStore`, which is empty, so the view has no token and the delete
-    /// path cannot reach the network even if something tapped it.
+    /// The real phrase gate with nothing typed. The session store is empty, so delete cannot reach the network.
     static func deleteGate() -> some View {
-        chromeShell(AnyView(DeleteGateHost()))
+        DeleteGateHost()
     }
 
     /// A sheet drawn in the frame rather than presented over it. A `.sheet` needs a presenting
@@ -2894,24 +1208,6 @@ enum ChromeFixtures {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(OmenColor.bg)
-    }
-
-    static func reportPillOnCommand() -> some View {
-        FauxShell(
-            scenarioKey: "chrome.report-pill.resting",
-            initialTab: .command,
-            commandContentOverride: AnyView(
-                OmenCommandDeskScreen(
-                    state: J2ScreenshotFixtures.nominalDesk,
-                    context: J2ScreenshotFixtures.titansContext,
-                    onOpenAccount: {},
-                    onOpenLeague: {},
-                    onOpenLedger: {},
-                    onReportProblem: {},
-                    fitProbeIdentifier: "chrome.fit.command-center"
-                )
-            )
-        )
     }
 
     static func composer(_ phase: OmenReportComposerSheet.Phase) -> some View {
@@ -2966,7 +1262,7 @@ private struct StubBetaReportRepository: OmenBetaReportRepository {
 private struct DeleteGateHost: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            DeleteAccountConfirmationView(
+            OmenDeleteAccountSheet(
                 sessionManager: SessionManager(store: InMemorySecureSessionStore(), nowEpochSeconds: { 1_000 })
             )
             Spacer(minLength: 0)

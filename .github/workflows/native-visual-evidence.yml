@@ -36,8 +36,8 @@ jobs:
       fail-fast: false
       matrix:
         scenario:
-          - command-center.demo-connected
-          - command-center.disconnected
+          - desk.demo
+          - desk.no-league
           - omen.demo
           - omen.disconnected
     steps:

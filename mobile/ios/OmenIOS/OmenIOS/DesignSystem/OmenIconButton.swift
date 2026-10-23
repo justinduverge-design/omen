@@ -31,7 +31,7 @@ struct OmenIconButton: View {
         switch tone {
         case .accent: return OmenColor.accent
         case .neutral: return OmenColor.textPrimary
-        case .danger: return OmenColor.Data.riskHigh
+        case .danger: return OmenColor.danger
         case .omen: return OmenColor.omen
         }
     }

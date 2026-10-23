@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ledger receipt</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;min-height:46px;border-bottom:1px solid #33332F}
+</style>
+</helmet>
+<div style="width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif">
+  <div style="position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000"></div>
+  <div style="padding:58px 12px 0;height:104px;display:flex;align-items:center">
+    <a href="Ledger.dc.html" style="display:flex;align-items:center;gap:4px;height:44px;padding:0 8px;color:#D8A648;font-size:16px;text-decoration:none"><svg width="12" height="20" viewBox="0 0 12 20" aria-hidden="true"><path d="M10 2L2 10l8 8" stroke="#D8A648" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Ledger</a>
+  </div>
+  <div style="padding:0 20px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:28px;height:28px;border-radius:14px;background:#C4933B;display:flex;align-items:center;justify-content:center"><svg width="13" height="11" viewBox="0 0 12 10" aria-hidden="true"><path d="M1.5 5l3 3 6-6.5" stroke="#14140F" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="eyebrow" style="color:#D8A648">Right · Week 6</div>
+    </div>
+    <div class="d" style="font-size:28px;font-weight:800;line-height:1.08;margin-top:12px">Start Wright over R. Johnson</div>
+    <div style="font-size:13.5px;color:#A79E90;margin-top:6px">RB2 · you made the move</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 20px 0">
+    <div style="background:#2A2A27;border-radius:18px;padding:14px;border:1.5px solid #C4933B">
+      <div class="eyebrow" style="color:#D8A648;font-size:10px">Omen said start</div>
+      <div style="font-size:15px;font-weight:700;margin-top:6px">Jaylen Wright</div>
+      <div class="num" style="font-size:30px;font-weight:800;margin-top:8px">16.2</div>
+      <div style="font-size:11.5px;color:#A79E90">scored · Omen had 14.8</div>
+    </div>
+    <div style="background:#2A2A27;border-radius:18px;padding:14px">
+      <div class="eyebrow" style="color:#A79E90;font-size:10px">Over</div>
+      <div style="font-size:15px;font-weight:700;margin-top:6px;color:#BDB5A9">Roschon Johnson</div>
+      <div class="num" style="font-size:30px;font-weight:800;margin-top:8px;color:#A79E90">2.4</div>
+      <div style="font-size:11.5px;color:#A79E90">scored · ESPN had 4.1</div>
+    </div>
+  </div>
+
+  <div style="padding:0 20px;margin-top:20px">
+    <div class="num" style="font-size:22px;font-weight:800;color:#D8A648">+13.8 points</div>
+    <div style="font-size:13.5px;color:#BDB5A9;margin-top:4px;line-height:1.45">Graded on your league's half-PPR scoring. It counts toward the record because Johnson was a real option: he was active and healthy.</div>
+
+    <div class="d" style="font-size:19px;font-weight:700;margin-top:24px">What Omen said then</div>
+    <div style="font-size:14px;color:#BDB5A9;line-height:1.5;margin-top:6px">"Pollard is out three weeks and Wright took 71% of the backfield snaps last Sunday."</div>
+    <div class="row" style="margin-top:10px"><span style="font-size:14px;color:#BDB5A9">Confidence then</span><span style="font-size:14px;font-weight:600">Strong</span></div>
+    <div class="row"><span style="font-size:14px;color:#BDB5A9">Your choice</span><span style="font-size:14px;font-weight:600">Made the move (your word)</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

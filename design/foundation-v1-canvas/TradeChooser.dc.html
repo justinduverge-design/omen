@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Trade chooser</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+</style>
+</helmet>
+<div style="width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif">
+  <div style="position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000"></div>
+
+  <div style="padding:66px 20px 0">
+    <div class="eyebrow" style="color:#D8A648">Titans of Slopsilonia · ESPN</div>
+    <div class="d" style="font-size:32px;font-weight:800;margin-top:8px">Trade</div>
+  </div>
+
+  <div style="margin:20px 20px 0;background:#2A2A27;border-radius:24px;padding:20px;border-top:1px solid rgba(196,147,59,.45)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="eyebrow" style="color:#D8A648">Omen found 4 trades</div>
+      <div style="font-size:12px;color:#A79E90">that help both sides</div>
+    </div>
+    <div class="d" style="font-size:21px;font-weight:700;line-height:1.2;margin-top:12px">DeVonta Smith for Zay Flowers and Kendre Miller.</div>
+    <div style="font-size:13.5px;color:#BDB5A9;margin-top:6px;line-height:1.45">Gibbs me some Rice has been starting a backup at WR for three weeks.</div>
+    <div style="display:flex;gap:24px;margin-top:14px">
+      <div><div class="num" style="font-size:20px;font-weight:800;color:#D8A648">+1.9</div><div style="font-size:11.5px;color:#A79E90">you, per week</div></div>
+      <div><div class="num" style="font-size:20px;font-weight:800">+2.4</div><div style="font-size:11.5px;color:#A79E90">them, per week</div></div>
+    </div>
+    <a href="FindTrade.dc.html" style="display:flex;align-items:center;justify-content:center;height:50px;border-radius:25px;background:#C4933B;color:#14140F;font-weight:700;font-size:16px;margin-top:18px;text-decoration:none">See all 4</a>
+  </div>
+
+  <div style="padding:0 20px;margin-top:28px">
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:14px;min-height:68px;text-decoration:none;color:inherit;border-bottom:1px solid #33332F">
+      <div style="width:42px;height:42px;border-radius:13px;background:#343431;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="#F5F0E8" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:600">Build a trade</div><div style="font-size:13px;color:#A79E90">Pick from your roster and theirs</div></div>
+      <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="#6B675F" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+    </a>
+    <a href="Main.dc.html" style="display:flex;align-items:center;gap:14px;min-height:68px;text-decoration:none;color:inherit;border-bottom:1px solid #33332F">
+      <div style="width:42px;height:42px;border-radius:13px;background:#343431;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M4 10h12M4 14h7" stroke="#F5F0E8" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:600">Judge an offer</div><div style="font-size:13px;color:#A79E90">Someone sent you one? Get the verdict</div></div>
+      <svg width="8" height="12" viewBox="0 0 8 12" aria-hidden="true"><path d="M2 2l4 4-4 4" stroke="#6B675F" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+    </a>
+  </div>
+
+  <div style="padding:0 20px;margin-top:28px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="d" style="font-size:19px;font-weight:700">Saved</div><div style="font-size:13px;color:#A79E90">2</div></div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:58px;border-bottom:1px solid #33332F">
+      <div style="flex:1"><div style="font-size:15px;font-weight:600">Jaylen Wright for Ladd McConkey</div><div style="font-size:12.5px;color:#A79E90">with Drake Maye Day · saved Tue</div></div>
+      <div class="num" style="font-size:14px;font-weight:700;color:#D8A648">+1.2</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;min-height:58px">
+      <div style="flex:1"><div style="font-size:15px;font-weight:600">Meyers + Johnson for Tracy</div><div style="font-size:12.5px;color:#A79E90">Rosters changed · check again</div></div>
+      <div style="font-size:13px;font-weight:600;color:#D8A648">Recheck</div>
+    </div>
+  </div>
+
+  <div style="position:absolute;left:16px;right:16px;bottom:24px;height:64px;border-radius:32px;background:rgba(52,52,49,.85);border:1px solid rgba(255,255,255,.07);display:flex;padding:6px">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#BDB5A9">Desk</div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#BDB5A9">Omen</div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#D8A648;background:rgba(196,147,59,.16);border-radius:26px">Trade</div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#BDB5A9">League</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

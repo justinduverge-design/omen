@@ -85,6 +85,7 @@ final class AuthViewModel: ObservableObject {
     /// screen and may be mid-type, and re-entering `awaitingOtp` would clear their field.
     func resendOtp() {
         guard otpResendSecondsRemaining == 0 else { return }
+        dispatch(.otpRetry(email: emailField))
         guard case .awaitingOtp(let email) = flowState else { return }
 
         otpResent = false
@@ -136,6 +137,7 @@ final class AuthViewModel: ObservableObject {
 
     func submitOtp() {
         let code = OtpCodeValidator.normalize(otpField)
+        dispatch(.otpRetry(email: emailField))
         dispatch(.otpSubmitted(code: code))
         guard case .verifyingOtp(let email) = flowState else { return }
         Task {

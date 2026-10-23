@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Edge cases</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.num{font-family:'Wix Madefor Display',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;flex:none}
+.isl{position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000;z-index:3}
+.btn{height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.ghost{border:1.5px dashed #3A3A36;border-radius:24px}
+.tabs{position:absolute;left:16px;right:16px;bottom:24px;height:64px;border-radius:32px;background:rgba(52,52,49,.85);display:flex;padding:6px}
+.tabs div{flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#BDB5A9;border-radius:26px}
+.demo{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;border:1.5px solid #7DD3FC;color:#7DD3FC;font-size:11px;font-weight:700;letter-spacing:.08em}
+</style>
+</helmet>
+<div style="width:1790px;height:844px;display:flex;gap:66px">
+
+  <div class="phone" aria-label="Desk with no league">
+    <div class="isl"></div>
+    <div style="padding:66px 20px 0">
+      <div class="eyebrow" style="color:#D8A648">Week 7</div>
+      <div class="d" style="font-size:28px;font-weight:800;margin-top:6px">Connect a league to start</div>
+      <div style="font-size:15px;color:#BDB5A9;margin-top:8px;line-height:1.45">Your scores, your move of the week and your trades show up here.</div>
+    </div>
+    <div class="ghost" style="margin:22px 30px 0;height:190px;position:relative"><div style="position:absolute;left:18px;top:18px;width:120px;height:10px;border-radius:5px;background:#2A2A27"></div><div style="position:absolute;right:18px;top:50px;width:70px;height:34px;border-radius:8px;background:#2A2A27"></div><div style="position:absolute;left:18px;bottom:22px;right:18px;height:6px;border-radius:3px;background:#2A2A27"></div></div>
+    <div style="padding:26px 20px 0;display:flex;flex-direction:column;gap:10px">
+      <div class="btn" style="background:#C4933B;color:#14140F">Connect a league</div>
+      <div style="text-align:center;font-size:14px;font-weight:600;color:#D8A648;min-height:44px;display:flex;align-items:center;justify-content:center">Look around with a sample league</div>
+    </div>
+    <div class="tabs"><div style="color:#D8A648;background:rgba(196,147,59,.16)">Desk</div><div>Omen</div><div>Trade</div><div>League</div></div>
+  </div>
+
+  <div class="phone" aria-label="Demo mode">
+    <div class="isl"></div>
+    <div style="padding:62px 20px 0;display:flex;justify-content:space-between;align-items:center"><span class="demo">DEMO</span><span style="font-size:13px;font-weight:600;color:#D8A648">Connect yours</span></div>
+    <div style="padding:10px 20px 0">
+      <div class="eyebrow" style="color:#D8A648">Week 7 · Sunday · sample league</div>
+      <div class="d" style="font-size:28px;font-weight:800;margin-top:6px">Up in 1 of 1</div>
+    </div>
+    <div style="margin:18px 30px 0;background:#2A2A27;border-radius:24px;padding:18px;border:1.5px solid rgba(125,211,252,.35)">
+      <div style="font-size:12px;color:#7DD3FC;font-weight:600">Sample data, not a real league</div>
+      <div style="display:flex;justify-content:space-between;align-items:end;margin-top:14px"><div><div style="font-size:15px;font-weight:700">Sample Team</div><div style="font-size:12px;color:#A79E90">5–2</div></div><div class="num" style="font-size:40px;font-weight:800">64.8</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:end;margin-top:8px"><div style="font-size:14px;color:#BDB5A9">Sample Rival</div><div class="num" style="font-size:28px;font-weight:800;color:#A79E90">51.2</div></div>
+    </div>
+    <div style="padding:20px 20px 0;font-size:13.5px;color:#A79E90;line-height:1.5">Every screen works on this sample league and says Demo at the top. Nothing here is advice for a real lineup.</div>
+    <div class="tabs"><div style="color:#D8A648;background:rgba(196,147,59,.16)">Desk</div><div>Omen</div><div>Trade</div><div>League</div></div>
+  </div>
+
+  <div class="phone" aria-label="Trade, rosters unreadable">
+    <div class="isl"></div>
+    <div style="padding:58px 12px 0;height:96px;display:flex;align-items:center;color:#D8A648;font-size:16px;gap:4px;padding-left:20px">‹ Trade</div>
+    <div style="padding:0 20px">
+      <div class="d" style="font-size:28px;font-weight:800;line-height:1.08">Omen can't see the other teams yet</div>
+      <div style="font-size:15px;color:#BDB5A9;line-height:1.5;margin-top:10px">Yahoo needs you to sign in again before Omen can read the other rosters in Work League. Your league is kept.</div>
+      <div class="btn" style="background:#C4933B;color:#14140F;margin-top:22px">Sign in to Yahoo</div>
+      <div style="font-size:14px;color:#BDB5A9;margin-top:22px;line-height:1.5">You can still judge an offer by typing the names. Omen will check your side only.</div>
+      <div class="btn" style="background:#343431;margin-top:12px">Judge an offer</div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="Connect failed">
+    <div class="isl"></div>
+    <div style="padding:58px 12px 0;height:96px;display:flex;align-items:center;color:#D8A648;font-size:16px;gap:4px;padding-left:20px">‹ Connect</div>
+    <div style="padding:0 20px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:4px;background:#C81E2C;display:inline-block"></span><span class="eyebrow" style="color:#A79E90">ESPN</span></div>
+      <div class="d" style="font-size:28px;font-weight:800;line-height:1.08;margin-top:8px">ESPN didn't finish signing you in</div>
+      <div style="font-size:15px;color:#BDB5A9;line-height:1.5;margin-top:10px">The ESPN page closed before it sent Omen your leagues. This usually works on the second try.</div>
+      <div class="btn" style="background:#C4933B;color:#14140F;margin-top:22px">Try ESPN again</div>
+      <div style="font-size:14px;color:#BDB5A9;margin-top:22px;line-height:1.5">Still stuck? Add your league by its ID, from the address bar on espn.com.</div>
+      <div class="btn" style="background:#343431;margin-top:12px">Add by league ID</div>
+      <div style="text-align:center;font-size:13.5px;font-weight:600;color:#D8A648;margin-top:16px">Report this</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1790,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

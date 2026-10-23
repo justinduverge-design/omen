@@ -73,17 +73,17 @@ final class J1InteractionUITests: XCTestCase {
         // The four labelled rows that replaced three icon-only tiles. Labels matter to this
         // assertion as much as to the user: an icon-only tile gives the query nothing to find,
         // which is the same thing it gives VoiceOver.
-        for title in ["Continue with Apple", "Continue with Google", "Continue with Discord", "Continue with email"] {
+        for title in ["Continue with Apple", "Continue with Google", "Continue with Discord", "Use email"] {
             assertTappable(app.buttons[title], title)
         }
-        assertTapDoesNotBreak(app.buttons["Continue with email"], app)
+        assertTapDoesNotBreak(app.buttons["Use email"], app)
     }
 
     /// The demo link is the App Store reviewer's only path into the app (fact-of-record #19), so
     /// it gets its own assertion rather than sitting in a list where a failure reads as cosmetic.
     func testSignInKeepsTheDemoEntryPointReachable() {
         let app = launch("onboarding.sign-in")
-        let demo = app.buttons["Look around without an account →"]
+        let demo = app.buttons["Look around with a sample league"]
         XCTAssertTrue(demo.waitForExistence(timeout: 10), "the reviewer's demo entry point is missing")
         XCTAssertTrue(demo.isHittable, "the demo entry point is present but unreachable")
     }
@@ -110,18 +110,15 @@ final class J1InteractionUITests: XCTestCase {
         let app = launch("journey-j1.degraded.05-connect-failed")
         // Connection contract §6: every non-success state carries a safe next action. Reconnect
         // is the fix; support is the escape for whoever's league really was deleted.
-        assertTappable(app.buttons["Reconnect ESPN"], "reconnect")
+        assertTappable(app.buttons["Try ESPN again"], "reconnect")
         assertTappable(app.buttons["Send this to support"], "send to support")
-        assertTapDoesNotBreak(app.buttons["Reconnect ESPN"], app)
+        assertTapDoesNotBreak(app.buttons["Try ESPN again"], app)
     }
 
     func testNoLeagueTerminusIsNotADeadEnd() {
-        let app = launch("journey-j1.nominal.06-command-no-league")
+        let app = launch("desk.no-league")
         assertTappable(app.buttons["Connect a league"], "connect")
-        let explanation = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "this screen would be guessing, so it stays empty")
-        ).firstMatch
-        XCTAssertTrue(explanation.waitForExistence(timeout: 10), "the no-league terminus no longer explains why it stays empty")
+        XCTAssertTrue(app.buttons["Look around with a sample league"].waitForExistence(timeout: 10), "the empty Desk lost its demo way out")
         assertTapDoesNotBreak(app.buttons["Connect a league"], app)
     }
 }

@@ -329,78 +329,6 @@ struct TradeFindResponse: Decodable, Equatable {
     }
 }
 
-// MARK: - Save action
-
-/// The interface this screen calls, per the contract's "Save action interface":
-/// `save_action(candidate_id, reasoning) -> { status: "saved" | "error" }`.
-///
-/// Production conformance is `ApiTradeFindSaveAction` (`POST /api/trade/saved`, T4).
-protocol TradeFindSaveAction {
-    func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome
-}
-
-enum TradeFindSaveOutcome: Equatable {
-    case saved
-    case error
-    /// `410 trade_saved_candidate_expired`: the server no longer holds the batch this card came
-    /// from (15-minute find cache), so nothing was written. Distinct from `.error` because the
-    /// fix is a fresh search, not a retry of the same tap.
-    case expired
-}
-
-/// `POST /api/trade/saved` — T4's save. Sends `{candidate_id, reasoning}` only: the trade, league,
-/// season, week and team are resolved server side from the caller's own kept `/find` batch, so the
-/// client cannot save a trade it was never shown. Repeat saves are idempotent server side.
-struct ApiTradeFindSaveAction: TradeFindSaveAction {
-    private let client: OmenApiClient
-    private let sessionManager: SessionManager
-
-    init(client: OmenApiClient, sessionManager: SessionManager) {
-        self.client = client
-        self.sessionManager = sessionManager
-    }
-
-    private struct SaveResponse: Decodable { let status: String }
-
-    func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome {
-        guard case .token(let accessToken) = await sessionManager.authorization() else { return .error }
-        guard let reasoningObject = Self.jsonObject(reasoning) else { return .error }
-        let result = await client.post(
-            "api/trade/saved",
-            accessToken: accessToken,
-            body: ["candidate_id": candidateId, "reasoning": reasoningObject],
-            as: SaveResponse.self
-        )
-        switch result {
-        case .success(let response):
-            return response.status == "saved" ? .saved : .error
-        case .failure(.server(status: 410)):
-            return .expired
-        case .failure(.unauthorized):
-            await sessionManager.onRefreshFailed()
-            return .error
-        case .failure:
-            return .error
-        }
-    }
-
-    /// The reasoning goes back to the server exactly as it arrived (T4 keeps it verbatim).
-    static func jsonObject(_ reasoning: TradeFindReasoning) -> Any? {
-        guard let data = try? JSONEncoder().encode(reasoning) else { return nil }
-        return try? JSONSerialization.jsonObject(with: data)
-    }
-}
-
-/// Local-only conformance for tests and screenshot scenarios. Production never uses it: it
-/// answers `outcome` locally, with no network call and nothing persisted.
-struct StubTradeFindSaveAction: TradeFindSaveAction {
-    var outcome: TradeFindSaveOutcome = .saved
-
-    func save(candidateId: String, reasoning: TradeFindReasoning) async -> TradeFindSaveOutcome {
-        outcome
-    }
-}
-
 // MARK: - Repository
 
 /// Deliberately its own protocol rather than an addition to `TradeRepository`
@@ -459,7 +387,10 @@ struct StubTradeFindRepository: TradeFindRepository {
 /// ever made the read. That is a missing call, not a provider limit, so it now reads.
 @MainActor
 final class LeagueTradeTargetsViewModel: ObservableObject {
-    @Published private(set) var section: OmenScoutSection<[OmenScoutTradeTarget]> = OmenLeagueScreen.tradeTargetsUnread
+    /// One best trade per other team, ranked by the route. Empty until read.
+    @Published private(set) var candidates: [TradeFindCandidate] = []
+    /// Why there are no targets, when Omen couldn't look. Nil while reading or when it read.
+    @Published private(set) var note: String?
 
     private let repository: TradeFindRepository
     private let sessionManager: SessionManager
@@ -476,7 +407,7 @@ final class LeagueTradeTargetsViewModel: ObservableObject {
     func load(platform: String, leagueId: String, teamId: String, week: Int?) async {
         let key = [platform, leagueId, teamId, week.map(String.init) ?? ""].joined(separator: "|")
         guard key != loadedKey, key != inFlightKey else { return }
-        if loadedKey != nil { section = OmenLeagueScreen.tradeTargetsUnread }
+        if loadedKey != nil { candidates = []; note = nil }
         inFlightKey = key
         defer { if inFlightKey == key { inFlightKey = nil } }
 
@@ -487,51 +418,29 @@ final class LeagueTradeTargetsViewModel: ObservableObject {
         guard inFlightKey == key else { return } // a newer league was requested meanwhile
         switch result {
         case .success(let response):
-            section = Self.targets(from: response)
+            (candidates, note) = Self.targets(from: response)
             loadedKey = key
         case .failure(let error):
             if error == .unauthorized { sessionManager.onRefreshFailed() }
-            section = .unread(
-                capability: "Trade rosters",
-                sentence: "Omen could not read the other managers\u{2019} rosters just now. Pull to refresh to try again."
-            )
+            candidates = []
+            note = "Omen couldn\u{2019}t read the other rosters just now."
         }
     }
 
     /// One target per opponent, best candidate first (the route already ranks them).
-    static func targets(from response: TradeFindResponse) -> OmenScoutSection<[OmenScoutTradeTarget]> {
+    static func targets(from response: TradeFindResponse) -> (candidates: [TradeFindCandidate], note: String?) {
         if response.status == "unavailable" {
-            return .unread(
-                capability: "Trade rosters",
-                sentence: unavailableSentence(reason: response.reason)
-            )
+            return ([], unavailableSentence(reason: response.reason))
         }
         var seen = Set<String>()
-        var targets: [OmenScoutTradeTarget] = []
-        for candidate in response.candidates {
-            let key = candidate.opponentTeamId ?? candidate.opponentDisplayName
-            guard seen.insert(key).inserted else { continue }
-            targets.append(OmenScoutTradeTarget(
-                crest: crest(for: candidate.opponentDisplayName),
-                teamName: candidate.opponentDisplayName,
-                read: read(for: candidate)
-            ))
-        }
-        return .read(targets)
+        let firstPerTeam = response.candidates.filter { seen.insert($0.opponentTeamId ?? $0.opponentDisplayName).inserted }
+        return (firstPerTeam, firstPerTeam.isEmpty ? "No trade helps both sides this week." : nil)
     }
 
     static func crest(for name: String) -> String {
         let initials = name.split(separator: " ").compactMap { $0.first.map { String($0).uppercased() } }
         let joined = initials.prefix(3).joined()
         return joined.isEmpty ? "?" : joined
-    }
-
-    static func read(for candidate: TradeFindCandidate) -> String {
-        func pts(_ value: Double?) -> String { value.map { String(format: "%+.1f", $0) } ?? "n/a" }
-        func named(_ player: TradeFindPlayer) -> String {
-            player.numbersShort.map { "\(player.name) (\($0))" } ?? player.name
-        }
-        return "\(named(candidate.receive)) for \(named(candidate.give)): \(pts(candidate.userLineupDelta)) to your lineup, \(pts(candidate.opponentLineupDelta)) to theirs."
     }
 
     private static func unavailableSentence(reason: String?) -> String {

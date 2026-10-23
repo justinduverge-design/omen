@@ -194,4 +194,17 @@ final class VerdigrisChipTokenTests: XCTestCase {
             | (UInt32((g * 255).rounded()) << 8)
             | UInt32((b * 255).rounded())
     }
+
+    /// Foundation v1 roles, sizes from `omen-design-foundation-v1.md` § 7 (approved 2026-10-21).
+    func testFoundationV1RolesMatchTheSpec() {
+        XCTAssertEqual(OmenTypography.heroNumber.size, 44)
+        XCTAssertTrue(OmenTypography.heroNumber.tabularNumbers)
+        XCTAssertEqual(OmenTypography.pageTitle.size, 30)
+        XCTAssertEqual(OmenTypography.sectionHeader.size, 19)
+        XCTAssertFalse(OmenTypography.sectionHeader.uppercase)
+        XCTAssertEqual(OmenTypography.rowTitle.size, 15)
+        XCTAssertEqual(OmenTypography.quiet.size, 12.5)
+        XCTAssertTrue(OmenTypography.eyebrow.uppercase)
+        XCTAssertTrue(OmenTypography.figure.tabularNumbers)
+    }
 }

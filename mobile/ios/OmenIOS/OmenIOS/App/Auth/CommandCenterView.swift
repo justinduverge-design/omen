@@ -16,30 +16,18 @@ struct CommandCenterView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
     @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
-    @StateObject private var leagueSwitcherViewModel: LeagueSwitcherViewModel
     /// The Command Center carousel. Its own view model rather than the switcher's: the two
     /// read the same route for different reasons, cache different things, and must fail
     /// independently — the same reasoning already recorded for `leagueDirectoryRepository`.
     @StateObject private var leagueCarouselViewModel: LeagueCarouselViewModel
     private let connectRepository: ConnectRepository
-    /// Held as well as consumed into `leagueSwitcherViewModel`: Account's connected-leagues
-    /// section needs the same seam, and it owns its own view model rather than sharing the
-    /// switcher's — the two read the same route for different reasons and fail independently.
+    /// Account's league list reads the directory through its own view model, apart from the carousel.
     private let leagueDirectoryRepository: LeagueDirectoryRepository
     @Environment(\.omenEnvironment) private var environment
     /// The command center owns one modal presenter. Independent sheet booleans can all become
     /// true in the same render pass, leaving SwiftUI to reject one presentation and making a
     /// perfectly valid destination (most visibly Build a trade) appear not to open.
     @State private var presentedSheet: CommandCenterSheet?
-    /// `ReportPill.dc.html`, wired to both its doors. Non-nil means the composer is open, and
-    /// the value is the screen the user was on when they opened it — the composer must be told
-    /// rather than resolve it, because a composer that resolved its own current screen would
-    /// name the composer.
-    /// Trade has three distinct jobs. Build is the canvas-governed default; Find is the
-    /// later sports-game-style candidate search; Type compares a deal already proposed.
-    @State private var selectedTradeMode: TradeMode = .build
-    /// The Trade tab opens on the chooser (whole-app canvas, `TradeMode.dc.html`).
-    @State private var tradeChooserVisible: Bool = true
     /// J4: `TradeShare`, over `POST /api/trade/share`.
     @State private var selectedTab: CommandCenterTab = .command
     @StateObject private var leagueViewModel: LeagueViewModel
@@ -94,53 +82,12 @@ struct CommandCenterView: View {
             repository: tradeFindRepository,
             sessionManager: sessionManager
         ))
-        _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
-            repository: leagueDirectoryRepository,
-            sessionManager: sessionManager
-        ))
         _leagueCarouselViewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
             directoryRepository: leagueDirectoryRepository,
             leagueRepository: leagueRepository,
             sessionManager: sessionManager
         ))
         self.leagueDirectoryRepository = leagueDirectoryRepository
-    }
-
-
-    /// Wraps a destination in the team picker.
-    ///
-    /// Omen, Trade and League each answer a question about one league, so each gets the row
-    /// that changes which one. Command Center does not — its carousel already IS the picker,
-    /// and two of them on one screen would be a control competing with itself.
-    ///
-    /// Reloading is driven from `refresh`, which the server supplies: the picker returns the
-    /// surfaces a context change invalidated, and this reloads exactly those rather than
-    /// deciding for itself which screens went stale.
-    @ViewBuilder
-    private func withTeamPicker<Content: View>(
-        @ViewBuilder _ content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            OmenTeamPicker(
-                viewModel: leagueCarouselViewModel,
-                userID: userID,
-                onContextChanged: { _ in
-                    // Every personalized surface, not just the visible one — a user who
-                    // switches on Trade and then taps League must not find the old team
-                    // there. Concurrent: see `reloadAllAfterContextChange`.
-                    Task { await reloadAllAfterContextChange() }
-                },
-                onAddLeague: { presentSheet(.connect) },
-                // This picker owns its pinned Switch button locally. Cross-screen switch
-                // affordances route to the shell's one presenter below; binding every off-tab
-                // picker to the same Boolean created competing SwiftUI presentation anchors.
-                externalPresentation: nil
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step12)
-            content()
-        }
-        .background(OmenColor.bg.ignoresSafeArea())
     }
 
     /// The user's own team id from the League destination's matchup, when that read landed.
@@ -155,186 +102,457 @@ struct CommandCenterView: View {
         return overview.matchup.you?.teamId
     }
 
-    /// The team a switch is currently writing to, or nil when nothing is in flight.
-    ///
-    /// Read off the carousel's own `committingPageID` rather than a second flag, so there is one
-    /// answer to "is a switch happening" and it cannot disagree with itself.
-    private var switchingContext: (context: OmenScreenContext, weekLabel: String, footnote: OmenDeskFootnote)? {
-        guard
-            let committingID = leagueCarouselViewModel.committingPageID,
-            let page = leagueCarouselViewModel.allPages.first(where: { $0.id == committingID })
-        else { return nil }
 
-        let platform: OmenPlatform
-        switch page.platform.lowercased() {
-        case "yahoo": platform = .yahoo
-        case "sleeper": platform = .sleeper
-        default: platform = .espn
-        }
-        let providerName: String
-        switch platform {
-        case .espn: providerName = "ESPN"
-        case .yahoo: providerName = "Yahoo"
-        case .sleeper: providerName = "Sleeper"
-        }
+    // MARK: - Desk (foundation v1)
 
-        return (
-            context: OmenScreenContext(
-                crest: OmenDeskState.crest(from: page.displayTeamName),
-                teamName: page.displayTeamName,
-                platform: platform,
-                leagueName: page.leagueName
-            ),
-            // No week label mid-switch: the week belongs to the read that has not landed yet,
-            // and carrying the old team's week over would be the same reuse §10.3 forbids.
-            weekLabel: "",
-            footnote: OmenDeskFootnote(
-                text: "Reading \(page.displayTeamName) from \(providerName).",
-                emphasis: "The previous team's numbers are gone, not reused."
-            )
+    @State private var deskPath: [DeskRoute] = []
+    @State private var deletingAccount = false
+    @State private var omenPath: [OmenRoute] = []
+    @State private var leaguePath: [LeagueRoute] = []
+    @State private var tradePath: [TradeRoute] = []
+    @State private var tradeShowingShare = false
+    @State private var tradeShareURL: URL?
+
+    /// The verdict is a sheet over the builder or the offer; closing it keeps the picks.
+    private var tradeVerdictShown: Binding<Bool> {
+        Binding(
+            get: {
+                guard case .loaded(let compare) = tradeViewModel.viewState else { return false }
+                return OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) != nil
+            },
+            set: { if !$0 { tradeViewModel.dismissVerdict() } }
         )
+    }
+
+    private var tradeProviderName: String { OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform) }
+
+    private var leagueState: OmenLeagueState {
+        switch leagueViewModel.viewState {
+        case .idle, .loading:
+            return OmenLeagueState(phase: .loading)
+        case .demo:
+            return OmenLeagueState(phase: .noLeague)
+        case .failed(let error):
+            return OmenLeagueState(phase: .failed(LeagueViewModel.message(for: error)))
+        case .loaded(let overview):
+            let provider = OmenProviderMark.displayName(overview.platform)
+            let waiver = commandCenterViewModel.waiverAnalysis.map { OmenWaiversState(analysis: $0, providerName: provider) }
+            return OmenLeagueState(
+                overview: overview,
+                targets: leagueTradeTargetsViewModel.candidates.map { OmenFindTradeState.Candidate($0, providerName: provider) },
+                targetsNote: leagueTradeTargetsViewModel.note,
+                waiver: waiver?.headline.map { .init(line: $0, gain: commandCenterViewModel.waiverAnalysis?.bestMove?.improvement) }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var waiversScreen: some View {
+        if let analysis = commandCenterViewModel.waiverAnalysis {
+            let provider = OmenProviderMark.displayName(leagueCarouselViewModel.activePage?.platform)
+            OmenWaiversScreen(
+                state: OmenWaiversState(analysis: analysis, providerName: provider),
+                onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } }
+            )
+        } else {
+            OmenStateBlock(kind: .loading, title: "Reading the wire")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        }
+    }
+
+    private var tradeThreeTeam: some View {
+        let vm = tradeViewModel
+        let teams = vm.threeTeamTeams
+        var rosters: [String: [OmenPlayerSummary]] = [:]
+        var destinations: [String: String] = [:]
+        for team in teams {
+            let players = vm.threeTeamRoster(team.id)?.players ?? []
+            rosters[team.id] = players.map { OmenPlayerSummary($0, providerName: tradeProviderName) }
+            for player in players {
+                if let to = vm.threeTeamDestination(playerKey: player.playerKey ?? player.name, from: team.id) {
+                    destinations["\(team.id)|\(player.id)"] = to
+                }
+            }
+        }
+        let moves = vm.threeTeamLegs.map { OmenThreeTeamState.Move(id: $0.id.uuidString, players: $0.players.map(\.name), fromID: $0.from, toID: $0.to) }
+        let names: (String) -> String = { id in teams.first { $0.id == id }?.name ?? id }
+        let phase: OmenThreeTeamState.Phase = {
+            switch vm.threeTeamViewState {
+            case .idle, .demo: return .building
+            case .loading: return .judging
+            case .failed(let e): return .failed(TradeViewModel.message(for: e))
+            case .loaded(let compare):
+                let lines = teams.map { team -> OmenThreeTeamState.Line in
+                    let out = vm.threeTeamLegs.filter { $0.from == team.id }
+                    let into = vm.threeTeamLegs.filter { $0.to == team.id }
+                    let participant = compare.participants.first { $0.teamID == team.id }
+                    return .init(
+                        id: team.id, name: team.name,
+                        sends: out.isEmpty ? nil : out.map { "send \($0.players.map(\.name).joined(separator: ", ")) to \(names($0.to))" }.joined(separator: "; "),
+                        gets: into.isEmpty ? nil : into.map { "get \($0.players.map(\.name).joined(separator: ", ")) from \(names($0.from))" }.joined(separator: "; "),
+                        net: participant?.netValue
+                    )
+                }
+                let steps = compare.submission.steps.enumerated().map { OmenThreeTeamState.Step(id: $0.offset, text: $0.element, done: vm.threeTeamSubmissionDoneSteps.contains($0.offset)) }
+                return .judged(lines: lines, caption: compare.submission.caption, steps: steps)
+            }
+        }()
+        return OmenThreeTeamScreen(
+            state: OmenThreeTeamState(
+                providerName: tradeProviderName, teams: teams, candidates: vm.partnerPickerCandidates,
+                rosters: rosters, destinations: destinations, moves: moves, phase: phase
+            ),
+            onPickThird: { id in if let team = vm.partnerPickerCandidates.first(where: { $0.id == id }) { vm.addThirdPartner(team) } },
+            onRemoveThird: {
+                vm.removeThirdPartner()
+                tradePath.removeLast()
+            },
+            onSend: { summary, from, to in
+                if let player = vm.threeTeamRoster(from)?.players.first(where: { $0.id == summary.id }) { vm.setThreeTeamDestination(player, from: from, to: to) }
+            },
+            onOpenPlayer: { tradePath.append(.player($0)) },
+            onJudge: { Task { await vm.compareThreeTeam(userID: userID) } },
+            onAdjust: { vm.dismissThreeTeamVerdict() },
+            onToggleStep: { vm.toggleThreeTeamSubmissionStep($0) },
+            onCopyStep: { if let text = vm.copyTextForThreeTeamStep($0) { UIPasteboard.general.string = text } },
+            onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } }
+        )
+    }
+
+    private var tradeJudge: some View {
+        OmenJudgeOfferScreen(
+            state: OmenJudgeOfferState(
+                send: tradeViewModel.offer.send,
+                receive: tradeViewModel.offer.receive,
+                partners: tradeViewModel.rosterPartners,
+                partnerID: tradeViewModel.selectedPartnerTeamID,
+                results: tradeViewModel.suggestions.map { result in
+                    OmenJudgeOfferState.Result(
+                        id: result.id, name: result.name, position: result.position, team: result.team,
+                        owner: tradeOwner(of: result), isCorrection: result.matchType == "fuzzy"
+                    )
+                },
+                searchNote: {
+                    switch tradeViewModel.searchState {
+                    case .idle, .results: return nil
+                    case .searching: return "Looking\u{2026}"
+                    case .empty(let q): return "No player named \u{201C}\(q)\u{201D}."
+                    case .failed(let e): return TradeViewModel.message(for: e)
+                    }
+                }(),
+                judging: tradeViewModel.viewState == .loading,
+                judgeError: { if case .failed(let e) = tradeViewModel.viewState { return TradeViewModel.message(for: e) } else { return nil } }()
+            ),
+            onQuery: { tradeViewModel.search($0, side: $1) },
+            onAdd: { picked, side in
+                if let result = tradeViewModel.suggestions.first(where: { $0.id == picked.id }) { tradeViewModel.add(result, to: side) }
+            },
+            onRemove: { tradeViewModel.remove(at: $0, from: $1) },
+            onSwitchPartner: { tradeViewModel.switchPartner(to: $0) },
+            onJudge: { Task { await tradeViewModel.compare(userID: userID) } }
+        )
+        // Rosters name who owns each player and who sent the offer; Judge works without them.
+        .task { if userID != SessionManager.demoUserID { await tradeViewModel.loadRoster(userID: userID) } }
+    }
+
+    /// "on Gibbs me some Rice", "free agent" only when every roster was read, or nil when Omen can't tell.
+    private func tradeOwner(of result: PlayerSearchResult) -> String? {
+        guard case .loaded(let rosters) = tradeViewModel.rosterBrowseState, rosters.isAvailable else { return nil }
+        // Search ids and roster keys share the provider id; a name match is only the fallback.
+        let key = result.name.lowercased()
+        let byKey: (TradeRosterResponse.Player) -> Bool = { player in
+            guard let k = player.playerKey else { return false }
+            return k == result.id || k.hasSuffix(":\(result.id)")
+        }
+        let byName: (TradeRosterResponse.Player) -> Bool = { $0.name.lowercased() == key }
+        if let team = rosters.teams.first(where: { $0.players.contains(where: byKey) })
+            ?? rosters.teams.first(where: { $0.players.contains(where: byName) }) {
+            return team.id == tradeViewModel.viewerTeamID ? "on your team" : team.teamName.map { "on \($0)" }
+        }
+        // A team that came back empty (unreadable) could be hiding him: no free-agent claim then.
+        return rosters.teams.allSatisfy { !$0.players.isEmpty } ? "free agent" : nil
+    }
+
+    @ViewBuilder
+    private var tradeBuilder: some View {
+        switch tradeViewModel.rosterBrowseState {
+        case .idle, .loading:
+            OmenStateBlock(kind: .loading, title: "Reading your league\u{2019}s rosters", message: "Your team and every other team, so you can pick from both.")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+                .task { await tradeViewModel.loadRoster(userID: userID) }
+        case .demo:
+            OmenStateBlock(kind: .notEnoughToGoOn, title: "Building a trade needs your league", message: "Demo mode has no real rosters. Connect ESPN, Yahoo or Sleeper to build from your own team.", actionTitle: "Connect a league", action: { presentSheet(.connect) })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        case .failed(let error):
+            OmenStateBlock(kind: .failed, title: "Omen couldn\u{2019}t load the rosters", message: TradeViewModel.message(for: error), actionTitle: "Try again", action: { Task { await tradeViewModel.loadRoster(userID: userID, force: true) } })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        case .loaded(let response):
+            if !response.isAvailable || tradeViewModel.viewerRoster == nil {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "Omen can\u{2019}t see the other teams yet", message: response.unavailableSentence, actionTitle: "Judge an offer instead", action: { tradePath = [.judge] })
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            } else {
+                OmenTradeBuilderScreen(
+                    state: OmenTradeBuilderState(
+                        mine: (tradeViewModel.viewerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: tradeProviderName) },
+                        theirs: (tradeViewModel.partnerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: tradeProviderName) },
+                        partners: tradeViewModel.rosterPartners,
+                        partnerID: tradeViewModel.selectedPartnerTeamID,
+                        send: tradeViewModel.offer.send,
+                        receive: tradeViewModel.offer.receive,
+                        judging: tradeViewModel.viewState == .loading,
+                        judgeError: { if case .failed(let e) = tradeViewModel.viewState { return TradeViewModel.message(for: e) } else { return nil } }()
+                    ),
+                    onToggle: { summary, side in
+                        let roster = side == .send ? tradeViewModel.viewerRoster : tradeViewModel.partnerRoster
+                        if let player = roster?.players.first(where: { $0.id == summary.id }) { tradeViewModel.toggleFromRoster(player, side: side) }
+                    },
+                    onRemove: { tradeViewModel.remove(at: $0, from: $1) },
+                    onSwitchPartner: { tradeViewModel.switchPartner(to: $0) },
+                    onOpenPlayer: { tradePath.append(.player($0)) },
+                    onJudge: { Task { await tradeViewModel.compare(userID: userID) } },
+                    onThreeTeam: tradeViewModel.rosterCapability?.threeTeamSupported == true ? { tradePath.append(.threeTeam) } : nil
+                )
+                .toolbar {
+                    if !tradeViewModel.offer.send.isEmpty || !tradeViewModel.offer.receive.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            OmenBarTextButton(title: "Clear", tone: OmenColor.textSecondary) { tradeViewModel.clearOffer() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func tradePlayer(_ id: String) -> some View {
+        if let player = tradeViewModel.viewerRoster?.players.first(where: { $0.id == id }) {
+            OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: "Your team", providerName: tradeProviderName))
+        } else if case .loaded(let rosters) = tradeViewModel.rosterBrowseState,
+                  let team = rosters.teams.first(where: { $0.players.contains { $0.id == id } }),
+                  let player = team.players.first(where: { $0.id == id }) {
+            OmenPlayerScreen(page: OmenPlayerPage(player, ownerLabel: team.teamName, providerName: tradeProviderName))
+        } else {
+            OmenStateBlock(kind: .notEnoughToGoOn, title: "This player isn\u{2019}t on the rosters Omen just read", message: "Go back to see the current rosters.")
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+        }
+    }
+    @State private var fullArgumentPayload: OmenDecisionBriefPayload?
+
+    /// The league on the provider's own site, where the user makes the move. Nil when the provider has
+    /// no stable league address.
+    static func handoffURL(for page: LeagueCarouselViewModel.Page) -> URL? {
+        let id = page.leagueID.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? page.leagueID
+        switch page.platform.lowercased() {
+        case "espn": return URL(string: "https://fantasy.espn.com/football/team?leagueId=\(id)")
+        case "sleeper": return URL(string: "https://sleeper.com/leagues/\(id)")
+        case "yahoo": return URL(string: "https://football.fantasysports.yahoo.com/f1/\(id)")
+        default: return nil
+        }
+    }
+
+    private var deskPhase: OmenDeskView.Phase {
+        switch leagueCarouselViewModel.contextResolution {
+        case .resolving: return .loading
+        case .failed(let error): return .failed(message: commandCenterFailureMessage(error))
+        case .confirmedNone: return .noLeague
+        case .selected, .demo:
+            if let failure = commandCenterViewModel.failure { return .failed(message: commandCenterFailureMessage(failure)) }
+            return leagueCarouselViewModel.pages.isEmpty ? .loading : .ready
+        }
+    }
+
+    private var deskTeams: [OmenTeamCardModel] {
+        leagueCarouselViewModel.pages.map { OmenTeamCardModel(page: $0, state: leagueCarouselViewModel.state(for: $0)) }
+    }
+
+    /// The Rolodex's front card is the carousel's selected page; settling a card moves the selection,
+    /// and the carousel commits it as the team every tab reasons about.
+    private var deskSelection: Binding<String?> {
+        Binding(
+            get: {
+                let pages = leagueCarouselViewModel.pages
+                return pages.indices.contains(leagueCarouselViewModel.selectedIndex) ? pages[leagueCarouselViewModel.selectedIndex].id : pages.first?.id
+            },
+            set: { id in
+                if let index = leagueCarouselViewModel.pages.firstIndex(where: { $0.id == id }) {
+                    leagueCarouselViewModel.selectedIndex = index
+                }
+            }
+        )
+    }
+
+    private var deskMove: OmenDeskMovePreview? {
+        if let quiet = commandCenterViewModel.quietWeekState {
+            return OmenDeskMovePreview(headline: quiet.headline, reason: quiet.body, band: quiet.band, isHold: true)
+        }
+        if case .read(let preview) = OmenDeskMovePreview.section(from: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope)) {
+            return preview
+        }
+        return nil
+    }
+
+    private var deskNeeds: [OmenDeskView.Need] {
+        var needs: [OmenDeskView.Need] = []
+        if case .read(let waiver) = commandCenterViewModel.deskState(railCount: 0, railIndex: 0)?.waiver {
+            let title = waiver.dropName.map { "Add \(waiver.addName), drop \($0)" } ?? "Add \(waiver.addName)"
+            needs.append(.init(id: "waiver", kind: .waiver, title: title, detail: waiver.reasoning))
+        }
+        for team in deskTeams where team.status == .reconnect {
+            needs.append(.init(id: "reconnect-\(team.id)", kind: .reconnect, title: "Sign in to \(OmenProviderMark.displayName(team.platform)) again", detail: team.leagueName))
+        }
+        return needs
+    }
+
+    private var deskProviderName: String {
+        OmenProviderMark.displayName(tradeViewModel.offer.leagueContext?.platform)
+    }
+
+    @ViewBuilder
+    private func deskDestination(_ route: DeskRoute) -> some View {
+        switch route {
+        case .player(let id):
+            if let player = tradeViewModel.viewerRoster?.players.first(where: { $0.id == id }) {
+                OmenPlayerScreen(
+                    page: OmenPlayerPage(player, ownerLabel: "Your team", providerName: deskProviderName),
+                    tradeTitle: "Shop \(player.name) in a trade",
+                    onTrade: {
+                        if !tradeViewModel.isInOffer(player, side: .send) { tradeViewModel.toggleFromRoster(player, side: .send) }
+                        tradePath = [.build]
+                        selectedTab = .trade
+                    }
+                )
+            } else {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "This player isn\u{2019}t on the roster Omen just read", message: "Rosters change after trades and waivers. Go back to see the current team.")
+                    .padding(OmenSpacing.step20)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
+            }
+        case .waivers:
+            waiversScreen
+        case .ledger:
+            switch commandCenterViewModel.ledgerState {
+            case .loading:
+                OmenStateBlock(kind: .loading, title: "Reading the Ledger")
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .error(let message):
+                OmenStateBlock(kind: .failed, title: "The Ledger didn\u{2019}t load", message: message)
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .notConnected:
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "No league connected", message: "Connect a league and Omen starts keeping the record.")
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .entries, .empty:
+            OmenLedgerScreen(
+                state: OmenLedgerState(
+                    entries: commandCenterViewModel.ledgerState.entries,
+                    record: commandCenterViewModel.ledgerRecord,
+                    providerName: deskProviderName,
+                    season: commandCenterViewModel.ledgerSeason
+                ),
+                onOpenCall: { deskPath.append(.receipt($0)) }
+            )
+            }
+        case .account:
+            AccountView(
+                userID: userID,
+                sessionManager: sessionManager,
+                leagueDirectoryRepository: leagueDirectoryRepository,
+                needsSignIn: Set(deskTeams.filter { $0.status == .reconnect }.map(\.platform)),
+                onOpen: { deskPath.append(.accountPage($0)) },
+                onConnect: { presentSheet(.connect) },
+                onContactSupport: { deskPath.append(.support) },
+                onReportProblem: { presentSheet(.report(.account)) }
+            )
+        case .accountPage(let page):
+            switch page {
+            case .signIn: OmenSignInScreen(identity: userID, authViewModel: authViewModel)
+            case .privacy: OmenPrivacyScreen(onExport: nil, onDelete: { deletingAccount = true })
+                .sheet(isPresented: $deletingAccount) { OmenDeleteAccountSheet(sessionManager: sessionManager) }
+            case .sources: OmenSourcesScreen()
+            case .howCalls: OmenHowCallsScreen()
+            }
+        case .support:
+            OmenReportComposerSheet(
+                title: "Contact support",
+                screen: .account,
+                connectionState: reportConnectionState,
+                repository: URLSessionBetaReportRepository(apiBaseURL: environment.apiBaseURL),
+                accessToken: sessionManager.currentSession?.accessToken,
+                onDismiss: { if !deskPath.isEmpty { deskPath.removeLast() } },
+                topic: .question
+            )
+            .toolbar(.hidden, for: .navigationBar)
+        case .receipt(let id):
+            if let entry = commandCenterViewModel.ledgerState.entries.first(where: { $0.id == id }) {
+                LedgerReceiptView(entry: entry, load: { await commandCenterViewModel.loadReceipt(id: $0) })
+            } else {
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "This call isn\u{2019}t in the Ledger Omen just read", message: "Go back to see the current Ledger.")
+                    .padding(OmenSpacing.step20)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .background(OmenColor.bg)
+            }
+        }
     }
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            Group {
-                // A missing scope before the directory answers is not evidence that the user
-                // has no league. Hold the honest loading composition until context resolves;
-                // this prevents the cold-launch flash of factual zero-state copy.
-                if case .resolving = leagueCarouselViewModel.contextResolution {
-                    OmenCommandDeskScreen(
-                        state: OmenDeskState(
-                            weekLabel: "",
-                            deadlineLabel: nil,
-                            deadlineTime: nil,
-                            matchup: .switching,
-                            railCount: 0,
-                            railIndex: 0,
-                            waiver: .switching,
-                            ledger: .switching,
-                            footnote: nil
-                        ),
-                        context: nil,
-                        onOpenAccount: { presentSheet(.account) },
-                        onOpenLeague: { selectedTab = .league },
-                        onOpenLedger: nil,
-                        onReportProblem: { presentSheet(.report(.commandCenter)) }
-                    )
-                    .omenScreenReady("desk")
-                } else if case .failed(let directoryError) = leagueCarouselViewModel.contextResolution {
-                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                        OmenStateSurface(
-                            kind: .error,
-                            title: "Couldn't load your leagues",
-                            message: commandCenterFailureMessage(directoryError)
-                        )
-                        OmenButton(
-                            title: "Try again",
-                            action: {
-                                Task {
-                                    await leagueCarouselViewModel.load(userID: userID)
-                                    await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
-                                }
-                            },
-                            variant: .secondary,
-                            size: .md
-                        )
+            NavigationStack(path: $deskPath) {
+                OmenDeskView(
+                    phase: deskPhase,
+                    weekLabel: commandCenterViewModel.deskState(railCount: leagueCarouselViewModel.pages.count, railIndex: leagueCarouselViewModel.selectedIndex)?.weekLabel,
+                    teams: deskTeams,
+                    selectedTeamID: deskSelection,
+                    move: deskMove,
+                    needs: deskNeeds,
+                    team: (tradeViewModel.viewerRoster?.players ?? []).map { OmenPlayerSummary($0, providerName: deskProviderName) }
+                        .sorted { ($0.omenPoints ?? $0.providerPoints ?? -1) > ($1.omenPoints ?? $1.providerPoints ?? -1) },
+                    teamProvider: deskProviderName,
+                    ledgerLine: commandCenterViewModel.ledgerHeadline,
+                    isDemo: userID == SessionManager.demoUserID,
+                    switchingTo: leagueCarouselViewModel.committingPageID.flatMap { id in
+                        leagueCarouselViewModel.pages.first { $0.id == id }?.displayTeamName
+                    },
+                    switchError: leagueCarouselViewModel.selectionError.map(commandCenterFailureMessage),
+                    onRetrySwitch: {
+                        Task {
+                            if await leagueCarouselViewModel.commitSelection() != nil { await reloadAllAfterContextChange() }
+                        }
+                    },
+                    onAccount: { deskPath.append(.account) },
+                    onRetry: {
+                        Task {
+                            await leagueCarouselViewModel.load(userID: userID)
+                            await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
+                        }
+                    },
+                    onConnect: { presentSheet(.connect) },
+                    onOpenMove: { selectedTab = .omen },
+                    onNeed: { need in
+                        switch need.kind {
+                        case .waiver: deskPath.append(.waivers)
+                        case .reconnect: presentSheet(.connect)
+                        }
+                    },
+                    onReconnect: { _ in presentSheet(.connect) },
+                    onOpenPlayer: { deskPath.append(.player($0)) },
+                    onOpenLedger: commandCenterViewModel.ledgerState.entries.isEmpty ? nil : { deskPath.append(.ledger) }
+                )
+                .navigationTitle("Desk")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: DeskRoute.self) { route in deskDestination(route) }
+            }
+            .onChange(of: leagueCarouselViewModel.selectedIndex) { _, _ in
+                // Pushed screens belong to the team they were opened for.
+                deskPath = []
+                Task {
+                    if await leagueCarouselViewModel.commitSelection() != nil {
+                        await reloadAllAfterContextChange()
                     }
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
-                // §10.3, wired. A league switch used to leave the outgoing team's scoreboard on
-                // screen until the new read landed — for that second the numbers belonged to one
-                // team and the name above them to another. The contract is explicit that "the
-                // previous team's numbers are discarded, never reused while loading", so the
-                // desk goes to its mid-switch state instead and the switcher bar commits to the
-                // new team immediately, which is the only thing on the screen we actually know.
-                } else if let switching = switchingContext {
-                    OmenSwitchLoadingScreen(
-                        context: switching.context,
-                        weekLabel: switching.weekLabel,
-                        footnote: switching.footnote,
-                        onOpenAccount: { presentSheet(.account) }
-                    )
-                } else if let failure = commandCenterViewModel.failure {
-                    // M5 slice B: an unreadable shell renders an explicit failure surface.
-                    // It must NOT silently fall through to the disconnected fixture, which
-                    // would state as fact that the user has no leagues.
-                    VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                        OmenStateSurface(
-                            kind: .error,
-                            title: "Couldn't reach Omen",
-                            message: commandCenterFailureMessage(failure)
-                        )
-                        OmenButton(
-                            title: "Try again",
-                            action: { Task { await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope) } },
-                            variant: .secondary,
-                            size: .md
-                        )
-                    }
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
-                } else if case .confirmedNone = leagueCarouselViewModel.contextResolution {
-                    // J1's terminus, wired. Until now this screen existed only in a screenshot
-                    // scenario — captured, and unreachable by any real user, which is a
-                    // screenshot of nothing. The Command Center's own furniture renders as a
-                    // broken dashboard when there is no league; this says why it is empty.
-                    OmenNoLeagueScreen(
-                        onConnect: { presentSheet(.connect) }
-                    )
-                    .omenScreenReady("no-league")
-                } else if let quietState = commandCenterViewModel.quietWeekState {
-                    // `quiet-week.v1`. Server-owned eligibility and variant — this only
-                    // renders once the route has answered `eligible: true` with copy this
-                    // build recognises; every other case keeps the ordinary desk above.
-                    OmenCommandQuietScreen(
-                        state: quietState,
-                        onOpenAccount: { presentSheet(.account) }
-                    )
-                    .omenScreenReady("desk-quiet")
-                } else if let deskState = commandCenterViewModel.deskState(
-                    railCount: leagueCarouselViewModel.pages.count,
-                    railIndex: leagueCarouselViewModel.selectedIndex
-                ) {
-                    // The Sept 13 lock's Command Center, now the single production composition.
-                    OmenCommandDeskHost(
-                        state: deskState,
-                        context: OmenScreenContext.from(strip: commandCenterViewModel.context).map {
-                            var bar = $0
-                            bar.onSwitch = { presentSheet(.switcher) }
-                            bar.onAddLeague = { presentSheet(.connect) }
-                            return bar
-                        },
-                        ledgerEntries: commandCenterViewModel.ledgerState.entries,
-                        ledgerHeadline: commandCenterViewModel.ledgerHeadline,
-                        onOpenAccount: { presentSheet(.account) },
-                        onOpenLeague: { selectedTab = .league },
-                        onReportProblem: { presentSheet(.report(.commandCenter)) },
-                        loadReceipt: { await commandCenterViewModel.loadReceipt(id: $0) },
-                        carousel: leagueCarouselViewModel,
-                        userID: userID,
-                        onContextChanged: { _ in
-                            Task { await reloadAllAfterContextChange() }
-                        },
-                        move: OmenDeskMovePreview.section(
-                            from: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope)
-                        ),
-                        onOpenMove: { selectedTab = .omen }
-                    )
-                } else {
-                    // The state machine above is exhaustive. This is a fail-closed guard for a
-                    // future state, not a route back into the retired Command composition.
-                    OmenStateSurface(
-                        kind: .error,
-                        title: "The Desk isn\u{2019}t ready",
-                        message: "This version of Omen couldn\u{2019}t present the Desk right now."
-                    )
-                    .padding(OmenSpacing.step24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                    .background(OmenColor.bg)
                 }
+            }
+            // "Your team" comes from the same roster read Trade uses (cached five minutes).
+            .task(id: tradeViewModel.offer.leagueContext) {
+                guard userID != SessionManager.demoUserID else { return }
+                await tradeViewModel.loadRoster(userID: userID)
             }
             .task {
                 // Resolve context before making a personalized read. An unscoped dashboard
@@ -357,15 +575,38 @@ struct CommandCenterView: View {
             // M5 slice D: the Omen destination now renders the live engine's answer.
             // Previously this picked a fixture — `realDisconnected` for every real
             // signed-in user, regardless of their actual leagues.
-            withTeamPicker {
-                OmenDecisionScreen(
+            NavigationStack(path: $omenPath) {
+                OmenCallView(
                     state: omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope),
-                    startSitDetail: omenDecisionViewModel.startSitDetail,
+                    startSit: omenDecisionViewModel.startSitDetail,
+                    weekLabel: commandCenterViewModel.weekLabel,
+                    // Omen hands the move over: it opens the league on the provider's own site.
+                    providerName: leagueCarouselViewModel.activePage.flatMap { Self.handoffURL(for: $0) == nil ? nil : OmenProviderMark.displayName($0.platform) },
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
+                    onMakeMove: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } },
                     onRetryStartSit: { Task { await omenDecisionViewModel.load(userID: userID, scope: pickedLeagueScope) } },
+                    onOpenFullArgument: {
+                        // The argument is the one on screen when tapped; a later reload never blanks it.
+                        fullArgumentPayload = omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope).payload
+                        omenPath.append(.fullArgument)
+                    },
+                    onReport: { presentSheet(.report(.omen)) },
                     onReviewTrade: { reviewTradeCall($0) },
                     onFindOtherTrades: { findOtherTrades() }
                 )
-                .omenScreenReady("omen-decision")
+                .navigationTitle("Omen")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: OmenRoute.self) { _ in
+                    if let payload = fullArgumentPayload {
+                        OmenFullArgumentScreen(payload: payload)
+                    } else {
+                        OmenStateBlock(kind: .notEnoughToGoOn, title: "There\u{2019}s no call to argue yet", message: "Go back once Omen has made this week\u{2019}s call.")
+                            .padding(OmenSpacing.step20)
+                            .frame(maxHeight: .infinity, alignment: .top)
+                            .background(OmenColor.bg)
+                    }
+                }
             }
             .task {
                 omenDecisionViewModel.onConnect = { presentSheet(.connect) }
@@ -394,79 +635,87 @@ struct CommandCenterView: View {
             //
             // `dismissVerdict` keeps the offer. A user who reads "you give up too much" wants to
             // change one player, not retype the deal.
-            withTeamPicker {
-                if case .loaded(let compare) = tradeViewModel.viewState,
-                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
-                    switch answer {
-                    case .verdict(let state):
-                        OmenTradeVerdictScreen(
-                            state: state,
-                            onOpenAccount: { presentSheet(.account) },
-                            onPrimaryAction: { tradeViewModel.dismissVerdict() },
-                            onShare: { presentSheet(.tradeShareSetup) }
+            NavigationStack(path: $tradePath) {
+                OmenTradeChooserView(
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
+                    onFind: { tradePath.append(.find) },
+                    onBuild: { tradePath.append(.build) },
+                    onJudge: { tradePath.append(.judge) }
+                )
+                .navigationTitle("Trade")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: TradeRoute.self) { route in
+                    switch route {
+                    case .find:
+                        TradeFindFlowView(
+                            directoryRepository: leagueDirectoryRepository,
+                            sessionManager: sessionManager,
+                            findRepository: ApiTradeFindRepository(client: OmenApiClient(baseURL: environment.apiBaseURL)),
+                            userID: userID,
+                            platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
+                            leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
+                            fallbackTeamId: loadedOverviewTeamId,
+                            onConnectLeague: { presentSheet(.connect) },
+                            onOpenInBuilder: { candidate in
+                                tradeViewModel.openInBuilder(candidate)
+                                // Back from the builder returns to the trade Omen found.
+                                tradePath.append(.build)
+                            },
+                            onOpenPlayer: { tradePath.append(.player($0)) },
+                            onDismiss: { tradePath.removeAll() }
                         )
-                        .omenScreenReady("trade-verdict")
-                    case .needsContext(let state):
-                        OmenTradeNeedsContextScreen(
-                            state: state,
-                            onOpenAccount: { presentSheet(.account) },
-                            onConnect: { presentSheet(.connect) },
-                            onShowAnyway: { tradeViewModel.dismissVerdict() }
-                        )
-                        .omenScreenReady("trade-needs-context")
-                    }
-                } else {
-                    OmenTradeModeContainer(selectedMode: $selectedTradeMode, chooserVisible: $tradeChooserVisible) { mode in
-                        switch mode {
-                        case .find:
-                            TradeFindFlowView(
-                                directoryRepository: leagueDirectoryRepository,
-                                sessionManager: sessionManager,
-                                apiBaseURL: environment.apiBaseURL,
-                                userID: userID,
-                                platform: pickedLeagueScope?.platform ?? tradeViewModel.offer.leagueContext?.platform,
-                                leagueId: pickedLeagueScope?.leagueID ?? tradeViewModel.offer.leagueContext?.leagueId,
-                                fallbackTeamId: loadedOverviewTeamId,
-                                onOpenAccount: { presentSheet(.account) },
-                                onConnectLeague: { presentSheet(.connect) },
-                                onDismiss: { tradeChooserVisible = true }
-                            )
-                        case .build:
-                            TradeRosterFlowView(
-                                tradeViewModel: tradeViewModel,
-                                userID: userID,
-                                onOpenAccount: { presentSheet(.account) },
-                                onDismiss: { tradeChooserVisible = true },
-                                onOpenPartnerPicker: {
-                                    tradeViewModel.openPartnerPicker()
-                                    if tradeViewModel.isPartnerPickerPresented {
-                                        presentSheet(.tradePartnerPicker)
-                                    }
-                                }
-                            )
-                        case .type:
-                            OmenTradeScreen(
-                                state: tradeViewModel.viewState,
-                                offer: tradeViewModel.offer,
-                                searchState: tradeViewModel.searchState,
-                                searchingSide: tradeViewModel.searchingSide,
-                                onQueryChanged: { query, side in tradeViewModel.search(query, side: side) },
-                                onAddResult: { player, side in tradeViewModel.add(player, to: side) },
-                                onRemove: { index, side in tradeViewModel.remove(at: index, from: side) },
-                                onCompare: { Task { await tradeViewModel.compare(userID: userID) } },
-                                capabilities: tradeViewModel.capabilities,
-                                prefill: tradeViewModel.prefill
-                            )
-                            .omenScreenReady("trade")
-                        }
-                    }
-                    .task {
-                        // Demo is the reviewer's network-free door: it never calls the API, so a
-                        // demo session cannot show a request failure.
-                        guard userID != SessionManager.demoUserID else { return }
-                        await tradeViewModel.loadCapabilities()
+                        .toolbar(.hidden, for: .tabBar)
+                    case .build:
+                        tradeBuilder.toolbar(.hidden, for: .tabBar)
+                    case .threeTeam:
+                        tradeThreeTeam.toolbar(.hidden, for: .tabBar)
+                    case .judge:
+                        tradeJudge.toolbar(.hidden, for: .tabBar)
+                    case .player(let id):
+                        tradePlayer(id).toolbar(.hidden, for: .tabBar)
                     }
                 }
+            }
+            .sheet(isPresented: tradeVerdictShown, onDismiss: { tradeShowingShare = false; tradeViewModel.dismissShare() }) {
+                if tradeShowingShare, let state = tradeViewModel.shareScreenState {
+                    OmenTradeShareSheet(
+                        state: state,
+                        onToggle: { tradeViewModel.toggleShareInclusion($0) },
+                        onShare: {
+                            Task {
+                                if tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) == nil { await tradeViewModel.share(userID: userID) }
+                                if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
+                                    tradeShareURL = url
+                                }
+                            }
+                        },
+                        onCopy: { if let text = tradeViewModel.copyShareText() { UIPasteboard.general.string = text } },
+                        onDone: { tradeShowingShare = false }
+                    )
+                    .sheet(isPresented: Binding(get: { tradeShareURL != nil }, set: { if !$0 { tradeShareURL = nil } })) {
+                        if let url = tradeShareURL { OmenActivityView(items: [url]) }
+                    }
+                } else if case .loaded(let compare) = tradeViewModel.viewState,
+                   let answer = OmenTradeAnswer.from(compare, offer: tradeViewModel.offer) {
+                    OmenTradeVerdictSheet(
+                        kind: { switch answer { case .verdict(let v): .verdict(v); case .needsContext(let n): .needsContext(n) } }(),
+                        providerName: leagueCarouselViewModel.activePage.flatMap { Self.handoffURL(for: $0) == nil ? nil : OmenProviderMark.displayName($0.platform) },
+                        onAdjust: { tradeViewModel.dismissVerdict() },
+                        onOpenProvider: leagueCarouselViewModel.activePage.flatMap(Self.handoffURL(for:)).map { url in { UIApplication.shared.open(url) } },
+                        onShare: { tradeShowingShare = true },
+                        onConnect: {
+                            // One sheet at a time: close the verdict, then open Connect.
+                            tradeViewModel.dismissVerdict()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) }
+                        }
+                    )
+                }
+            }
+            .task {
+                // Demo is the reviewer's network-free door: it never calls the API.
+                guard userID != SessionManager.demoUserID else { return }
+                await tradeViewModel.loadCapabilities()
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
@@ -491,35 +740,27 @@ struct CommandCenterView: View {
             .tabItem { CommandCenterTab.trade.label }
             .tag(CommandCenterTab.trade)
 
-            // M5 slice F: the League destination now renders `league-overview.v1`. It
-            // replaced an honest "landing next" placeholder, which was correct while the
-            // screen contract was unratified and is no longer.
-            withTeamPicker {
-                OmenLeagueScreen(
-                    state: leagueViewModel.viewState,
+            NavigationStack(path: $leaguePath) {
+                OmenLeagueView(
+                    state: leagueState,
+                    teamControl: leagueCarouselViewModel.activePage.map { ($0.platform, $0.displayTeamName) },
+                    onSwitchTeam: { presentSheet(.switcher) },
                     onRetry: { Task { await leagueViewModel.reload() } },
                     onConnect: { presentSheet(.connect) },
-                    // E017 carries both controls, and `OmenScreenShell` renders the account
-                    // one only when this is non-nil. Without it the League destination — and
-                    // the wire sheet it presents, which inherits this same closure — were the
-                    // only signed-in surfaces with no route to the account. Every sibling tab
-                    // already passed it.
-                    onOpenAccount: { presentSheet(.account) },
-                    // The wire comes from the SAME `waiver-analysis.v1` read Command Center
-                    // already makes, for the reason Trade takes its league from the League
-                    // destination's read: two surfaces that fetch the wire separately can
-                    // disagree about it on screen.
-                    //
-                    // Nil until that read lands, which removes the section link rather than
-                    // opening an empty sheet.
-                    wire: commandCenterViewModel.waiverAnalysis.map {
-                        OmenScoutWireState.from(analysis: $0, weekLabel: leagueViewModel.wireWeekLabel)
+                    onOpenTarget: { id in
+                        guard let candidate = leagueTradeTargetsViewModel.candidates.first(where: { $0.id == id }) else { return }
+                        tradeViewModel.openInBuilder(candidate)
+                        tradePath = [.build]
+                        selectedTab = .trade
                     },
-                    tradeTargets: leagueTradeTargetsViewModel.section,
-                    waiverSummary: commandCenterViewModel.waiverAnalysis?.scoutSummary
-                        ?? OmenLeagueScreen.waiverUnread
+                    onOpenWaivers: commandCenterViewModel.waiverAnalysis == nil ? nil : { leaguePath.append(.waivers) }
                 )
-                .omenScreenReady("league")
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: LeagueRoute.self) { route in
+                    switch route {
+                    case .waivers: waiversScreen
+                    }
+                }
             }
             .task { await loadLeagueForSelectedContext() }
             .tabItem { CommandCenterTab.league.label }
@@ -530,7 +771,6 @@ struct CommandCenterView: View {
         // already tinted correctly; only iOS had drifted.
         .tint(OmenColor.accent)
         .sheet(item: $presentedSheet, onDismiss: {
-            tradeViewModel.dismissPartnerPicker()
             if tradeViewModel.shareScreenState != nil { tradeViewModel.dismissShare() }
         }) { sheet in
             commandCenterSheet(sheet)
@@ -544,28 +784,32 @@ struct CommandCenterView: View {
     /// three off-tab views winning SwiftUI's presentation race. That is the device-visible
     /// "nothing happened until I tapped something else" failure this ownership removes.
     private var shellSwitcherSheet: some View {
-        OmenTeamPicker(
-            viewModel: leagueCarouselViewModel,
-            userID: userID,
-            onContextChanged: { _ in
-                Task { await reloadAllAfterContextChange() }
+        OmenTeamSwitcherSheet(
+            teams: deskTeams,
+            selectedID: leagueCarouselViewModel.activePage?.id ?? deskSelection.wrappedValue,
+            committingID: leagueCarouselViewModel.committingPageID,
+            error: leagueCarouselViewModel.selectionError.map { "That switch didn\u{2019}t take. " + commandCenterFailureMessage($0) },
+            onSelect: { team in
+                guard let page = leagueCarouselViewModel.allPages.first(where: { $0.id == team.id }) else { return }
+                // Moving the Rolodex to the team is the switch: the Desk's selection change commits it and
+                // reloads, so every tab and the switcher's check agree on one team.
+                if let index = leagueCarouselViewModel.pages.firstIndex(where: { $0.id == team.id }),
+                   index != leagueCarouselViewModel.selectedIndex {
+                    leagueCarouselViewModel.selectedIndex = index
+                    presentedSheet = nil
+                    return
+                }
+                Task {
+                    if await leagueCarouselViewModel.commit(page) != nil {
+                        presentedSheet = nil
+                        await reloadAllAfterContextChange()
+                    }
+                }
             },
-            onAddLeague: { presentSheet(.connect) },
-            externalPresentation: switcherPresentedBinding
-        )
-        .switcherSheet
-    }
-
-    private var switcherPresentedBinding: Binding<Bool> {
-        Binding(
-            get: {
-                if case .switcher = presentedSheet { return true }
-                return false
-            },
-            set: { isPresented in
-                if isPresented { presentSheet(.switcher) }
-                else if case .switcher = presentedSheet { presentedSheet = nil }
-            }
+            onReconnect: { _ in presentedSheet = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) } },
+            onConnect: { presentedSheet = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) } },
+            onAccount: { presentedSheet = nil; selectedTab = .command; deskPath = [.account] },
+            onDone: { presentedSheet = nil }
         )
     }
 
@@ -599,29 +843,6 @@ struct CommandCenterView: View {
                     }
                 }
             }
-        case .account:
-            NavigationStack {
-                AccountView(
-                    userID: userID,
-                    sessionManager: sessionManager,
-                    authViewModel: authViewModel,
-                    leagueDirectoryRepository: leagueDirectoryRepository,
-                    onReportProblem: { presentSheet(.report(.account)) }
-                )
-                .navigationTitle("Account")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        OmenContextualHelpButton(
-                            topic: OmenContextualHelpContent.topic(for: .account),
-                            size: .sm
-                        )
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        OmenButton(title: "Done", action: { presentedSheet = nil }, variant: .link, size: .sm)
-                    }
-                }
-            }
         case .report(let screen):
             OmenReportComposerSheet(
                 screen: screen,
@@ -633,10 +854,9 @@ struct CommandCenterView: View {
         case .tradeShareSetup:
             if let state = tradeViewModel.shareScreenState {
                 NavigationStack {
-                    OmenTradeShareScreen(
+                    OmenTradeShareSheet(
                         state: state,
-                        onOpenAccount: { presentSheet(.account) },
-                        onToggleInclusion: { tradeViewModel.toggleShareInclusion($0) },
+                        onToggle: { tradeViewModel.toggleShareInclusion($0) },
                         onShare: {
                             Task {
                                 if let url = tradeViewModel.sharedURL(baseURL: environment.apiBaseURL) {
@@ -649,30 +869,16 @@ struct CommandCenterView: View {
                                 }
                             }
                         },
-                        onCopyAsText: {
-                            if let text = tradeViewModel.copyShareText() {
-                                UIPasteboard.general.string = text
-                            }
-                        }
+                        onCopy: {
+                            if let text = tradeViewModel.copyShareText() { UIPasteboard.general.string = text }
+                        },
+                        onDone: { presentedSheet = nil }
                     )
                     .omenScreenReady("trade-share")
                 }
             }
         case .tradeActivity(let url):
             OmenActivityView(items: [url])
-        case .tradePartnerPicker:
-            TradePartnerPicker(
-                candidates: tradeViewModel.partnerPickerCandidates,
-                leagueName: nil,
-                onSelect: {
-                    tradeViewModel.addThirdPartner($0)
-                    presentedSheet = nil
-                },
-                onDismiss: {
-                    tradeViewModel.dismissPartnerPicker()
-                    presentedSheet = nil
-                }
-            )
         }
     }
 
@@ -733,16 +939,15 @@ struct CommandCenterView: View {
         // Refused (no known league, or not reviewable): stay on the call rather than open a Trade tab that
         // would compare these players in some other league.
         guard tradeViewModel.applyPrefill(from: call) else { return }
-        selectedTradeMode = .type
-        tradeChooserVisible = false
+        // "Check it in the builder": the call's players are in the trays and the verdict opens over them.
+        tradePath = [.build]
         selectedTab = .trade
         Task { await tradeViewModel.compare(userID: userID) }
     }
 
     /// "Find other trades" on the Omen tab: open the Trade tab's Find mode.
     private func findOtherTrades() {
-        selectedTradeMode = .find
-        tradeChooserVisible = false
+        tradePath = [.find]
         selectedTab = .trade
     }
 
@@ -788,21 +993,17 @@ struct CommandCenterView: View {
 private enum CommandCenterSheet: Identifiable {
     case switcher
     case connect
-    case account
     case report(OmenBetaReportScreen)
     case tradeShareSetup
     case tradeActivity(URL)
-    case tradePartnerPicker
 
     var id: String {
         switch self {
         case .switcher: return "switcher"
         case .connect: return "connect"
-        case .account: return "account"
         case .report(let screen): return "report-\(screen.rawValue)"
         case .tradeShareSetup: return "trade-share-setup"
         case .tradeActivity(let url): return "trade-activity-\(url.absoluteString)"
-        case .tradePartnerPicker: return "trade-partner-picker"
         }
     }
 }
@@ -844,129 +1045,18 @@ enum CommandCenterTab: String, Hashable, CaseIterable {
     var label: some View { Label(title, systemImage: systemImage) }
 }
 
-enum TradeMode: String, CaseIterable {
-    case find, build, type
+/// Pushed screens on the Omen tab (navigation map).
+enum OmenRoute: Hashable { case fullArgument }
 
-    var title: String {
-        switch self {
-        case .find: return "Find a trade"
-        case .build: return "Build a trade"
-        case .type: return "Judge an offer"
-        }
-    }
-}
-
-/// The shared Trade destination chrome. Production and screenshot evidence both use this
-/// container so a fixture cannot silently bypass the Find / Build / Type entry point.
-struct OmenTradeModeContainer<Content: View>: View {
-    @Binding var selectedMode: TradeMode
-    /// True shows the chooser: the three ways people arrive at a trade question. Screenshot
-    /// scenarios pass a constant false to open straight into one mode.
-    @Binding var chooserVisible: Bool
-    @ViewBuilder let content: (TradeMode) -> Content
-
-    init(
-        selectedMode: Binding<TradeMode>,
-        chooserVisible: Binding<Bool> = .constant(false),
-        @ViewBuilder content: @escaping (TradeMode) -> Content
-    ) {
-        _selectedMode = selectedMode
-        _chooserVisible = chooserVisible
-        self.content = content
-    }
-
-    var body: some View {
-        if chooserVisible {
-            OmenTradeChooser { mode in
-                selectedMode = mode
-                chooserVisible = false
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 0) {
-                OmenButton(
-                    title: "\u{2039} Trade",
-                    action: { chooserVisible = true },
-                    variant: .link,
-                    size: .sm
-                )
-                .padding(.horizontal, OmenSpacing.step8)
-                .padding(.top, OmenSpacing.step8)
-                .accessibilityLabel("Back to trade options")
-                OmenTradeTabs(
-                    titles: TradeMode.allCases.map(\.title),
-                    selectedIndex: TradeMode.allCases.firstIndex(of: selectedMode) ?? 0,
-                    onSelect: { index in
-                        guard TradeMode.allCases.indices.contains(index) else { return }
-                        selectedMode = TradeMode.allCases[index]
-                    }
-                )
-                .padding(.horizontal, OmenSpacing.step16)
-                .padding(.top, OmenSpacing.step4)
-                content(selectedMode)
-            }
-        }
-    }
-}
-
-/// The Trade tab's front: Find, Build, Judge an offer (whole-app canvas, `TradeMode.dc.html`).
-struct OmenTradeChooser: View {
-    let onChoose: (TradeMode) -> Void
-
-    var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Trade")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                    Text("Settle the argument.")
-                        .omenTextStyle(OmenTypography.screenTitle)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text("Every answer shows both sides, both lineups, and Omen\u{2019}s read.")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-                .padding(.bottom, OmenSpacing.step4)
-                option(.find, icon: "magnifyingglass",
-                       line: "Omen reads every roster in the league and brings back trades that make both lineups better.")
-                option(.build, icon: "plus",
-                       line: "Pick a partner and the players. Omen judges it for both of you.")
-                option(.type, icon: "text.alignleft",
-                       line: "Got one in the league or the group chat? Enter the players, get the verdict.")
-            }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.top, OmenSpacing.step16)
-            .padding(.bottom, 104)
-        }
-        .background(OmenColor.bg)
-    }
-
-    private func option(_ mode: TradeMode, icon: String, line: String) -> some View {
-        OmenTappableCard(contentPadding: OmenSpacing.step16, action: { onChoose(mode) }) {
-            HStack(alignment: .top, spacing: OmenSpacing.step14) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(mode == .find ? OmenColor.accent : OmenColor.textPrimary)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        mode == .find ? OmenColor.accentMuted : OmenColor.surface2,
-                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    )
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                    Text(mode.title)
-                        .omenTextStyle(OmenTypography.h3)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    Text(line)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-    }
+/// Pushed screens on the Desk tab (navigation map).
+enum DeskRoute: Hashable {
+    case player(String)
+    case waivers
+    case ledger
+    case receipt(String)
+    case account
+    case accountPage(AccountRoute)
+    case support
 }
 
 /// User-facing copy for a shell read failure. Deliberately says what the user can do and
@@ -984,596 +1074,6 @@ private func commandCenterFailureMessage(_ error: OmenApiError) -> String {
         return "Omen had a problem on our side (error \(status)). Try again in a moment."
     case .decode:
         return "Omen sent something this version of the app couldn't read. Updating the app may fix it."
-    }
-}
-
-/// M4 Omen destination assembly. State selection stays here; DecisionBrief owns its states.
-/// The Omen destination — `U1`, built against `Blueprints/specs/design/screen-contracts/
-/// OmenCall-v1.md` and `design/native-visual-lock-2026-09-13/OmenCall.dc.html`.
-///
-/// **Omen decides or declines to decide.** The experience contract is explicit that this screen
-/// never ranks candidates — other destinations explore, this one commits — so there is no list
-/// affordance here and `alternatives` is deliberately not rendered.
-///
-/// `.success` is laid out here because the artboard specifies this screen's composition. Richer
-/// start/sit detail enriches that composition in place; it must not replace the destination with
-/// the older standalone J3 screen after the network response arrives.
-/// **Every non-success state still belongs to `OmenDecisionBrief`**, which owns all nine of them
-/// and is exercised state-by-state in the design-system gallery; duplicating them here would
-/// create a second set to keep honest, which is the failure `demo-mode-pre-empty-state` warns about.
-struct OmenDecisionScreen: View {
-    let state: OmenDecisionBriefState
-    /// `start-sit-detail.v2`, read only when the live call is a start/sit
-    /// (`payload.callType == "start_sit"`). `nil` keeps this screen's ordinary `.success`
-    /// composition. A real detail answer enriches that composition in place; fabricated or
-    /// partial player rows are never shown.
-    var startSitDetail: StartSitDetail?
-    var onRetryStartSit: (() -> Void)?
-    /// Rendered as the header eyebrow (E015). Absent when the caller does not know the week —
-    /// a screen that names a week it was not told is a claim about the schedule.
-    var weekLabel: String?
-    /// Fills the primary action (E055). Without it the action cannot name where the move goes,
-    /// so it is not offered: a button that says "make this move" somewhere unspecified is worse
-    /// than no button.
-    var providerName: String?
-    var onMakeMove: (() -> Void)?
-    var onDecline: (() -> Void)?
-    var onOpenFullArgument: (() -> Void)?
-    /// Fills E017, the artboard's account slot. Optional for the same reason `onMakeMove` is:
-    /// an avatar that opens nothing is a drawn affordance, not a reachable one.
-    var onOpenAccount: (() -> Void)?
-    /// E005–E012. Absent when the caller does not know the context; the bar is then not drawn
-    /// at all rather than drawn empty.
-    var context: OmenFirstCallContext?
-    /// "Review this trade": fills the Trade screen with this call's swap and checks it. Only offered for a trade
-    /// call that can be reviewed (never a Yahoo league: no projections). Absent means the action is not drawn.
-    var onReviewTrade: ((OmenTradeCall) -> Void)?
-    /// "Find other trades": opens Find a trade. Same gating as `onReviewTrade`.
-    var onFindOtherTrades: (() -> Void)?
-    @State private var showingFullArgument = false
-
-    var body: some View { ordinaryBody }
-
-    private var ordinaryBody: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                header
-                scopeLine
-                if case .success(let payload) = state {
-                    if let tradeCall = payload.tradeCall {
-                        tradeCallCard(payload, tradeCall)
-                    } else {
-                        callCard(payload)
-                    }
-                    // The richer start/sit read used to replace this entire destination with
-                    // the carried-over J3 screen after the request completed. That made Omen's
-                    // header, type hierarchy and spatial rhythm visibly snap between two screen
-                    // generations. Keep one destination mounted and enrich its call in place.
-                    if payload.callType == "start_sit", let startSitDetail {
-                        startSitDetailCard(startSitDetail)
-                    }
-                    // The source that earned the lead belongs immediately after the verdict.
-                    // Keeping it only in the expanded argument made the compact call look like
-                    // the old provider-first product even when the server supplied a receipt.
-                    if let comparison = payload.readComparison {
-                        OmenLeadingReadCard(comparison: comparison)
-                    }
-                    // Blocks 5-7, `omencall-evidence-contract-v1`. Three labelled groups rather
-                    // than one flat list: the capability contract's classes ARE the lesson.
-                    if !payload.players.isEmpty { callNumbers(payload.players) }
-                    capabilityGroups(payload)
-                    footballIntelligence(payload)
-                    actions(payload)
-                    // Block 10. Promoted from OmenEvidence, where most users never saw it.
-                    whyThisConfidence(payload)
-                    fullArgumentAction
-                    footerLine
-                } else {
-                    // Every non-success state, unchanged and owned by the brief.
-                    OmenDecisionBrief(state: state)
-                }
-            }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-                // The iOS 26 floating tab bar overlays content rather than insetting it, and
-                // the 46.5pt switcher bar pushed this screen's last line under it — measured at
-                // 98% occluded, tab-bar top 769.0pt against a line spanning 768.3-799.7pt.
-                // This clearance makes the line reachable by scrolling instead of hidden with no
-                // affordance. It does NOT restore D11: the screen no longer fits, and which of
-                // spacing, the ledger line or the fit itself gives way is a founder call.
-                .padding(.bottom, 64)
-        }
-        // `safeAreaInset` rather than a VStack wrapper: wrapping made the ScrollView a child
-        // and it lost its own bottom inset, so the last line slid under the tab bar. Applied
-        // before `.background` so it insets the scroll view rather than the wrapper.
-        .safeAreaInset(edge: .top, spacing: 0) {
-            if let context { context.bar }
-        }
-        .background(OmenColor.bg)
-        .sheet(isPresented: $showingFullArgument) {
-            if let payload = successPayload {
-                NavigationStack {
-                    OmenEvidenceScreen(payload: payload, weekLabel: weekLabel)
-                }
-                .presentationDragIndicator(.visible)
-            }
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                if let weekLabel {
-                    Text(weekLabel)
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.accent)
-                }
-                Text("Omen")
-                    .omenTextStyle(OmenTypography.screenTitle)
-                    .foregroundStyle(OmenColor.textPrimary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            // Founder decision, 2026-09-18: this slot carries BOTH controls, not one.
-            //
-            // The artboard draws a single 30x30 account avatar here (E017). M6-ContextualHelp
-            // shipped the help button into the same slot, and U1 kept it — confidence, risk and
-            // "why is this empty" are the three things people ask on this screen, and deleting a
-            // shipped affordance to match a picture is not a fix. But leaving help alone made the
-            // account unreachable from the Omen destination, which the artboard does provide.
-            //
-            // Command Center already pairs them in this order, so the pairing is precedent rather
-            // than invention. The cost is ~38pt more header width than the artboard draws: a
-            // deliberate, recorded drift on the canvas's one-slot composition. The same slot
-            // appears on 25 of the 30 artboards, so this resolves the pattern, not one screen.
-            OmenContextualHelpButton(topic: OmenContextualHelpContent.topic(for: .omen))
-            if let onOpenAccount {
-                OmenIconButton(
-                    contentDescription: "Account and profile",
-                    icon: Image(systemName: "person.crop.circle"),
-                    action: onOpenAccount,
-                    tone: .neutral
-                )
-            }
-        }
-    }
-
-    /// E018–E021. `1 of 3` and `Locked Tue 3:00` are **deliberately absent**: no call index and
-    /// no lock time exist in `omen-decision-brief.v3`, and a client-computed lock time is a claim
-    /// about the provider's schedule Omen cannot stand behind — wrong in exactly the weeks it
-    /// matters. "One per team" is a true product statement (fact-of-record #16) and stays.
-    private var scopeLine: some View {
-        Text("Call · one per team")
-            .omenTextStyle(OmenTypography.micro)
-            .foregroundStyle(OmenColor.textTertiary)
-    }
-
-
-    // MARK: - Evidence as the teaching layer (`omencall-evidence-contract-v1`, ratified 2026-09-18)
-
-    /// Blocks 5-7. One flat list of inputs is compliance furniture; split into three labelled
-    /// groups it teaches the questions a fantasy player needs to learn to ask — not only what the
-    /// data said, but whether it mattered and where Omen is blind.
-    ///
-    /// **This also fixes a real defect.** The previous composition rendered
-    /// `payload.signals.prefix(3)`, which truncates a flat list and can therefore drop an
-    /// `unavailable` input to make room. `capability-expression-v1` prohibits exactly that: the
-    /// unavailable class is the one that must survive truncation, because it is the only one that
-    /// costs the reader something.
-    ///
-    /// A group with no members is **absent**, not empty — no heading, no "none".
-    /// `not_requested` is filtered before it reaches here and renders nowhere.
-    /// "The numbers": what each player in the call has actually done, and his Omen Grade with the
-    /// efficiency stats behind it (founder, 2026-10-19: real numbers, not only projections).
-    private func callNumbers(_ players: [OmenCallPlayerNumbers]) -> some View {
-        OmenCard(contentPadding: OmenSpacing.step12) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                Text("The numbers")
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-                ForEach(players) { player in
-                    VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-                        Text(player.name)
-                            .omenTextStyle(OmenTypography.name)
-                            .foregroundStyle(OmenColor.textPrimary)
-                        if let grade = player.gradeLine {
-                            Text(grade)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .fontWeight(.bold)
-                                .foregroundStyle(OmenColor.accent)
-                        } else {
-                            Text("Omen Grade unavailable")
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textTertiary)
-                        }
-                        ForEach([player.statsLine, player.usageLine].compactMap { $0 } + player.gradeDetails, id: \.self) { line in
-                            Text(line)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func capabilityGroups(_ payload: OmenDecisionBriefPayload) -> some View {
-        let moved = payload.signals.filter { $0.used == true && $0.source == .live }
-        let readNotUsed = payload.signals.filter { $0.used == false && $0.source == .live }
-        let couldNotRead = payload.signals.filter { $0.source == .unavailable }
-
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            if !moved.isEmpty {
-                capabilityGroup("What moved this call", moved, emphasis: true)
-            }
-            if !readNotUsed.isEmpty {
-                capabilityGroup("Read, but it didn't decide this", readNotUsed, emphasis: false)
-            }
-            if !couldNotRead.isEmpty {
-                capabilityGroup("What Omen couldn't read", couldNotRead, emphasis: false)
-            }
-        }
-    }
-
-    /// Row order inside a group is the server's. The screen must not re-rank: re-ranking is a
-    /// claim about relative importance that no contract supports.
-    private func capabilityGroup(
-        _ title: String,
-        _ items: [OmenSignalItem],
-        emphasis: Bool
-    ) -> some View {
-        // `OmenCard`, not a raw RoundedRectangle: `PrimitiveEnforcementTests` fails app sources
-        // that compose their own surfaces, and it is right to — a screen-level shape is a token
-        // the theme cannot reach. The contract named OmenCard; this now matches it.
-        OmenCard(
-            variant: emphasis ? .solid : .outlined,
-            contentPadding: OmenSpacing.step12
-        ) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                Text(title)
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    OmenEvidenceRow(key: item.label, statement: item.detail ?? "")
-                        // "Read, but it didn't decide this" carries no evidence styling. A source
-                        // is not evidence until an engine marks it used.
-                        .opacity(emphasis ? 1.0 : 0.72)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func footballIntelligence(_ payload: OmenDecisionBriefPayload) -> some View {
-        if let signal = payload.footballIntelligence {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("System signal")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                    Text(signal.summary)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                    OmenEvidenceRow(key: "Authority", statement: signal.evidenceAuthority)
-                    if let coverage = signal.coverage {
-                        OmenEvidenceRow(key: "Coverage", statement: coverage)
-                    }
-                    OmenEvidenceRow(key: "Freshness", statement: signal.freshness)
-                    if !signal.whatCouldChangeThis.isEmpty {
-                        Text("What would change this")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        ForEach(signal.whatCouldChangeThis, id: \.self) { condition in
-                            Text(condition)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    /// Block 10. The transferable rule, not a restatement of the band.
-    ///
-    /// Server drivers are preferred. The fallback states the *rule* rather than inventing a
-    /// driver, because a driver Omen did not produce is a claim about this week's data.
-    /// **Never a numeral and never a meter** — fact-of-record #16.
-    @ViewBuilder
-    private func whyThisConfidence(_ payload: OmenDecisionBriefPayload) -> some View {
-        if let band = payload.confidenceBand {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Why this confidence")
-                        .omenTextStyle(OmenTypography.micro)
-                        .foregroundStyle(OmenColor.textTertiary)
-                    if payload.confidenceDrivers.isEmpty {
-                        Text(Self.confidenceRule(for: band))
-                            .omenTextStyle(OmenTypography.bodySmall)
-                            .foregroundStyle(OmenColor.textSecondary)
-                    } else {
-                        ForEach(payload.confidenceDrivers, id: \.self) { driver in
-                            Text(driver)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    /// The rule behind each band, written per band rather than interpolated. What makes a call
-    /// Confident is agreement, not margin — that is the part a reader can reuse next week.
-    private static func confidenceRule(for band: OmenConfidenceBand) -> String {
-        switch band.label.lowercased() {
-        case "confident":
-            return "Confident means the reads agree. Several independent inputs point the same way and none contradicts — that is what separates Confident from Leaning, not the size of the gap."
-        case "leaning":
-            return "Leaning means the reads mostly agree, but at least one pulls the other way or is missing. The move is still the better side of a close call."
-        default:
-            return "This band reflects how far the available reads agree with each other, not how large the projected gap is."
-        }
-    }
-
-    /// Block 12. Kept as its own action now that the evidence rows no longer live in a disclosure.
-    ///
-    /// `OmenButton`, not a raw `Button`: `PrimitiveEnforcementTests` bans raw SwiftUI controls in
-    /// app sources, and it caught this. The rule is right — a raw control does not pick up the
-    /// focus ring, the tone or the touch target the primitive guarantees.
-    private var fullArgumentAction: some View {
-        OmenButton(
-            title: "See the full argument",
-            action: {
-                if let onOpenFullArgument { onOpenFullArgument() } else { showingFullArgument = true }
-            },
-            variant: .link,
-            size: .md
-        )
-    }
-
-    private func callCard(_ payload: OmenDecisionBriefPayload) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-            if let callType = payload.callType, !callType.isEmpty {
-                Text(Self.callTypeLabel(callType))
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-            Text(payload.verdict)
-                .omenTextStyle(OmenTypography.call)
-                .foregroundStyle(OmenColor.textPrimary)
-            Text(payload.explanation.first ?? payload.move)
-                .omenTextStyle(OmenTypography.name)
-                .foregroundStyle(OmenColor.textSecondary)
-
-            // E026–E028. Band and risk sit together; the band is a rule and a word, never a
-            // number and never a meter.
-            HStack(spacing: OmenSpacing.step14) {
-                if let band = payload.confidenceBand {
-                    OmenConfidenceBandLabel(band: band)
-                }
-                OmenRiskLabel(level: payload.risk, reason: payload.riskReasons.first)
-                Spacer(minLength: 0)
-            }
-
-            if !payload.confidenceUnavailableReason.isEmpty, payload.confidenceBand == nil {
-                ForEach(payload.confidenceUnavailableReason, id: \.self) { reason in
-                    Text(reason)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-            }
-
-            // `factsRow` (E029-E041) is deliberately NOT rendered here any more.
-            //
-            // `capability-symbols-v1` is explicit that the four fact chips exist because they sit
-            // "in a compact row where there is no space for sentences". With D11 waived there IS
-            // space, and the three capability groups below now carry the same inputs as full
-            // sentences. Keeping both restated ROSTER and WEATHER twice, six pixels apart — the
-            // "same fact restated" failure the journey spec exists to catch.
-            //
-            // The helper is retained, not deleted: it is still correct for any future compact
-            // surface, and deleting it would force the next author to re-derive the chip mapping.
-        }
-        .padding(OmenSpacing.step14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(OmenColor.surface2)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(OmenColor.borderSubtle, lineWidth: 1))
-        )
-    }
-
-    @ViewBuilder
-    private func startSitDetailCard(_ detail: StartSitDetail) -> some View {
-        if let recommendation = detail.recommendation,
-           let start = recommendation.start,
-           let over = recommendation.over {
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Lineup detail")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        Spacer(minLength: OmenSpacing.step8)
-                        if let slot = recommendation.slot {
-                            Text(slot)
-                                .omenTextStyle(OmenTypography.micro)
-                                .foregroundStyle(OmenColor.textTertiary)
-                        }
-                    }
-                    startSitDetailRow(start, role: "Start", emphasized: true)
-                    Divider().overlay(OmenColor.borderSubtle)
-                    startSitDetailRow(over, role: "Sit", emphasized: false)
-                    if !detail.why.isEmpty {
-                        ForEach(detail.why, id: \.self) { reason in
-                            Text(reason)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                    if !detail.whatCouldChangeThis.isEmpty {
-                        Text("What could change this")
-                            .omenTextStyle(OmenTypography.micro)
-                            .foregroundStyle(OmenColor.textTertiary)
-                        ForEach(detail.whatCouldChangeThis, id: \.self) { condition in
-                            Text(condition)
-                                .omenTextStyle(OmenTypography.bodySmall)
-                                .foregroundStyle(OmenColor.textSecondary)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else if detail.state == "incomplete_data" {
-            VStack(alignment: .leading, spacing: OmenSpacing.step10) {
-                OmenStateSurface(
-                    kind: .disconnected,
-                    title: "Lineup detail is incomplete",
-                    message: detail.message ?? "Omen could not read every input needed for the lineup detail. The call above remains the available answer."
-                )
-                if let onRetryStartSit {
-                    OmenButton(title: "Try the lineup read again", action: onRetryStartSit, variant: .secondary, size: .md)
-                }
-            }
-        }
-    }
-
-    private func startSitDetailRow(
-        _ player: StartSitDetail.Player,
-        role: String,
-        emphasized: Bool
-    ) -> some View {
-        HStack(alignment: .center, spacing: OmenSpacing.step10) {
-            VStack(alignment: .leading, spacing: OmenSpacing.step2) {
-                Text(player.name ?? "Unnamed player")
-                    .omenTextStyle(OmenTypography.name)
-                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textSecondary)
-                Text([role, player.position, player.team, player.status].compactMap { $0 }.joined(separator: " · "))
-                    .omenTextStyle(OmenTypography.micro)
-                    .foregroundStyle(OmenColor.textTertiary)
-            }
-            Spacer(minLength: OmenSpacing.step8)
-            if let projection = player.projectedPoints {
-                Text(String(format: "%.1f", projection))
-                    .omenTextStyle(OmenTypography.numeric)
-                    .foregroundStyle(emphasized ? OmenColor.textPrimary : OmenColor.textTertiary)
-            }
-        }
-        .padding(.vertical, OmenSpacing.step4)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// E029–E041, and the capability expression for profile `omen_mvp`.
-    ///
-    /// The chips are not chosen here — each is one input from the decision receipt, rendered in
-    /// its class per `capability-expression-v1.md`. `not_requested` never arrives: it is filtered
-    /// before mapping, because a source Omen never asked for is not one it failed to read.
-    private func factsRow(_ payload: OmenDecisionBriefPayload) -> some View {
-        let facts = payload.signals.filter { $0.source == .unavailable || $0.used == true }
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: OmenSpacing.step8) {
-                ForEach(facts) { signal in
-                    OmenFactChip(
-                        label: signal.label,
-                        icon: Self.icon(for: signal.label),
-                        unread: signal.source == .unavailable
-                    )
-                }
-            }
-        }
-    }
-
-    /// A trade call, laid out as a trade: the verdict sentence, who goes and who comes, why both lineups
-    /// improve, the band and risk, then the two actions. The actions sit here, above the evidence, because
-    /// "review it" is the next step and should not need a scroll to find.
-    private func tradeCallCard(_ payload: OmenDecisionBriefPayload, _ call: OmenTradeCall) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-            Text("Trade")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            Text(payload.verdict)
-                .omenTextStyle(OmenTypography.call)
-                .foregroundStyle(OmenColor.textPrimary)
-            OmenTradeCallSwap(call: call)
-            // The band is a rule and a word, never a number and never a meter.
-            HStack(spacing: OmenSpacing.step14) {
-                if let band = payload.confidenceBand {
-                    OmenConfidenceBandLabel(band: band)
-                }
-                OmenRiskLabel(level: payload.risk, reason: payload.riskReasons.first)
-                Spacer(minLength: 0)
-            }
-            if !payload.confidenceUnavailableReason.isEmpty, payload.confidenceBand == nil {
-                ForEach(payload.confidenceUnavailableReason, id: \.self) { reason in
-                    Text(reason)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-            }
-            OmenTradeCallActions(call: call, onReview: onReviewTrade, onFindOthers: onFindOtherTrades)
-            // A high-risk label already carries the first reason; it is not listed a second time.
-            OmenTradeCallWhy(
-                call: call,
-                impact: payload.impact,
-                riskReasons: payload.risk == .high ? Array(payload.riskReasons.dropFirst()) : payload.riskReasons
-            )
-        }
-    }
-
-    private func actions(_ payload: OmenDecisionBriefPayload) -> some View {
-        VStack(spacing: OmenSpacing.step8) {
-            // A trade call is handed over through "Review this trade"; "make this move" is a lineup action.
-            if payload.tradeCall == nil, let providerName, let onMakeMove {
-                // `submission: handoff_only`. This never claims the offer was sent — it hands the
-                // user to the provider, which is the only thing Omen can honestly promise.
-                OmenButton(title: "Make this move in \(providerName)", action: onMakeMove, variant: .primary, size: .lg)
-            }
-            if let onDecline {
-                OmenButton(title: "Not this week", action: onDecline, variant: .secondary, size: .lg)
-            }
-        }
-    }
-
-    private var footerLine: some View {
-        Text("Every call lands in the Ledger whether you take it or not.")
-            .omenTextStyle(OmenTypography.bodySmall)
-            .foregroundStyle(OmenColor.textSecondary)
-            .padding(.top, OmenSpacing.step10)
-    }
-
-    /// "start_sit" -> "Start / sit". Server vocabulary, rendered as words.
-    private static func callTypeLabel(_ raw: String) -> String {
-        let words = raw.split(whereSeparator: { $0 == "_" || $0 == "-" }).map(String.init)
-        guard let first = words.first else { return raw }
-        return ([first.capitalized] + words.dropFirst()).joined(separator: " / ")
-    }
-
-    /// The artboard draws a factor-specific symbol per chip. The API's capability vocabulary is
-    /// open-ended, so a symbol is used only where the name genuinely maps to one; anything else
-    /// gets the unread-source mark when it is unread, and no invented glyph when it is not.
-    /// Recorded as a contract-vs-vocabulary gap rather than papered over with a default icon.
-    private static func icon(for label: String) -> OmenEvidenceIcon? {
-        let key = label.lowercased()
-        if key.contains("weather") || key.contains("wind") { return .wind }
-        if key.contains("travel") || key.contains("zone") || key.contains("schedule") { return .travelZones }
-        if key.contains("rest") || key.contains("days") { return .restClock }
-        // No symbol rather than a wrong one. Falling back to `.unreadSource` put the
-        // "could not read" mark on inputs Omen HAD read and used — the first build of this
-        // screen shipped a used Roster chip wearing the unread glyph, which is a false claim
-        // made by an icon. An absent symbol says nothing; the wrong symbol says something untrue.
-        return nil
-    }
-
-    private var successPayload: OmenDecisionBriefPayload? {
-        guard case .success(let payload) = state else { return nil }
-        return payload
     }
 }
 

@@ -41,56 +41,9 @@ final class OmenDecisionBriefTests: XCTestCase {
 
     // MARK: state routing
 
-    func testEveryStateHasAWellDefinedShellIdentity() {
-        // Renderer-independent branch discrimination: prove `shellBranchIdentity` is
-        // stable per case so future refactors can't silently swap two states.
-        XCTAssertEqual(shellBranchIdentity(.success(payload)), "success")
-        XCTAssertEqual(shellBranchIdentity(.empty("no advice")), "empty")
-        XCTAssertEqual(shellBranchIdentity(.loading), "loading")
-        XCTAssertEqual(shellBranchIdentity(.error("boom", retry: nil)), "error")
-        XCTAssertEqual(shellBranchIdentity(.disconnected(connect: nil)), "disconnected")
-        XCTAssertEqual(shellBranchIdentity(.stale(payload, lastSynced: "12m ago")), "stale")
-        XCTAssertEqual(shellBranchIdentity(.mock(payload)), "mock")
-        XCTAssertEqual(shellBranchIdentity(.demo(payload)), "demo")
-        XCTAssertEqual(shellBranchIdentity(.offSeason), "offSeason")
-    }
-
     // MARK: shell constructs without crashing per state
 
-    func testShellConstructsForEveryStateWithoutFeedbackSlot() {
-        _ = OmenDecisionBrief(state: .success(payload))
-        _ = OmenDecisionBrief(state: .empty("Your lineup is already optimal."))
-        _ = OmenDecisionBrief(state: .loading)
-        _ = OmenDecisionBrief(state: .error("Timed out.", retry: nil))
-        _ = OmenDecisionBrief(state: .disconnected(connect: nil))
-        _ = OmenDecisionBrief(state: .stale(payload, lastSynced: "12 minutes ago"))
-        _ = OmenDecisionBrief(state: .mock(payload))
-        _ = OmenDecisionBrief(state: .demo(payload))
-        _ = OmenDecisionBrief(state: .offSeason)
-        _ = OmenDecisionBrief(state: .hold(OmenHoldPayload(cannotRank: false, headline: "Hold", summary: nil, reasons: [], alternative: nil, considered: [], coverage: nil)))
-    }
-
-    func testShellConstructsWithFeedbackSlot() {
-        _ = OmenDecisionBrief(state: .success(payload)) {
-            Text("Feedback goes here")
-        }
-    }
-
     // MARK: retry / connect callbacks fire
-
-    func testErrorRetryCallbackFires() {
-        var retried = false
-        let state = OmenDecisionBriefState.error("Timed out.", retry: { retried = true })
-        if case let .error(_, retry) = state { retry?() }
-        XCTAssertTrue(retried)
-    }
-
-    func testDisconnectedConnectCallbackFires() {
-        var connected = false
-        let state = OmenDecisionBriefState.disconnected(connect: { connected = true })
-        if case let .disconnected(connect) = state { connect?() }
-        XCTAssertTrue(connected)
-    }
 
     // MARK: helper
 

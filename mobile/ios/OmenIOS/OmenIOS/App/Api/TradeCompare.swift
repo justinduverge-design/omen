@@ -328,6 +328,10 @@ struct TradeRosterResponse: Decodable, Equatable {
         let omenRead: OmenDecisionEnvelope.OmenRead?
         let stats: OmenPlayerStats?
         let rating: OmenPlayerRating?
+        /// Provider injury designation as sent ("Q", "Questionable", "OUT", "IR").
+        let status: String?
+        /// Provider says he cannot be traded (ESPN only today). Absent is unknown, not unlocked.
+        let tradeLocked: Bool
 
         var id: String { playerKey ?? name }
 
@@ -341,12 +345,16 @@ struct TradeRosterResponse: Decodable, Equatable {
             omenRead = try? c.decodeIfPresent(OmenDecisionEnvelope.OmenRead.self, forKey: .omenRead)
             stats = try? c.decodeIfPresent(OmenPlayerStats.self, forKey: .stats)
             rating = try? c.decodeIfPresent(OmenPlayerRating.self, forKey: .rating)
+            status = try? c.decodeIfPresent(String.self, forKey: .status)
+            tradeLocked = (try? c.decodeIfPresent(Bool.self, forKey: .tradeLocked)) == true
         }
 
         enum CodingKeys: String, CodingKey {
             case playerKey = "player_key", name, position, team, stats, rating
             case projectedPoints = "projected_points"
             case omenRead = "sight"
+            case status
+            case tradeLocked = "trade_locked"
         }
 
         /// The row's detail line with the numbers: "RB · IND · proj 11.9 · Omen 12.8". A read that

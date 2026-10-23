@@ -4807,3 +4807,19 @@ the summary, to the founder's inbox. The in-app disclosure says so before the pe
 **Why.** Reports were saved (one sat unread in production) but nothing told anyone. **Done 2026-10-21:** `SUPPORT_NOTIFY_EMAIL=support@slopssaloon.com` set on KVM1 (founder yes; `RESEND_API_KEY` was already set for the waitlist); mail is sent from `reports@slopssaloon.com`. **Not yet done:**
 setting `RESEND_API_KEY` and `SUPPORT_NOTIFY_EMAIL` on the API host (needs the founder's yes), and handing
 a high-severity brief straight to an agent (Jules or Codex), which would post outside our infrastructure.
+
+## 2026-10-21 — Design foundation v1 and every frame approved; one build
+
+**Decision (founder, 2026-10-21: "I LOVE IT").** `Blueprints/specs/design/omen-design-foundation-v1.md`
+and all frames in `design/foundation-v1-canvas/` (canvas version 28) are the design authority for
+Build 12. The app is built in one pass, not two waves (founder: waves drift apart). Players get
+team-colour jersey badges, no photos (no lawful free source); providers show as name and colour, no
+logos; the account avatar stays initials for now. Progress and the per-screen gate live in
+`Blueprints/handoffs/2026-10-21-build12-app-progress.md`.
+
+## 2026-10-22 — Omen, Trade and League rebuilt the way the Desk was
+
+**Decision (founder, 2026-10-22).** "You have founder approval to do what you did with [Desk] to Omen,
+trade, and league." Each is rebuilt on the foundation, the old screens and pieces it replaces are
+deleted in the same change, and each passes the progress-file gate. Commit and push freely on
+`claude/build12-app`; no merge until the screen work is done.

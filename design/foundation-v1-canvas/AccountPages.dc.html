@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Account pages</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@600;700;800&amp;family=Wix+Madefor+Text:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+*{box-sizing:border-box}
+.d{font-family:'Wix Madefor Display',system-ui,sans-serif}
+.phone{width:390px;height:844px;border-radius:44px;overflow:hidden;position:relative;background:#1F1F1D;color:#F5F0E8;font-family:'Wix Madefor Text',system-ui,sans-serif;flex:none}
+.isl{position:absolute;top:11px;left:133px;width:124px;height:36px;border-radius:20px;background:#000}
+.back{padding:58px 20px 0;height:96px;display:flex;align-items:center;gap:4px;color:#D8A648;font-size:16px}
+.pad{padding:0 20px}
+.title{font-family:'Wix Madefor Display';font-size:28px;font-weight:800;line-height:1.08}
+.body{font-size:14.5px;color:#BDB5A9;line-height:1.5;margin-top:8px}
+.h{font-family:'Wix Madefor Display';font-size:18px;font-weight:700;margin-top:22px}
+.r{display:flex;align-items:center;justify-content:space-between;min-height:46px;border-bottom:1px solid #33332F;font-size:14px;gap:10px}
+.r span:last-child{color:#A79E90;text-align:right}
+.btn{height:50px;border-radius:25px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15.5px}
+</style>
+</helmet>
+<div style="width:1790px;height:844px;display:flex;gap:66px">
+
+  <div class="phone" aria-label="Privacy and your data">
+    <div class="isl"></div>
+    <div class="back">‹ Account</div>
+    <div class="pad">
+      <div class="title">Privacy and your data</div>
+      <div class="h">What Omen keeps</div>
+      <div class="r"><span>Your account and sign-in</span><span>until you delete it</span></div>
+      <div class="r"><span>Leagues you follow</span><span>until you disconnect</span></div>
+      <div class="r"><span>Omen's calls and your choices</span><span>the Ledger</span></div>
+      <div class="r"><span>Reports you send</span><span>30 days</span></div>
+      <div class="h">What Omen never keeps</div>
+      <div class="body" style="margin-top:4px">Your ESPN, Yahoo or Sleeper password. ESPN's sign-in cookie is held encrypted only while you're connected, and removed if ESPN rejects it.</div>
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+        <div class="btn" style="background:#343431">Export your data</div>
+        <div class="btn" style="border:1.5px solid #6B3A33;color:#E8907F">Delete account</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="About and data sources">
+    <div class="isl"></div>
+    <div class="back">‹ Account</div>
+    <div class="pad">
+      <div class="title">Where Omen's numbers come from</div>
+      <div class="r" style="margin-top:14px"><span>Your league, rosters, scores</span><span>ESPN, Yahoo, Sleeper</span></div>
+      <div class="r"><span>Play-by-play and snaps</span><span>nflverse (open data)</span></div>
+      <div class="r"><span>Injury reports</span><span>Sleeper</span></div>
+      <div class="r"><span>Vegas lines and totals</span><span>daily</span></div>
+      <div class="r"><span>Weather</span><span>forecast and observed</span></div>
+      <div class="r"><span>Omen's read and grade</span><span>Omen, on its own servers</span></div>
+      <div class="body" style="margin-top:14px">Omen is not affiliated with ESPN, Yahoo, Sleeper or the NFL.</div>
+      <div class="body" style="margin-top:14px;color:#A79E90">Omen 1.0 (12) · Terms · Privacy policy</div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="Delete account">
+    <div class="isl"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#262624;border-radius:28px 28px 0 0;padding:12px 20px 34px">
+      <div style="width:36px;height:5px;border-radius:3px;background:#4A4A45;margin:0 auto 18px"></div>
+      <div class="title" style="font-size:24px">Delete your Omen account?</div>
+      <div class="body">Your account, leagues, Ledger and reports are deleted for good. Your ESPN, Yahoo and Sleeper accounts are not touched.</div>
+      <div style="font-size:13px;font-weight:600;color:#A79E90;margin-top:18px">Type delete to confirm</div>
+      <div style="height:48px;border-radius:14px;background:#2E2E2B;border:1px solid #3A3A36;margin-top:8px;display:flex;align-items:center;padding:0 14px;font-size:15px">delete</div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <div class="btn" style="flex:1;background:#343431">Cancel</div>
+        <div class="btn" style="flex:1;background:#B2493C;color:#fff">Delete</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone" aria-label="How Omen makes a call">
+    <div class="isl"></div>
+    <div class="back">‹ Account</div>
+    <div class="pad">
+      <div class="title">How Omen makes a call</div>
+      <div class="body">Every week Omen reads your league and the whole NFL, then picks the one move worth making for each of your teams. If nothing is worth it, it says hold.</div>
+      <div class="h">Omen's read</div>
+      <div class="body" style="margin-top:4px">Omen forecasts every player from usage, matchup, game script and role changes. It also keeps score: for each position and scoring, whichever forecast, Omen's or your provider's, has been closer this season leads.</div>
+      <div class="h">Confidence and risk</div>
+      <div class="body" style="margin-top:4px">Strong means the reads agree. Lean means one pulls the other way. Risk is how bad the downside is.</div>
+      <div class="h">The Ledger</div>
+      <div class="body" style="margin-top:4px">Every call is graded on your league's own scoring, against the player it passed over.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1790,"height":844}}'>
+class Component extends DCLogic { renderVals() { return {}; } }
+</script>
+</body>
+</html>

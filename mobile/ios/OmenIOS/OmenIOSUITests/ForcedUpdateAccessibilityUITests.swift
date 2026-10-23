@@ -53,7 +53,7 @@ final class ForcedUpdateAccessibilityUITests: XCTestCase {
     /// app, so an unlabeled or missing update control is a dead end rather than an annoyance.
     func testUpdateControlIsReachableAndLabeled() {
         let app = launch()
-        let updateButton = app.buttons["Update now"]
+        let updateButton = app.buttons["Update in the App Store"]
         XCTAssertTrue(updateButton.waitForExistence(timeout: 10), "The update control must be exposed to assistive technology by name")
         XCTAssertTrue(updateButton.isHittable, "The update control must be hittable, not merely present in the tree")
     }
@@ -69,7 +69,7 @@ final class ForcedUpdateAccessibilityUITests: XCTestCase {
     /// is a `Done when:` requirement, not a copy preference.
     func testBlockingCopyNamesTheReasonAndTheRequiredVersion() {
         let app = launch()
-        XCTAssertTrue(app.staticTexts["Update required"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Update Omen to keep going"].waitForExistence(timeout: 10))
         let explanation = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "1.2.0")).firstMatch
         XCTAssertTrue(explanation.waitForExistence(timeout: 10), "The prompt must name the version that clears the block")
     }
@@ -81,8 +81,8 @@ final class ForcedUpdateAccessibilityUITests: XCTestCase {
     /// has no other route through the app to discover it was a dead end.
     func testNoUpdateButtonIsDrawnWhenThereIsNoStoreListing() {
         let app = launch("forced-update.no-store-link")
-        XCTAssertTrue(app.staticTexts["Update required"].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons["Update now"].exists, "A button with nowhere to go must not be rendered")
+        XCTAssertTrue(app.staticTexts["Update Omen to keep going"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["Update in the App Store"].exists, "A button with nowhere to go must not be rendered")
         XCTAssertTrue(
             app.staticTexts["Update Omen from the App Store to continue."].exists,
             "The screen must still say how to resolve the block when it cannot link out"

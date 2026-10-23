@@ -238,7 +238,8 @@ extension MovesHistory {
             // than parsed back out of the sentences above, because recovering them from the
             // rendered strings would mean re-merging the two axes the Ledger's rule keeps apart.
             action: action(for: move),
-            ledgerOutcome: ledgerOutcome(for: move)
+            ledgerOutcome: ledgerOutcome(for: move),
+            week: move.week
         )
     }
 

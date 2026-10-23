@@ -95,6 +95,8 @@ struct OmenButton: View {
     /// Override only when the action has a stronger semantic meaning. Link-style navigation is
     /// quiet by default; ordinary controls acknowledge with a light impact.
     var haptic: OmenHaptic? = nil
+    /// Primary actions in a dock or a state block span the width (foundation v1 frames).
+    var fullWidth: Bool = false
 
     @FocusState private var isFocused: Bool
     @Environment(\.omenHaptics) private var haptics
@@ -113,7 +115,7 @@ struct OmenButton: View {
         switch variant {
         case .primary: return OmenColor.textOnAccent
         case .secondary, .tertiary, .link: return toneColor
-        case .danger: return OmenColor.Data.riskHigh
+        case .danger: return OmenColor.danger
         }
     }
 
@@ -149,7 +151,7 @@ struct OmenButton: View {
             }
             .foregroundStyle(isInteractable ? contentColor : OmenColor.textTertiary)
             .padding(.horizontal, horizontalPadding)
-            .frame(minHeight: max(heightPt, OmenLayout.minTouchTarget))
+            .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: max(heightPt, OmenLayout.minTouchTarget))
             .background(backgroundView)
         }
         .buttonStyle(OmenPressableButtonStyle())
@@ -170,7 +172,7 @@ struct OmenButton: View {
                 .stroke(isInteractable ? toneColor : OmenColor.border, lineWidth: 1)
         case .danger:
             RoundedRectangle(cornerRadius: 8)
-                .stroke(isInteractable ? OmenColor.Data.riskHigh : OmenColor.border, lineWidth: 1)
+                .stroke(isInteractable ? OmenColor.danger : OmenColor.border, lineWidth: 1)
         case .tertiary, .link:
             Color.clear
         }

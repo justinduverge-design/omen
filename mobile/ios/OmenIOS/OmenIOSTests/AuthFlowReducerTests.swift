@@ -222,4 +222,12 @@ final class AuthFlowReducerTests: XCTestCase {
         )
         XCTAssertEqual(state, .authenticated(session: session))
     }
+
+    func testAWrongCodeCanBeRetriedForTheSameAddress() {
+        let failed = AuthFlowState.failed(reason: .invalidCode)
+        XCTAssertEqual(AuthFlowReducer.reduce(state: failed, event: .otpRetry(email: "Jo@Example.com")), .awaitingOtp(email: "jo@example.com"))
+        // Only a wrong code reopens the code step; other failures stay put.
+        XCTAssertEqual(AuthFlowReducer.reduce(state: .failed(reason: .canceled), event: .otpRetry(email: "jo@example.com")), .failed(reason: .canceled))
+        XCTAssertEqual(AuthFlowReducer.reduce(state: .idle, event: .otpRetry(email: "jo@example.com")), .idle)
+    }
 }

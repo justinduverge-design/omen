@@ -11,7 +11,7 @@ import XCTest
 /// and screen that caused it.
 final class PerformanceJourneyUITests: XCTestCase {
 
-    private let demoTitle = "Look around without an account →"
+    private let demoTitle = "Look around with a sample league"
     private let tabs = ["Omen", "Trade", "League", "Desk"]
 
     override func setUp() {

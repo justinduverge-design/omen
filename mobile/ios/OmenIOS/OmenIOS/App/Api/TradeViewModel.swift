@@ -215,7 +215,6 @@ final class TradeViewModel: ObservableObject {
     }
 
     @Published private(set) var thirdPartnerTeamID: String?
-    @Published var isPartnerPickerPresented = false
     @Published private(set) var threeTeamLegs: [TradeThreeTeamLeg] = []
     @Published private(set) var threeTeamViewState: ThreeTeamViewState = .idle
     /// Client-local only. Never sent to the server, never read back as proof a leg went through —
@@ -233,25 +232,11 @@ final class TradeViewModel: ObservableObject {
         return rosterPartners.filter { !excluded.contains($0.id) }
     }
 
-    /// Only reachable while `three_team.supported` and exactly two teams (you + primary) are
-    /// selected — `TradePartnerPicker-v1.md`'s governing rule. A no-op otherwise, which is what
-    /// keeps the live "Add team" chip from ever being wired to open this with a third team
-    /// already active or three-team support unread/unavailable.
-    func openPartnerPicker() {
-        guard rosterCapability?.threeTeamSupported == true, thirdPartnerTeamID == nil else { return }
-        isPartnerPickerPresented = true
-    }
-
-    func dismissPartnerPicker() {
-        isPartnerPickerPresented = false
-    }
-
     /// Commits a picked team as the third partner. Any prior three-team read goes stale — the
     /// same "any edit invalidates the standing verdict" rule `add(_:to:)` already applies to the
     /// two-team offer.
     func addThirdPartner(_ partner: OmenTradePartner) {
         thirdPartnerTeamID = partner.id
-        isPartnerPickerPresented = false
         thirdPartnerRemovalDisclosure = nil
         threeTeamViewState = .idle
     }
@@ -274,39 +259,49 @@ final class TradeViewModel: ObservableObject {
         thirdPartnerRemovalDisclosure = nil
     }
 
-    /// "Send to you" / "Send to Chubb Rock" — `TradeRoster-v1.md`'s addendum. Always the two
-    /// teams in the trade other than whichever team's roster is currently being browsed
-    /// (`selectedPartnerTeamID`, the fixed primary once a third team is active — see
-    /// `TradeBuildThreeTeam-v1.md`'s note that the chip row stops offering a swap once three are
-    /// active). Empty — and therefore no recipient chooser renders at all — until a third team
-    /// exists, which is exactly the addendum's "when only two teams are active... unchanged."
-    var threeTeamRecipientChoices: [OmenTradeRecipientChooser.Recipient] {
-        guard let thirdPartnerTeamID else { return [] }
-        let thirdName = rosterPartners.first(where: { $0.id == thirdPartnerTeamID })?.name ?? thirdPartnerTeamID
-        return [
-            .init(id: "you", label: "Send to you"),
-            .init(id: thirdPartnerTeamID, label: "Send to \(thirdName)"),
-        ]
+    /// A new main partner ends any three-team trade built around the old one: no team twice, no legs to
+    /// a team that is no longer in the trade.
+    private func clearThreeTeam() {
+        thirdPartnerTeamID = nil
+        threeTeamLegs = []
+        threeTeamViewState = .idle
+        threeTeamSubmissionDoneSteps = []
     }
 
-    /// Tapping a recipient pill on `TradeRoster`. Builds or extends the leg from the browsed
-    /// team to the chosen recipient — never a leg the client invents a destination for.
-    func chooseThreeTeamRecipient(playerID: String, recipientTeamID: String) {
-        guard let fromID = selectedPartnerTeamID,
-              case .loaded(let response) = rosterBrowseState,
-              let team = response.teams.first(where: { $0.id == fromID }),
-              let player = team.players.first(where: { $0.id == playerID })
-        else { return }
-        let toName = recipientTeamID == "you"
-            ? nil
-            : rosterPartners.first(where: { $0.id == recipientTeamID })?.name
-        addThreeTeamLeg(
-            from: fromID,
-            fromName: team.teamName,
-            to: recipientTeamID,
-            toName: toName,
-            player: TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey)
-        )
+    /// The three teams in a three-team trade, "you" first. Empty until a third team is added.
+    var threeTeamTeams: [OmenTradePartner] {
+        guard let thirdPartnerTeamID, let primary = selectedPartnerTeamID else { return [] }
+        let byID = Dictionary(rosterPartners.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        return [OmenTradePartner(id: "you", crest: "You", name: "You")] + [primary, thirdPartnerTeamID].compactMap { byID[$0] }
+    }
+
+    /// Where a player on `teamID` is going in the three-team trade, or nil when he stays.
+    func threeTeamDestination(playerKey: String, from teamID: String) -> String? {
+        threeTeamLegs.first { $0.from == teamID && $0.players.contains { ($0.playerKey ?? $0.name) == playerKey } }?.to
+    }
+
+    /// Sends a player from any of the three teams to one of the other two. Choosing where he already
+    /// goes takes him back out; choosing the other team moves him.
+    func setThreeTeamDestination(_ player: TradeRosterResponse.Player, from teamID: String, to destination: String) {
+        let key = player.playerKey ?? player.name
+        let previous = threeTeamDestination(playerKey: key, from: teamID)
+        for index in threeTeamLegs.indices where threeTeamLegs[index].from == teamID {
+            threeTeamLegs[index].players.removeAll { ($0.playerKey ?? $0.name) == key }
+        }
+        threeTeamLegs.removeAll { $0.players.isEmpty }
+        threeTeamViewState = .idle
+        guard previous != destination, destination != teamID else { return }
+        let name: (String) -> String? = { id in id == "you" ? nil : self.rosterPartners.first { $0.id == id }?.name }
+        addThreeTeamLeg(from: teamID, fromName: name(teamID), to: destination, toName: name(destination),
+                        player: TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey))
+    }
+
+    /// One team's roster for the three-team picker; "you" is the viewer's own team.
+    func threeTeamRoster(_ teamID: String) -> TradeRosterResponse.Team? {
+        teamID == "you" ? viewerRoster : {
+            guard case .loaded(let response) = rosterBrowseState else { return nil }
+            return response.teams.first { $0.id == teamID }
+        }()
     }
 
     private func addThreeTeamLeg(from: String, fromName: String?, to: String, toName: String?, player: TradePlayer) {
@@ -383,6 +378,74 @@ final class TradeViewModel: ObservableObject {
         add(TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey), to: .receive)
     }
 
+    // MARK: - Trade builder (both rosters, one screen)
+
+    /// The viewer's own team from the same roster read, so the builder can pick what you send from
+    /// your real roster instead of a typed name (founder, 2026-10-21: "I don't think you can select
+    /// from your own team").
+    var viewerRoster: TradeRosterResponse.Team? {
+        guard case .loaded(let response) = rosterBrowseState, response.isAvailable,
+              let viewerTeamID, !viewerTeamID.isEmpty else { return nil }
+        return response.teams.first { $0.id == viewerTeamID }
+    }
+
+    var partnerRoster: TradeRosterResponse.Team? {
+        guard case .loaded(let response) = rosterBrowseState, response.isAvailable,
+              let selectedPartnerTeamID else { return nil }
+        return response.teams.first { $0.id == selectedPartnerTeamID }
+    }
+
+    /// Whether a roster player is already in the offer on that side. Keyed by provider id, then name.
+    func isInOffer(_ player: TradeRosterResponse.Player, side: Side) -> Bool {
+        (side == .send ? offer.send : offer.receive).contains { Self.same($0, player) }
+    }
+
+    func toggleFromRoster(_ player: TradeRosterResponse.Player, side: Side) {
+        let list = side == .send ? offer.send : offer.receive
+        if let index = list.firstIndex(where: { Self.same($0, player) }) {
+            remove(at: index, from: side)
+        } else {
+            add(TradePlayer(name: player.name, position: player.position, team: player.team, playerKey: player.playerKey), to: side)
+        }
+    }
+
+    /// Picking a different partner keeps what you send and drops what you asked for from the old one.
+    func switchPartner(to id: String) {
+        guard id != selectedPartnerTeamID else { return }
+        clearThreeTeam()
+        selectedPartnerTeamID = id
+        if !offer.receive.isEmpty {
+            offer.receive = []
+            prefill = nil
+            prefillScope = nil
+            invalidateCompare()
+            viewState = .idle
+        }
+    }
+
+    /// Find a trade's "Open in builder": the partner and both players, ready to judge or adjust.
+    func openInBuilder(_ candidate: TradeFindCandidate) {
+        clearOffer()
+        clearThreeTeam()
+        if let partner = candidate.opponentTeamId, !partner.isEmpty { selectedPartnerTeamID = partner }
+        add(TradePlayer(name: candidate.give.name, position: candidate.give.position, team: candidate.give.team, playerKey: candidate.give.playerKey), to: .send)
+        add(TradePlayer(name: candidate.receive.name, position: candidate.receive.position, team: candidate.receive.team, playerKey: candidate.receive.playerKey), to: .receive)
+    }
+
+    func clearOffer() {
+        offer.send = []
+        offer.receive = []
+        prefill = nil
+        prefillScope = nil
+        invalidateCompare()
+        viewState = .idle
+    }
+
+    private static func same(_ offered: TradePlayer, _ player: TradeRosterResponse.Player) -> Bool {
+        if let a = offered.playerKey, let b = player.playerKey, !a.isEmpty, !b.isEmpty { return a == b }
+        return offered.name == player.name
+    }
+
     func dismissRosterBrowse() {
         rosterBrowseState = .idle
         selectedPartnerTeamID = nil
@@ -413,145 +476,6 @@ final class TradeViewModel: ObservableObject {
         return response.teams.filter { $0.id != viewerTeamID }.map {
             OmenTradePartner(id: $0.id, crest: crest(for: $0.teamName), name: $0.teamName ?? "Team \($0.id)", need: nil)
         }
-    }
-
-    /// `TradeBuild` — a real partner directory plus the offer built so far. Always constructible
-    /// once a league is connected, whether or not the roster read has landed yet.
-    ///
-    /// T5: once a third team is active, `sides`/`read`/`submission` switch to the three-team
-    /// path entirely — built from `threeTeamOffer`/`threeTeamViewState` rather than `offer`. With
-    /// no third partner (every existing account, and every league without `three_team.supported`)
-    /// this executes exactly the branch that shipped before T5, unchanged.
-    var rosterBuildState: OmenTradeBuildState {
-        let partners = rosterPartners
-        let selectedID = selectedPartnerTeamID ?? partners.first?.id
-        let thirdPartner = thirdPartnerTeamID.flatMap { id in partners.first(where: { $0.id == id }) }
-
-        guard let thirdPartner else {
-            let primaryTitle: String
-            switch rosterBrowseState {
-            case .loading: primaryTitle = "Loading your league's teams…"
-            case .loaded(let response) where !response.isAvailable: primaryTitle = "See why rosters aren't available"
-            case .loaded where selectedID != nil: primaryTitle = "View their roster"
-            default: primaryTitle = "Load your league's teams"
-            }
-            return OmenTradeBuildState(
-                kicker: "Two teams",
-                title: "Trade with a real team",
-                tabTitles: [],
-                selectedTabIndex: 0,
-                partners: partners,
-                selectedPartnerID: selectedID,
-                filters: [],
-                selectedFilterID: nil,
-                capability: rosterCapability,
-                sides: OmenTradeAnswer.sides(of: offer),
-                read: nil,
-                submission: nil,
-                primaryActionTitle: primaryTitle
-            )
-        }
-
-        let teamOrder = ["you", selectedID, thirdPartnerTeamID].compactMap { $0 }
-        let sides = OmenTradeAnswer.sides(of: threeTeamOffer, viewerTeamID: "you", teamOrder: teamOrder)
-        let read: OmenTradeRead?
-        let submission: OmenTradeSubmission?
-        let primaryTitle: String
-        switch threeTeamViewState {
-        case .loaded(let compare):
-            read = OmenTradeRead.from(compare)
-            submission = OmenTradeSubmission.from(compare.submission, platform: compare.analysisContext.platform, doneSteps: threeTeamSubmissionDoneSteps)
-            primaryTitle = "Change the offer"
-        case .loading:
-            read = nil
-            submission = nil
-            primaryTitle = "Comparing…"
-        case .failed, .demo, .idle:
-            read = nil
-            submission = nil
-            primaryTitle = threeTeamLegs.count >= 2 ? "Compare this deal" : "Add at least one more leg"
-        }
-
-        return OmenTradeBuildState(
-            kicker: "Three teams",
-            title: "Trade with two real teams",
-            tabTitles: [],
-            selectedTabIndex: 0,
-            partners: partners,
-            selectedPartnerID: selectedID,
-            filters: [],
-            selectedFilterID: nil,
-            capability: rosterCapability,
-            sides: sides,
-            read: read,
-            submission: submission,
-            primaryActionTitle: primaryTitle,
-            thirdPartner: thirdPartner,
-            removalDisclosure: thirdPartnerRemovalDisclosure
-        )
-    }
-
-    /// `TradeRoster` — the selected partner's real roster, or the honest reason it can't be
-    /// read. `nil` only while the read is in flight or has not started; the hosting flow shows
-    /// its own loading/error surface for those, per this screen's own no-spinner rule.
-    var rosterScreenState: OmenTradeRosterState? {
-        guard case .loaded(let response) = rosterBrowseState else { return nil }
-        let partners = rosterPartners
-        let selectedID = selectedPartnerTeamID ?? partners.first?.id
-
-        let rosters: OmenTradeRosterState.Rosters
-        var note: String?
-
-        if !response.isAvailable {
-            rosters = .permanentlyUnavailable(capability: "Opponent rosters", sentence: response.unavailableSentence)
-        } else if let selectedID, let team = response.teams.first(where: { $0.id == selectedID }) {
-            // T5: with a third team active, "already added" means "already in one of this
-            // team's legs", and each available row gets the recipient chooser instead of
-            // committing straight to "you" — `TradeRoster-v1.md`'s addendum.
-            let recipients = threeTeamRecipientChoices
-            let rows: [OmenTradeRosterState.Row] = team.players.map { player in
-                let alreadyAdded: Bool
-                if thirdPartnerTeamID != nil {
-                    alreadyAdded = player.playerKey != nil
-                        && threeTeamLegs.contains { $0.from == selectedID && $0.players.contains { $0.playerKey == player.playerKey } }
-                } else {
-                    alreadyAdded = player.playerKey != nil
-                        && offer.receive.contains { $0.playerKey == player.playerKey }
-                }
-                return OmenTradeRosterState.Row(
-                    id: player.id,
-                    name: player.name,
-                    meta: player.metaWithReads,
-                    availability: alreadyAdded ? .added : .available,
-                    recipients: alreadyAdded ? [] : recipients
-                )
-            }
-            rosters = .read(
-                teamName: team.teamName ?? "This team",
-                playerCount: rows.count,
-                rows: rows,
-                freshness: "Rosters read live from \(response.platform.capitalized) just now"
-            )
-            if rows.isEmpty {
-                note = "Omen didn't find any rostered players for this team."
-            }
-        } else {
-            rosters = .permanentlyUnavailable(capability: "Opponent rosters", sentence: "Pick a team to see their roster.")
-        }
-
-        return OmenTradeRosterState(
-            kicker: "Two teams",
-            title: "Their roster",
-            tabTitles: [],
-            selectedTabIndex: 0,
-            partners: partners,
-            selectedPartnerID: selectedID,
-            filters: [],
-            selectedFilterID: nil,
-            capability: rosterCapability,
-            rosters: rosters,
-            note: note
-        )
     }
 
     // MARK: - J4: TradeShare
@@ -846,7 +770,6 @@ final class TradeViewModel: ObservableObject {
         rosterBrowseState = .idle
         selectedPartnerTeamID = nil
         thirdPartnerTeamID = nil
-        isPartnerPickerPresented = false
         threeTeamLegs = []
         threeTeamViewState = .idle
         threeTeamSubmissionDoneSteps = []
@@ -864,6 +787,8 @@ final class TradeViewModel: ObservableObject {
             return
         }
         invalidateCompare()
+        // A share link belongs to the read it was made from; a new read starts without one.
+        shareState = .idle
         let token = compareGeneration
 
         // `/compare` degrades an unauthenticated caller to a 200 neutral answer rather than a

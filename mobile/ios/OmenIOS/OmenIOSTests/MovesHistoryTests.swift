@@ -251,7 +251,7 @@ final class MovesHistoryTests: XCTestCase {
                 MovesHistory.ledgerOutcome(for: move), .notVerified,
                 "raw \(raw) resolved to something other than .notVerified"
             )
-            XCTAssertEqual(MovesHistory.ledgerOutcome(for: move).label, "Not verified")
+            XCTAssertEqual(MovesHistory.ledgerOutcome(for: move).word, "Not verified")
         }
 
         // And the three values the server actually sends still map, so the test above is not
@@ -314,4 +314,42 @@ final class MovesHistoryTests: XCTestCase {
         XCTAssertEqual(OmenLedgerReceiptState.issuedLabel(issuedAt: "not a date", timezone: "America/New_York"), "Issue time not recorded")
     }
 
+
+    // MARK: Ledger state
+
+    func testTheLedgerLeadsWithTheContestedRecordAndBarsEachWeek() {
+        let entries: [OmenLedgerEntry] = [
+            .init(id: "a", period: "WEEK 7", callType: "START/SIT", summary: "Start A", outcome: "", action: .followed(.verified), ledgerOutcome: .pending, week: 7),
+            .init(id: "b", period: "WEEK 6", callType: "START/SIT", summary: "Start B", outcome: "", action: .followed(.verified), ledgerOutcome: .worked, week: 6),
+            .init(id: "c", period: "WEEK 6", callType: "WAIVER", summary: "Add C", outcome: "", action: .passed(.selfReported), ledgerOutcome: .didNotWork, week: 6),
+        ]
+        let record = MovesHistory.Record(worked: 5, didNotWork: 4, contestedWorked: 41, contestedDidNotWork: 19, contestUnknown: nil, uncontested: nil)
+        let state = OmenLedgerState(entries: entries, record: record, providerName: "ESPN", season: 2026)
+        XCTAssertEqual(state.record, "41\u{2013}19")
+        XCTAssertTrue(state.recordNote.contains("ESPN"))
+        XCTAssertEqual(state.weeks, [
+            .init(week: 6, right: 1, wrong: 1, pending: false),
+            .init(week: 7, right: 0, wrong: 0, pending: true),
+        ])
+        XCTAssertEqual(state.calls.map(\.detail), [
+            "Week 7 \u{00B7} you made the move",
+            "Week 6 \u{00B7} you made the move",
+            "Week 6 \u{00B7} you passed (your word)",
+        ])
+    }
+
+    func testANewLedgerClaimsNoRecordAndUnknownFollowThroughIsSaid() {
+        let entry = OmenLedgerEntry(id: "a", period: "WEEK 2", callType: "MOVE", summary: "Start A", outcome: "", action: .unknown, ledgerOutcome: .notVerified, week: 2)
+        let state = OmenLedgerState(entries: [entry], record: nil, providerName: "ESPN")
+        XCTAssertNil(state.record)
+        XCTAssertEqual(state.calls.first?.detail, "Week 2 \u{00B7} Omen couldn\u{2019}t see what you did \u{00B7} not verified")
+        XCTAssertEqual(state.weeks, [], "a week with nothing graded draws no bar")
+    }
+
+    func testAReceiptTakesTheChoiceItRecordedAndKeepsASelfReportMarked() {
+        let recorded = MoveReceipt.Statement(known: true, statement: "Made the move")
+        XCTAssertEqual(OmenLedgerReceiptState.choice(recorded, fallback: .followed(.selfReported)), "Made the move (your word)")
+        XCTAssertEqual(OmenLedgerReceiptState.choice(recorded, fallback: .passed(.verified)), "Made the move", "the receipt wins over a later row")
+        XCTAssertEqual(OmenLedgerReceiptState.choice(.init(known: false, statement: ""), fallback: .unknown), "Omen couldn\u{2019}t see what you did")
+    }
 }

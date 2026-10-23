@@ -80,189 +80,114 @@ final class TradeFindLauncher: ObservableObject {
     }
 }
 
-/// Find a trade, presented from the Trade tab. Resolves the user's team, then hands off to
-/// `OmenTradeFindReviewScreen` (the swipe review) against the real `trade-find.v1` route and the
-/// real `POST /api/trade/saved`.
+/// Find a trade, pushed on the Trade tab. Resolves the user's team, then runs `trade-find.v1` and draws
+/// `OmenFindTradeScreen`. "Open in builder" hands the swap to the builder; nothing is sent.
 struct TradeFindFlowView: View {
     @StateObject private var launcher: TradeFindLauncher
+    @StateObject private var viewModel: TradeFindReviewViewModel
     let userID: String
     let platform: String?
     let leagueId: String?
     let fallbackTeamId: String?
-    let apiBaseURL: URL
-    let sessionManager: SessionManager
-    var onOpenAccount: (() -> Void)?
     var onConnectLeague: (() -> Void)?
+    var onOpenInBuilder: (TradeFindCandidate) -> Void
+    var onOpenPlayer: (String) -> Void
     var onDismiss: () -> Void
 
     init(
         directoryRepository: LeagueDirectoryRepository,
         sessionManager: SessionManager,
-        apiBaseURL: URL,
+        findRepository: TradeFindRepository,
         userID: String,
         platform: String?,
         leagueId: String?,
         fallbackTeamId: String?,
-        onOpenAccount: (() -> Void)? = nil,
         onConnectLeague: (() -> Void)? = nil,
+        onOpenInBuilder: @escaping (TradeFindCandidate) -> Void,
+        onOpenPlayer: @escaping (String) -> Void,
         onDismiss: @escaping () -> Void
     ) {
-        _launcher = StateObject(wrappedValue: TradeFindLauncher(
-            directoryRepository: directoryRepository,
-            sessionManager: sessionManager
-        ))
+        _launcher = StateObject(wrappedValue: TradeFindLauncher(directoryRepository: directoryRepository, sessionManager: sessionManager))
+        _viewModel = StateObject(wrappedValue: TradeFindReviewViewModel(repository: findRepository, sessionManager: sessionManager))
         self.userID = userID
         self.platform = platform
         self.leagueId = leagueId
         self.fallbackTeamId = fallbackTeamId
-        self.apiBaseURL = apiBaseURL
-        self.sessionManager = sessionManager
-        self.onOpenAccount = onOpenAccount
         self.onConnectLeague = onConnectLeague
+        self.onOpenInBuilder = onOpenInBuilder
+        self.onOpenPlayer = onOpenPlayer
         self.onDismiss = onDismiss
     }
 
     var body: some View {
-        Group {
-            switch launcher.state {
-            case .resolving:
-                VStack(spacing: OmenSpacing.step16) {
-                    ProgressView().tint(OmenColor.accent)
-                    Text("Finding your team…")
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(OmenColor.bg)
+        OmenFindTradeScreen(
+            state: state,
+            onOpenInBuilder: { if let candidate = viewModel.currentCandidate { onOpenInBuilder(candidate) } },
+            onNext: { viewModel.pass() },
+            onRetry: { Task { await retry() } },
+            onOpenPlayer: onOpenPlayer,
+            onBack: onDismiss
+        )
+        // The selected league is loaded asynchronously by the shell; re-resolve when that scope lands.
+        .task(id: resolutionKey) { await resolve() }
+    }
 
-            case .ready(let platform, let leagueId, let teamId):
-                TradeFindReviewHost(
-                    apiBaseURL: apiBaseURL,
-                    sessionManager: sessionManager,
-                    platform: platform,
-                    leagueId: leagueId,
-                    teamId: teamId,
-                    onOpenAccount: onOpenAccount,
-                    onExit: onDismiss
+    private var provider: String {
+        if case .ready(let platform, _, _) = launcher.state { return TradeFindReviewViewModel.providerName(platform) }
+        return "your provider"
+    }
+
+    var state: OmenFindTradeState {
+        switch launcher.state {
+        case .resolving:
+            return OmenFindTradeState(phase: .loading)
+        case .teamUnknown:
+            return OmenFindTradeState(phase: .unavailable(title: "Omen doesn\u{2019}t know which team is yours", message: "This league didn\u{2019}t say which team you manage, and a search for the wrong team would be worse than none. Reconnect the league from Account.", retry: false))
+        case .leagueUnknown:
+            return OmenFindTradeState(phase: .unavailable(title: "Pick a team first", message: "Go back to Trade and choose your team at the top.", retry: false))
+        case .noLeague:
+            return OmenFindTradeState(phase: .unavailable(title: "Connect a league first", message: "Find a trade reads every team in your league. Connect ESPN, Yahoo or Sleeper to use it.", retry: false))
+        case .demo:
+            return OmenFindTradeState(phase: .empty(title: "Sign in to search a real league", message: "Demo mode never invents trades."))
+        case .failed(let error):
+            return OmenFindTradeState(phase: .failed(OmenFindTradeState.message(for: error)))
+        case .ready(let platform, _, _):
+            let teams = viewModel.response?.totalOtherTeams
+            switch viewModel.viewState {
+            case .loading:
+                return OmenFindTradeState(phase: .loading, teamsRead: nil)
+            case .reviewing:
+                guard let candidate = viewModel.currentCandidate else { return OmenFindTradeState(phase: .loading) }
+                return OmenFindTradeState(
+                    phase: .reviewing(.init(candidate, providerName: provider), index: viewModel.currentIndex, total: viewModel.candidates.count),
+                    teamsRead: teams
                 )
-
-            case .teamUnknown:
-                message(
-                    kind: .disconnected,
-                    title: "Omen doesn't know which team is yours",
-                    body: "This league didn't tell Omen which team you manage, and a search against the wrong team would be worse than none. Reconnect the league from Account, then try again.",
-                    retry: false
-                )
-
-            case .leagueUnknown:
-                message(
-                    kind: .disconnected,
-                    title: "Choose the league for this trade",
-                    body: "Omen can see connected leagues, but none is selected for this trade. Go back to Trade, choose your team at the top, then try again.",
-                    retry: false
-                )
-
-            case .noLeague:
-                message(
-                    kind: .empty,
-                    title: "Connect a league first",
-                    body: "Find a trade reads every team in your league. Connect ESPN, Yahoo or Sleeper to use it.",
-                    retry: false,
-                    connect: true
-                )
-
-            case .demo:
-                message(
-                    kind: .mock,
-                    title: "Demo mode",
-                    body: "Sign in to search a real league. Demo mode never invents trades.",
-                    retry: false
-                )
-
+            case .batchExhausted:
+                return OmenFindTradeState(phase: .empty(title: "That\u{2019}s everyone this week", message: "Come back once your league\u{2019}s rosters move."), teamsRead: teams)
+            case .zeroCandidates:
+                let copy = OmenFindTradeState.emptyCopy(reason: viewModel.response?.emptyReason, teams: viewModel.response?.teamsConsidered ?? 0)
+                return OmenFindTradeState(phase: .empty(title: copy.title, message: copy.message), teamsRead: teams)
+            case .routeElsewhere(let reason):
+                let copy = OmenFindTradeState.unavailableCopy(reason: reason, platform: platform)
+                return OmenFindTradeState(phase: .unavailable(title: copy.title, message: copy.message, retry: reason == "own_roster_unavailable"))
             case .failed(let error):
-                message(
-                    kind: .error,
-                    title: "Omen couldn't load your leagues",
-                    body: OmenTradeFindReviewScreen.message(for: error),
-                    retry: error != .unauthorized
-                )
+                return OmenFindTradeState(phase: .failed(OmenFindTradeState.message(for: error)))
             }
         }
-        // The selected league is loaded asynchronously by the shell. If the user opens Find
-        // first, re-resolve when that scope lands instead of preserving the initial nil snapshot.
-        .task(id: resolutionKey) { await resolve() }
     }
 
     private var resolutionKey: String {
         [platform ?? "", leagueId ?? "", fallbackTeamId ?? ""].joined(separator: "|")
     }
 
+    private func retry() async {
+        if case .ready = launcher.state { await viewModel.reload() } else { await resolve() }
+    }
+
     private func resolve() async {
         await launcher.resolve(userID: userID, platform: platform, leagueId: leagueId, fallbackTeamId: fallbackTeamId)
-    }
-
-    private func message(
-        kind: OmenStateSurfaceKind,
-        title: String,
-        body: String,
-        retry: Bool,
-        connect: Bool = false
-    ) -> some View {
-        VStack(spacing: OmenSpacing.step12) {
-            OmenStateSurface(kind: kind, title: title, message: body)
-            if retry {
-                OmenButton(title: "Try again", action: { Task { await resolve() } }, variant: .primary, size: .lg)
-            }
-            if connect, let onConnectLeague {
-                OmenButton(title: "Connect a league", action: onConnectLeague, variant: .primary, size: .lg)
-            }
-            OmenButton(title: "Back to Trade", action: onDismiss, variant: .secondary, size: .lg)
+        if case .ready(let platform, let leagueId, let teamId) = launcher.state {
+            await viewModel.load(platform: platform, leagueId: leagueId, teamId: teamId, week: nil)
         }
-        .padding(OmenSpacing.step16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(OmenColor.bg)
-    }
-}
-
-/// Owns the review view model so it survives re-renders of the sheet, wired to the real routes.
-private struct TradeFindReviewHost: View {
-    @StateObject private var viewModel: TradeFindReviewViewModel
-    let platform: String
-    let leagueId: String
-    let teamId: String
-    var onOpenAccount: (() -> Void)?
-    var onExit: () -> Void
-
-    init(
-        apiBaseURL: URL,
-        sessionManager: SessionManager,
-        platform: String,
-        leagueId: String,
-        teamId: String,
-        onOpenAccount: (() -> Void)?,
-        onExit: @escaping () -> Void
-    ) {
-        let client = OmenApiClient(baseURL: apiBaseURL)
-        _viewModel = StateObject(wrappedValue: TradeFindReviewViewModel(
-            repository: ApiTradeFindRepository(client: client),
-            saveAction: ApiTradeFindSaveAction(client: client, sessionManager: sessionManager),
-            sessionManager: sessionManager
-        ))
-        self.platform = platform
-        self.leagueId = leagueId
-        self.teamId = teamId
-        self.onOpenAccount = onOpenAccount
-        self.onExit = onExit
-    }
-
-    var body: some View {
-        OmenTradeFindReviewScreen(
-            viewModel: viewModel,
-            platform: platform,
-            leagueId: leagueId,
-            teamId: teamId,
-            onOpenAccount: onOpenAccount,
-            onExit: onExit
-        )
     }
 }

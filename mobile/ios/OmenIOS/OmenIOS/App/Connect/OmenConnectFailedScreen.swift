@@ -41,60 +41,36 @@ struct OmenConnectFailedScreen: View {
     var onSendToSupport: (() -> Void)?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-                header
-                evidence
-                section("Most likely cause", likelyCause)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step20) {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    Text(diagnosis.provider.uppercased()).omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
+                    Text(title).omenTextStyle(OmenTypography.pageTitle).foregroundStyle(OmenColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+                    Text(likelyCause).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 steps
                 actions
-                if !diagnosis.unaffected.isEmpty {
-                    reassurance
-                }
-                Color.clear.frame(height: OmenSpacing.step16)
+                // The facts in the provider's own terms, for support.
+                Text(evidenceSentence).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !diagnosis.unaffected.isEmpty { reassurance }
             }
-            .padding(.horizontal, OmenSpacing.step16)
-            .padding(.vertical, OmenSpacing.step12)
+            .padding(.horizontal, OmenSpacing.step20)
+            .padding(.vertical, OmenSpacing.step16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 64)
         }
         .background(OmenColor.bg)
         .accessibilityIdentifier("j1.connect-failed")
+        .omenScreenReady("connect-failed")
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
-            Text(diagnosis.provider)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.accent)
-            Text("That did not work")
-                .omenTextStyle(OmenTypography.screenTitle)
-                .foregroundStyle(OmenColor.textPrimary)
-        }
-    }
-
-    /// The facts, in the provider's own terms. This is the half that makes the screen a report.
-    private var evidence: some View {
-        OmenCard(contentPadding: OmenSpacing.step12) {
-            Text(evidenceSentence)
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    /// A titled block of prose. The title is the question the paragraph answers.
-    private func section(_ title: String, _ body: String) -> some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            Text(title)
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                Text(body)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+    /// Says which of the two things happened, never more.
+    var title: String {
+        switch storedValues {
+        case .presentAndRefused: "\(diagnosis.provider) signed you out"
+        case .neverArrived: "\(diagnosis.provider) didn\u{2019}t finish signing you in"
         }
     }
 
@@ -166,70 +142,44 @@ struct OmenConnectFailedScreen: View {
     /// broken. Step 2 differs by cause: re-reading is the fix when values are present and
     /// refused, and is exactly the wrong instruction when they never arrived.
     private var steps: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            Text("Try in this order")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            OmenCard(contentPadding: OmenSpacing.step12) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                    step(1, "Open \(diagnosis.provider) Fantasy in your browser and sign in again.")
-                    switch storedValues {
-                    case .presentAndRefused:
-                        step(2, "Come back here and tap Reconnect. Omen re-reads the two cookies.")
-                    case .neverArrived:
-                        step(2, "Come back here and tap Reconnect, then let the \(diagnosis.provider) sheet finish on its own — closing it early is what leaves Omen with nothing.")
-                    }
-                    step(3, "Still failing? The league may have been made private, or deleted.")
-                }
+        VStack(alignment: .leading, spacing: OmenSpacing.step10) {
+            OmenSectionHeader(title: "Try in this order")
+            step(1, "Open \(diagnosis.provider) Fantasy in your browser and sign in again.")
+            switch storedValues {
+            case .presentAndRefused:
+                step(2, "Come back here and tap Try \(diagnosis.provider) again. Omen re-reads the two cookies.")
+            case .neverArrived:
+                step(2, "Come back here and tap Try \(diagnosis.provider) again, then let the \(diagnosis.provider) sheet finish on its own. Closing it early is what leaves Omen with nothing.")
             }
+            step(3, "Still failing? The league may have been made private, or deleted.")
         }
     }
 
     private func step(_ n: Int, _ text: String) -> some View {
         HStack(alignment: .top, spacing: OmenSpacing.step12) {
-            Text("\(n)")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.accent)
-                .frame(width: 16, alignment: .leading)
-            Text(text)
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(n)").omenTextStyle(OmenTypography.cardLead).foregroundStyle(OmenColor.accentHover).frame(width: 16, alignment: .leading)
+            Text(text).omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Step \(n). \(text)")
     }
 
-    /// Every non-success state carries a safe next action — connection contract §6. Both are
-    /// offered because "reconnect" is the fix and "send this to support" is the escape when it
-    /// is not, and a screen with only the first strands the user whose league really was deleted.
+    /// Reconnect is the fix; support is the way out when it is not.
     private var actions: some View {
         VStack(spacing: OmenSpacing.step12) {
             if let onReconnect {
-                OmenButton(
-                    title: "Reconnect \(diagnosis.provider)",
-                    action: onReconnect,
-                    size: .lg
-                )
-                .frame(maxWidth: .infinity)
+                OmenButton(title: "Try \(diagnosis.provider) again", action: onReconnect, size: .lg, fullWidth: true)
             }
             if let onSendToSupport {
-                OmenButton(
-                    title: "Send this to support",
-                    action: onSendToSupport,
-                    variant: .secondary,
-                    size: .lg
-                )
-                .frame(maxWidth: .infinity)
+                OmenButton(title: "Send this to support", action: onSendToSupport, variant: .secondary, size: .lg, fullWidth: true)
             }
         }
     }
 
-    /// One provider failing is not the product failing, and a user who does not know that
-    /// reasonably assumes the worst.
     private var reassurance: some View {
         Text("Your other \(diagnosis.unaffected.count == 1 ? "league is" : "leagues are") unaffected. \(diagnosis.unaffected.joined(separator: " and ")) \(diagnosis.unaffected.count == 1 ? "is" : "are") still live.")
-            .omenTextStyle(OmenTypography.bodySmall)
+            .omenTextStyle(OmenTypography.quiet)
             .foregroundStyle(OmenColor.textTertiary)
             .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -71,6 +71,9 @@ enum AuthEvent {
     case emailSubmitted(email: String)
     case otpRequestResult(outcome: AuthOutcome)
     case otpSubmitted(code: String)
+    /// A wrong code leaves the flow failed; the code screen is still up, so a new code or a resend
+    /// returns to waiting for the same address instead of dead-ending.
+    case otpRetry(email: String)
     case otpVerifyResult(outcome: AuthOutcome)
     case appleRequested
     case appleTokenResult(AppleIDTokenResult)
@@ -117,6 +120,10 @@ enum AuthFlowReducer {
                 return .failed(reason: .invalidCode)
             }
             return .verifyingOtp(email: email)
+
+        case .otpRetry(let email):
+            guard case .failed(.invalidCode) = state, EmailValidator.isValid(email) else { return state }
+            return .awaitingOtp(email: EmailValidator.normalize(email))
 
         case .otpVerifyResult(let outcome):
             guard case .verifyingOtp = state else { return state }

@@ -1,0 +1,12 @@
+ios      dark  desk.ready
+ios      dark  desk.loading
+ios      dark  desk.no-league
+ios      dark  desk.failed
+ios      dark  desk.demo
+ios      dark  player.page
+ios      light  desk.ready
+ios      light  desk.loading
+ios      light  desk.no-league
+ios      light  desk.failed
+ios      light  desk.demo
+ios      light  player.page
