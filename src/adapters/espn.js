@@ -486,6 +486,8 @@ function waiverPoolFromEspnData(data, opts = {}) {
           abbreviationForProviderNumber(player?.proTeamId) ||
           null,
         status: statusFrom(player?.injuryStatus || player?.injury_status),
+        // A free agent is added now; a player on waivers is a claim that waits for the waiver run.
+        availability: availability === "FREEAGENT" ? "free_agent" : "waivers",
         ...ownershipOf(player),
         // ESPN marks projected stats with statSourceId 1. Actuals (0) are never
         // substituted, even when a projection is unavailable for this period. Confirmed

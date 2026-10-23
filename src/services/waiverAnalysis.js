@@ -26,6 +26,7 @@
 const { mayShowFaab, mayShowPriority } = require("./waiverSystem");
 const { recommendBid } = require("./waiverBid");
 const { SIGHT_WEIGHT, blendWithSight, isLocked, effectiveStatus } = require("./sightDecision");
+const { solveOptimalLineup } = require("./tradeLineup");
 
 const CONTRACT_VERSION = "waiver-analysis.v1";
 const MAX_ALTERNATIVES = 3;
@@ -478,6 +479,131 @@ function envelope({
  * @param {Array|null} input.pool normalized available players; null means the
  *   provider pool could not be read, which is a different answer from an empty pool
  */
+// Phase 1 of the player-value plan (founder-approved 2026-10-23): a waiver move is judged by what the whole move does
+// to the team's best legal lineup (the add, the drop, the bench, flex and superflex) over this week and the next two,
+// not by whether the add beats one starter this week. "Beats your 16-point starter" is no upgrade when a 24-point QB
+// already sits on the bench.
+// The window follows the league's calendar: through its last playoff week when the caller knows it (see
+// lineupHorizon), playoff weeks weighted by playoffWeekWeight; three weeks is only the fallback. Dynasty value
+// beyond this season is phase 3.
+const DEFAULT_LINEUP_WEEKS = 3;
+// Weeks the projections actually cover (this one and comingWeeks.js's three). Judging further would repeat this
+// week's number, and cost a lineup solve per week for nothing.
+const MAX_LINEUP_WEEKS = 4;
+
+/** Weeks to judge from `week`: up to MAX_LINEUP_WEEKS, never past the league's final playoff week when it is known. */
+function lineupHorizon({ week, lastPlayoffWeek = null } = {}) {
+  const now = Number(week);
+  const last = Number(lastPlayoffWeek);
+  if (Number.isInteger(now) && Number.isInteger(last) && last >= now) return Math.min(MAX_LINEUP_WEEKS, last - now + 1);
+  return DEFAULT_LINEUP_WEEKS;
+}
+const CANDIDATES_CHECKED = 15;
+const SEASON_OUT = new Set(["IR", "IR-R", "PUP", "SUSP"]);
+// A claim must add more than the best player anyone can pick up now, by at least this much a week, to be worth a
+// claim (and maybe a bid) instead of the free add.
+const CLAIM_EDGE = 0.5;
+
+function acquisitionOf(player) {
+  const raw = String(player?.acquisition || player?.availability || "")
+    .trim()
+    .toLowerCase();
+  if (["w", "waivers", "waiver", "waiver_claim", "claim"].includes(raw)) return "claim";
+  if (["fa", "a", "free_agent", "free agent", "free"].includes(raw)) return "free";
+  return "unknown";
+}
+
+function weekValue(player, week, currentWeek) {
+  const status = String(effectiveStatus(player) || "")
+    .trim()
+    .toUpperCase();
+  if (SEASON_OUT.has(status)) return 0;
+  if (week === currentWeek && (isOut(player) || isBye(player))) return 0;
+  if (Number.isInteger(player?.sight?.bye_week) && player.sight.bye_week === week) return 0;
+  // A coming week the provider read (comingWeeks.js) uses that week's number; any other week keeps this week's.
+  const ahead = player?.projected_points_by_week?.[week];
+  if (week !== currentWeek && ahead != null && Number.isFinite(Number(ahead)))
+    return decisionValue({ ...player, projected_points: Number(ahead) });
+  return decisionValue(player);
+}
+
+/** The team's best legal lineup, summed over the coming weeks. */
+function lineupOver(players, rosterPositions, currentWeek, weeks = DEFAULT_LINEUP_WEEKS, weekWeight = () => 1) {
+  const first = Number.isInteger(Number(currentWeek)) ? Number(currentWeek) : 0;
+  let total = 0;
+  for (let i = 0; i < weeks; i += 1) {
+    const week = first + i;
+    const rows = players.map((player) => ({
+      ...player,
+      selected_position: SEASON_OUT.has(String(player?.selected_position || "").toUpperCase())
+        ? player.selected_position
+        : "BN",
+      projected_points: weekValue(player, week, first),
+    }));
+    total += weekWeight(week) * solveOptimalLineup({ players: rows, rosterPositions }).total;
+  }
+  return total;
+}
+
+function sameKey(a, b) {
+  return String(a?.player_key ?? a?.player_id ?? a?.name) === String(b?.player_key ?? b?.player_id ?? b?.name);
+}
+
+/**
+ * Re-judges the top candidates by the whole move: for each, the drop chooseDrop would make, and the lineup change over
+ * the coming weeks. Keeps only moves that really raise the lineup; a claim must beat the best free add.
+ */
+function judgeByLineup(ranked, { starters, bench, week, weeks = DEFAULT_LINEUP_WEEKS, weekWeight = () => 1 }) {
+  const rosterPositions = starters.map((s) => String(s?.selected_position || "").toUpperCase()).filter(Boolean);
+  // A roster read with no slot names can't be solved as a lineup; it keeps the one-starter comparison.
+  if (!rosterPositions.length)
+    return ranked.map((entry) => ({
+      ...entry,
+      drop: chooseDrop(bench, realPositions(entry.player), { starters, week }),
+      lineup_gain: null,
+      acquisition: acquisitionOf(entry.player),
+    }));
+  const roster = [...starters, ...bench];
+  const before = lineupOver(roster, rosterPositions, week, weeks, weekWeight);
+  const judged = [];
+  for (const entry of ranked.slice(0, CANDIDATES_CHECKED)) {
+    // Every player chooseDrop allows (never into a hole, never a season-strong one), tried in turn: the drop is the
+    // one whose loss costs the lineup least over the window, not just the lowest projection this week.
+    let drop = null;
+    let after = -Infinity;
+    let remaining = bench;
+    for (let tries = 0; tries < 6; tries += 1) {
+      const option = chooseDrop(remaining, realPositions(entry.player), { starters, week });
+      if (!option) break;
+      const total = lineupOver(
+        [...roster.filter((p) => !sameKey(p, option.player)), entry.player],
+        rosterPositions,
+        week,
+        weeks,
+        weekWeight,
+      );
+      if (total > after) {
+        after = total;
+        drop = option;
+      }
+      remaining = remaining.filter((p) => !sameKey(p, option.player));
+    }
+    // Nobody the add can replace (an open roster spot, or no bench player chooseDrop allows): judge the add alone and
+    // leave the drop empty, which the analysis reports as no low-cost drop, as it did before.
+    if (!drop) after = lineupOver([...roster, entry.player], rosterPositions, week, weeks, weekWeight);
+    const gain = round2((after - before) / weeks);
+    if (gain < MIN_IMPROVEMENT) continue;
+    judged.push({ ...entry, drop, lineup_gain: gain, acquisition: acquisitionOf(entry.player) });
+  }
+  judged.sort(
+    (a, b) => b.lineup_gain - a.lineup_gain || String(a.player.player_key).localeCompare(String(b.player.player_key)),
+  );
+  const bestFree = judged.find((entry) => entry.acquisition === "free");
+  return judged.filter(
+    (entry) => entry.acquisition !== "claim" || !bestFree || entry.lineup_gain >= bestFree.lineup_gain + CLAIM_EDGE,
+  );
+}
+
 function buildWaiverAnalysis({
   roster,
   pool,
@@ -490,6 +616,10 @@ function buildWaiverAnalysis({
   deadline = null,
   offSeason = false,
   waiverSystem = null,
+  // The league's final fantasy playoff week, when the caller read it; it sets how far ahead the move is judged.
+  lastPlayoffWeek = null,
+  // Weight per week (playoff weeks by the team's chance to be there); 1 when not known.
+  playoffWeekWeight = () => 1,
 } = {}) {
   const base = {
     platform,
@@ -536,7 +666,14 @@ function buildWaiverAnalysis({
     });
   }
 
-  const ranked = rankCandidates(pool, starters);
+  const weeks = lineupHorizon({ week: base.week, lastPlayoffWeek });
+  const ranked = judgeByLineup(rankCandidates(pool, starters), {
+    starters,
+    bench,
+    week: base.week,
+    weeks,
+    weekWeight: playoffWeekWeight,
+  });
   if (!ranked.length) {
     return envelope({
       ...base,
@@ -550,7 +687,7 @@ function buildWaiverAnalysis({
   }
 
   const best = ranked[0];
-  const drop = chooseDrop(bench, realPositions(best.player), { starters, week: base.week });
+  const drop = best.drop;
   const alternatives = alternativesFrom(ranked, scoringFormat);
 
   return envelope({
@@ -562,16 +699,20 @@ function buildWaiverAnalysis({
         add: playerView(best.player),
         drop: drop ? playerView(drop.player) : null,
         improvement: best.improvement,
+        // Points a week the whole move (add and drop) adds to the best lineup over the coming weeks.
+        lineup_gain: best.lineup_gain ?? null,
         solves_unavailable_starter: best.solves_out_starter,
         displaces: playerView(best.displaced),
         why_now: best.solves_out_starter
           ? `${nameOf(best.displaced)} is unavailable, and ${nameOf(best.player)} is the strongest available option for that slot.`
-          : `${nameOf(best.player)} projects above your weakest eligible starter for this week.`,
+          : best.lineup_gain != null
+            ? `Adding ${nameOf(best.player)}${drop ? ` for ${nameOf(drop.player)}` : ""} raises your best lineup by about ${best.lineup_gain} points a week over the next ${weeks} weeks.`
+            : `${nameOf(best.player)} projects above your weakest eligible starter for this week.`,
         // Phase 3. Null unless the league was verified FAAB and every input is
         // present. Never zero, never invented, never a claim forecast.
         bid: recommendBid({
           waiverSystem,
-          improvement: best.improvement,
+          improvement: best.lineup_gain ?? best.improvement,
           week: base.week,
           minBid: waiverSystem?.bid_min ?? null,
         }),
@@ -589,6 +730,7 @@ module.exports = {
   STATES,
   buildWaiverAnalysis,
   chooseDrop,
+  lineupHorizon,
   evidenceFor,
   displacedStarter,
   projection,

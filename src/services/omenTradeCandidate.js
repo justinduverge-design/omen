@@ -30,7 +30,7 @@
 
 const { createSearchBudget } = require("./tradeLineup");
 const { findTradeCandidateAsync } = require("./tradeSearchPool");
-const { sensibleTradeGuard } = require("./tradeFind");
+const { sensibleTradeGuard, leagueReplacement } = require("./tradeFind");
 const { normalizePosition } = require("./playerSearch");
 
 // A weekly-lineup gain may justify only a bounded loss in season-long VORP (same policy the
@@ -279,6 +279,10 @@ async function evaluateTradeForConnection({ connection, roster, platformLabel, d
     // Fits both rosters (no K or DEF, never sold from a position the team is short at) and is fair both ways: the
     // other manager must gain a real amount and not lose more season-long value than that gain justifies.
     fairnessGuard: sensibleTradeGuard,
+    replacement: leagueReplacement(
+      teams.filter((team) => Array.isArray(team.players)),
+      rosterPositions,
+    ),
   });
 
   if (!candidate) {

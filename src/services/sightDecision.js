@@ -19,6 +19,8 @@ function sightPoints(player) {
 function blendWithSight(providerPoints, player) {
   const sight = sightPoints(player);
   if (providerPoints == null) return sight;
+  // The provider projects him not to play; Sight reads who he is, not whether he suits up this week.
+  if (providerPoints === 0) return 0;
   if (sight == null) return providerPoints;
   return providerPoints + SIGHT_WEIGHT * (sight - providerPoints);
 }

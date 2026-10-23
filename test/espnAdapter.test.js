@@ -234,6 +234,7 @@ test("waiverPoolFromEspnData keeps only unrostered waiver candidates with projec
       eligible_positions: ["WR"],
       team: "KC",
       status: "Q",
+      availability: "free_agent",
       projected_points: 12.4,
     },
     {
@@ -244,6 +245,7 @@ test("waiverPoolFromEspnData keeps only unrostered waiver candidates with projec
       eligible_positions: ["TE"],
       team: null,
       status: null,
+      availability: "waivers",
       projected_points: null,
     },
   ]);

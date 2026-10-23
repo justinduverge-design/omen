@@ -24,8 +24,9 @@
       },
       "drop": null,
       "improvement": 7,
+      "lineup_gain": 7,
       "solves_unavailable_starter": false,
-      "why_now": "B projects above your weakest eligible starter for this week."
+      "why_now": "Adding B raises your best lineup by about 7 points a week over the next 3 weeks."
     },
     "contract_version": "waiver-analysis.v1",
     "cost": null,
