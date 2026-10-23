@@ -285,15 +285,45 @@ test("a found trade never sends or asks for a kicker or a defense", () => {
 
 test("a cross-position trade never takes from a position the team is already short at", () => {
   const { positionalGuard } = require("../src/services/tradeFind");
-  const short = buildTeamNeedProfile({ team: team("t1", "Short", thinAtRbRoster("s")), rosterPositions: ROSTER_POSITIONS });
-  const deep = buildTeamNeedProfile({ team: team("t2", "Deep", deepAtRbRoster("d")), rosterPositions: ROSTER_POSITIONS });
+  const short = buildTeamNeedProfile({
+    team: team("t1", "Short", thinAtRbRoster("s")),
+    rosterPositions: ROSTER_POSITIONS,
+  });
+  const deep = buildTeamNeedProfile({
+    team: team("t2", "Deep", deepAtRbRoster("d")),
+    rosterPositions: ROSTER_POSITIONS,
+  });
   assert.equal(short.needs.RB.status, "hole");
   // Short at RB: may not send its RB away for a WR.
-  assert.equal(positionalGuard({ give: player("s-rb1", "RB", 8), receive: player("d-wr1", "WR", 11), ownNeeds: short, opponentNeeds: deep }), false);
+  assert.equal(
+    positionalGuard({
+      give: player("s-rb1", "RB", 8),
+      receive: player("d-wr1", "WR", 11),
+      ownNeeds: short,
+      opponentNeeds: deep,
+    }),
+    false,
+  );
   // Deep at RB: may send one to the team that needs it.
-  assert.equal(positionalGuard({ give: player("s-wr1", "WR", 16), receive: player("d-rb3", "RB", 18), ownNeeds: short, opponentNeeds: deep }), true);
+  assert.equal(
+    positionalGuard({
+      give: player("s-wr1", "WR", 16),
+      receive: player("d-rb3", "RB", 18),
+      ownNeeds: short,
+      opponentNeeds: deep,
+    }),
+    true,
+  );
   // Same position keeps the count, so depth is not the question.
-  assert.equal(positionalGuard({ give: player("s-rb1", "RB", 8), receive: player("d-rb3", "RB", 18), ownNeeds: short, opponentNeeds: deep }), true);
+  assert.equal(
+    positionalGuard({
+      give: player("s-rb1", "RB", 8),
+      receive: player("d-rb3", "RB", 18),
+      ownNeeds: short,
+      opponentNeeds: deep,
+    }),
+    true,
+  );
 });
 
 test("a league scan does not propose trading a short-handed RB for a defense, even when the lineup total rises", () => {
@@ -340,8 +370,23 @@ test("kickers and defenses are skipped before any lineup is solved", () => {
   const own = team("own", "Own", thinAtRbRoster("o"));
   const other = team("other", "Other", deepAtRbRoster("x"));
   const withGuard = createSearchBudget();
-  findTradeCandidate({ ownTeam: { ...own, roster_id: "own" }, opponentTeams: [{ ...other, roster_id: "other" }], rosterPositions: ROSTER_POSITIONS, budget: withGuard, fairnessGuard: sensibleTradeGuard });
+  findTradeCandidate({
+    ownTeam: { ...own, roster_id: "own" },
+    opponentTeams: [{ ...other, roster_id: "other" }],
+    rosterPositions: ROSTER_POSITIONS,
+    budget: withGuard,
+    fairnessGuard: sensibleTradeGuard,
+  });
   const without = createSearchBudget();
-  findTradeCandidate({ ownTeam: { ...own, roster_id: "own" }, opponentTeams: [{ ...other, roster_id: "other" }], rosterPositions: ROSTER_POSITIONS, budget: without, fairnessGuard: () => true });
-  assert.ok(withGuard.stats.solves < without.stats.solves, `${withGuard.stats.solves} solves with the guard, ${without.stats.solves} without`);
+  findTradeCandidate({
+    ownTeam: { ...own, roster_id: "own" },
+    opponentTeams: [{ ...other, roster_id: "other" }],
+    rosterPositions: ROSTER_POSITIONS,
+    budget: without,
+    fairnessGuard: () => true,
+  });
+  assert.ok(
+    withGuard.stats.solves < without.stats.solves,
+    `${withGuard.stats.solves} solves with the guard, ${without.stats.solves} without`,
+  );
 });

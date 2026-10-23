@@ -287,7 +287,9 @@ function cachedNeeds(team, rosterPositions) {
 function sensibleTradeGuard(pair = {}) {
   const ownNeeds = cachedNeeds(pair.ownTeam, pair.rosterPositions);
   const opponentNeeds = cachedNeeds(pair.opponent, pair.rosterPositions);
-  return positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair);
+  return (
+    positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair)
+  );
 }
 
 sensibleTradeGuard.excludes = (player) => STREAMED_POSITIONS.has(primaryPosition(player));
