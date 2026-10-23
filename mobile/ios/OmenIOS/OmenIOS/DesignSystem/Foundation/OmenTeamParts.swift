@@ -67,7 +67,11 @@ struct OmenTeamRolodex: View {
                     }
                 }
                 .scrollTargetLayout()
+                // Room for the card's shadow and its scale while swiping, so nothing is cut at the top or bottom.
+                .padding(.vertical, OmenSpacing.step12)
             }
+            // A horizontal scroll view clips to its own bounds: the neighbouring cards and their shadows were cut off.
+            .scrollClipDisabled()
             .contentMargins(.horizontal, teams.count == 1 ? 20 : 30, for: .scrollContent)
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $scrolledID)

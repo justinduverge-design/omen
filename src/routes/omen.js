@@ -42,6 +42,7 @@ const { enrichOmenWithFootballIntelligence } = require("../services/footballInte
 const { teamIdFor } = require("../services/footballIntelligence/nflTeams");
 const { recordLeagueScoringRulesSafely } = require("../services/leagueScoringRules");
 const { createSightEnricher } = require("../services/sightEnrichment");
+const { reasonsFor } = require("../services/moveReasons");
 const { getRuntime: getSightRuntime } = require("../services/footballWarehouse/sharedUsageAccess");
 const attachSight = createSightEnricher({ getRuntime: () => getSightRuntime({ logger }), log: logger });
 const ledger = require("../services/ledger");
@@ -983,6 +984,16 @@ async function mvpMove(req, res, span) {
     // Omen's read, real stats and Omen Grades on the call's players BEFORE presenting, so the evidence
     // the screen shows ("what moved this call") is built from them, not from first-MVP placeholders.
     await traceStage(trace, "sight", () => attachSight(result.body));
+    // With Omen's read on both players, the reason leads with it (moveReasons.js); points close the line.
+    const call = result.body?.recommendation;
+    if (call?.type === "start_sit" && call.primary_player && call.comparison_player && call.explanation) {
+      const reasons = reasonsFor({
+        gain: call.primary_player,
+        lose: call.comparison_player,
+        lineupGain: call.expected_value_delta?.points,
+      });
+      if (reasons.length) call.explanation.why_it_matters = reasons.join(" ");
+    }
     if (typeof refreshEvidenceSignals === "function") refreshEvidenceSignals(result.body);
     const body = present(result.body);
     // The presenter may rebuild player objects: carry the read across rather than reading twice.

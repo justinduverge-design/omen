@@ -15,6 +15,8 @@ struct OmenFindTradeState: Equatable {
         let yourGain: Double?
         let theirGain: Double?
         let theCatch: String?
+        /// Why, in a manager's words: who misses which weeks, Omen's read, then the lineup change. Shown first.
+        var reasons: [String] = []
     }
 
     enum Phase: Equatable {
@@ -42,7 +44,8 @@ extension OmenFindTradeState.Candidate {
             receive: OmenPlayerSummary(candidate.receive, providerName: providerName),
             yourGain: candidate.userLineupDelta,
             theirGain: candidate.opponentLineupDelta,
-            theCatch: candidate.theCatch?.statement?.nilIfEmpty
+            theCatch: candidate.theCatch?.statement?.nilIfEmpty,
+            reasons: candidate.reasons
         )
     }
 }
@@ -145,6 +148,18 @@ struct OmenFindTradeScreen: View {
                 }
             }
             .accessibilityElement(children: .combine)
+
+            if !candidate.reasons.isEmpty {
+                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                    OmenSectionHeader(title: "Why")
+                    ForEach(Array(candidate.reasons.enumerated()), id: \.offset) { _, reason in
+                        Text(reason)
+                            .omenTextStyle(OmenTypography.body)
+                            .foregroundStyle(OmenColor.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
 
             side("You send", candidate.send)
             side("You get", candidate.receive)

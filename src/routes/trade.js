@@ -27,6 +27,7 @@ const { logger } = require("../middleware/logging");
 const { attachDecisionReceipt, createDecisionContext } = require("../services/decisionContext");
 const sleeperAdapter = require("../adapters/sleeper");
 const comingWeeks = require("../services/comingWeeks");
+const { reasonsFor } = require("../services/moveReasons");
 const espnAdapter = require("../adapters/espn");
 const yahooAdapter = require("../adapters/yahoo");
 const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
@@ -731,6 +732,16 @@ function createTradeRouter({
       usage_evidence: usageRowsForTrade(candidate, usage.byKey),
     }));
     await attachSight(candidatesOut);
+    // Reasons first (founder, 2026-10-23): who misses which weeks, Omen's read of each player, then the lineup change.
+    for (const candidate of candidatesOut) {
+      const weeks = candidate?.weeks || {};
+      candidate.reasons = reasonsFor({
+        gain: candidate?.receive && { ...candidate.receive, projected_points_by_week: weeks.receive },
+        lose: candidate?.give && { ...candidate.give, projected_points_by_week: weeks.give },
+        weeks: weeks.judged || [],
+        lineupGain: candidate?.user_lineup_delta,
+      });
+    }
     return {
       candidates: candidatesOut,
       usage_evidence_state: usage.state,
