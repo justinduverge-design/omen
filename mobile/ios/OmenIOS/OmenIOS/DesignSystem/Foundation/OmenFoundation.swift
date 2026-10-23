@@ -43,7 +43,7 @@ struct OmenBackButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(OmenPressedStyle())
-        .accessibilityLabel("Back to \(title)")
+        .accessibilityLabel(title == "Back" ? "Back" : "Back to \(title)")
     }
 }
 

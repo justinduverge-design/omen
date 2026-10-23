@@ -11,53 +11,44 @@ struct ForcedUpdateView: View {
     var storeURL: URL?
     let onUpdate: () -> Void
 
+    var currentVersion: String = OmenAccountState.appVersion.replacingOccurrences(of: "Omen ", with: "")
+
     var body: some View {
-        VStack {
-            Spacer()
-            OmenCard(variant: .outlined, tone: .risk) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                    VStack(alignment: .leading, spacing: OmenSpacing.step12) {
-                        Text("Update required")
-                            // This blocking system state must survive every Dynamic Type size.
-                            // Use the native semantic role so SwiftUI owns the complete line box.
-                            .font(.system(.title3, design: .default, weight: .bold))
-                            .foregroundStyle(OmenColor.textPrimary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("This version of Omen is no longer supported. Update to at least version \(minimumVersion) to keep using the app.")
-                            .omenTextStyle(OmenTypography.body)
-                            .foregroundStyle(OmenColor.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    // The heading and explanation form one announcement. Hiding their child
-                    // nodes prevents the system audit from treating the large heading's tight
-                    // visual bounds as clipped while preserving the complete spoken message.
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(
-                        "Update required. This version of Omen is no longer supported. Update to at least version \(minimumVersion) to keep using the app."
-                    )
-                    if storeURL != nil {
-                        OmenButton(
-                            title: "Update now",
-                            action: onUpdate,
-                            variant: .primary,
-                            size: .lg
-                        )
-                    } else {
-                        Text("Update Omen from the App Store to continue.")
-                            .omenTextStyle(OmenTypography.bodySmall)
-                            .foregroundStyle(OmenColor.textSecondary)
-                    }
-                }
+        GeometryReader { proxy in
+            ScrollView(showsIndicators: false) {
+                content.frame(minHeight: proxy.size.height)
             }
-            .padding(OmenSpacing.step24)
-            Spacer()
         }
-        // Explicit brand background. Without it this screen inherits the system default
-        // (pure black/white), which is close enough to `OmenColor.bg` to pass a code read
-        // and visibly wrong on device. Every other full-screen composition sets this.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(OmenColor.bg)
+        .background(OmenColor.bg.ignoresSafeArea())
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
+        .omenScreenReady("forced-update")
+    }
+
+    private var content: some View {
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            Spacer()
+            Text("OMEN").omenTextStyle(OmenTypography.cardLead).tracking(4.8).foregroundStyle(OmenColor.accentHover)
+                .accessibilityHidden(true)
+            Text("Update Omen to keep going").omenTextStyle(OmenTypography.h1).foregroundStyle(OmenColor.textPrimary)
+                .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+            Text("This version can no longer read your leagues correctly. The update takes a minute, and your leagues and Ledger are kept.")
+                .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer()
+            if storeURL != nil {
+                OmenButton(title: "Update in the App Store", action: onUpdate, variant: .primary, size: .lg, fullWidth: true)
+            } else {
+                Text("Update Omen from the App Store to continue.").omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("You have \(currentVersion). Omen needs \(minimumVersion) or later.")
+                .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, OmenSpacing.step24)
+        .padding(.bottom, OmenSpacing.step24)
+        .frame(maxWidth: .infinity)
     }
 }

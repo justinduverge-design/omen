@@ -5,7 +5,7 @@ enum AuthSignInCopy {
     static let oauthBrowserDisclosure = "Google and Discord open a secure Omen sign-in page. We only receive the sign-in result."
     /// `SignIn.dc.html`'s subline. The shipped screen had the tagline and not this; the artboard
     /// has both, and this is the line that says what the product actually does for you.
-    static let promise = "One call a week for every team you manage. Plain English, and it shows its work."
+    static let promise = "Connect ESPN, Yahoo or Sleeper. Omen reads every roster and tells you what to do, and why."
 }
 
 /// First-run sign-in and re-auth surface. The cold-start path is provider first; email OTP
@@ -18,9 +18,7 @@ struct SignInView: View {
     var onBack: (() -> Void)?
     var onSignOut: (() -> Void)?
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var emailEntryVisible = false
-    @State private var lockupPresented = false
 
     var body: some View {
         signIn
@@ -28,285 +26,173 @@ struct SignInView: View {
 
     private var signIn: some View {
         GeometryReader { proxy in
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 Group {
-                    if showCodeScreen {
-                        emailCodeScreen
-                    } else {
-                        signInScreen
-                    }
+                    if showCodeScreen { emailCodeScreen } else { welcome }
                 }
                 .padding(.horizontal, OmenSpacing.step24)
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
             .background(OmenColor.bg.ignoresSafeArea())
         }
-        .onAppear {
-            lockupPresented = true
-            if !viewModel.appleSignInAvailable {
-                emailEntryVisible = true
-            }
-        }
+        .onAppear { if !providersAvailable { emailEntryVisible = true } }
         .onChange(of: viewModel.flowState) { _, state in
-            if case .awaitingOtp = state {
-                emailEntryVisible = true
-            }
+            if case .awaitingOtp = state { emailEntryVisible = true }
         }
+        .omenScreenReady(showCodeScreen ? "email-code" : "welcome")
     }
 
-    private var signInScreen: some View {
-        VStack(alignment: .center, spacing: 0) {
+    private var providersAvailable: Bool {
+        viewModel.appleSignInAvailable || viewModel.googleSignInAvailable || viewModel.discordSignInAvailable
+    }
+
+    /// Frame Welcome: the promise, a sample of the weekly move, then sign-in.
+    private var welcome: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if let onBack {
-                OmenIconButton(
-                    contentDescription: "Back",
-                    icon: Image("CanvasChevronLeft"),
-                    action: onBack,
-                    size: .sm
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, OmenSpacing.step12)
-            } else {
-                Color.clear.frame(height: 34)
+                OmenBackButton(title: "Back", action: onBack).padding(.top, OmenSpacing.step8)
             }
-
-            VStack(alignment: .center, spacing: 0) {
-                Image("OmenLockupStacked")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: 300, maxHeight: 216)
-                    .opacity(lockupPresented ? 1 : 0.88)
-                    .offset(y: lockupPresented || reduceMotion ? 0 : 6)
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.45), value: lockupPresented)
+            VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+                Text("OMEN").omenTextStyle(OmenTypography.cardLead).tracking(4.8).foregroundStyle(OmenColor.accentHover)
                     .accessibilityLabel("Omen")
-
-                if reauthPrompt {
-                    Color.clear.frame(height: OmenSpacing.step16)
-                    Text("Sign in again.")
-                        .omenTextStyle(OmenTypography.h1)
-                        .foregroundStyle(OmenColor.textPrimary)
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, OmenSpacing.step16)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Your session expired. Sign in again to keep going.")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text(reauthPrompt ? "Sign in again." : "The best move in your league. Every week.")
+                    .omenTextStyle(OmenTypography.h1).foregroundStyle(OmenColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text(reauthPrompt ? "Your session expired. Sign in again to keep going." : AuthSignInCopy.promise)
+                    .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.top, onBack == nil ? OmenSpacing.step48 : OmenSpacing.step16)
 
             if !reauthPrompt {
-                Text("See the move before the league does.")
-                    .omenTextStyle(OmenTypography.body)
-                    .foregroundStyle(OmenColor.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(AuthSignInCopy.promise)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textTertiary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, OmenSpacing.step16)
-                    .padding(.top, OmenSpacing.step8)
-                    .fixedSize(horizontal: false, vertical: true)
-                Color.clear.frame(height: OmenSpacing.step32)
+                // A labelled sample, never shown as anyone's real call.
+                OmenAnswerSurface(padding: OmenSpacing.step16) {
+                    VStack(alignment: .leading, spacing: OmenSpacing.step6) {
+                        HStack {
+                            Text("THIS WEEK\u{2019}S MOVE").omenTextStyle(OmenTypography.eyebrow).foregroundStyle(OmenColor.accentHover)
+                            Spacer()
+                            Text("Sample").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                        }
+                        Text("Start Jakobi Meyers in your flex.").omenTextStyle(OmenTypography.h3).foregroundStyle(OmenColor.textPrimary)
+                        Text("The Giants put their best corner on Smith and leave the slot to a rookie.")
+                            .omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: OmenSpacing.step16) {
+                            Text("+3.1 pts").omenTextStyle(OmenTypography.numeric).foregroundStyle(OmenColor.accentHover)
+                            Text("Omen 13.4 \u{00B7} ESPN 10.6").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                        }
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Sample move: Start Jakobi Meyers in your flex. Plus 3.1 points.")
+                .padding(.top, OmenSpacing.step24)
             }
 
-            VStack(alignment: .center, spacing: OmenSpacing.step12) {
+            Spacer(minLength: OmenSpacing.step32)
+
+            VStack(spacing: OmenSpacing.step10) {
                 if viewModel.appleSignInAvailable {
-                    OmenAuthPrimaryButton(
-                        title: "Continue with Apple",
-                        icon: Image("AuthApple"),
-                        action: { viewModel.signInWithApple() },
-                        enabled: !isBusy,
-                        loading: isAppleBusy,
-                        tintsIcon: true
-                    )
+                    OmenAuthPrimaryButton(title: "Continue with Apple", icon: Image("AuthApple"), action: { viewModel.signInWithApple() },
+                                          enabled: !isBusy, loading: isAppleBusy, tintsIcon: true)
                 }
-
-                // `SignIn.dc.html` draws four labelled full-width rows. The shipped screen used
-                // three icon-only tiles, which is worse on its own terms: an unlabelled glyph
-                // makes the user infer the provider, and it gives VoiceOver nothing the eye has.
-                // The artboard wins here.
-                if viewModel.googleSignInAvailable {
-                    OmenAuthPrimaryButton(
-                        title: "Continue with Google",
-                        icon: Image("AuthGoogle"),
-                        action: { viewModel.signInWithOAuth(providerId: "google") },
-                        enabled: !isBusy,
-                        loading: isGoogleBusy,
-                        variant: .secondary
-                    )
-                }
-                if viewModel.discordSignInAvailable {
-                    OmenAuthPrimaryButton(
-                        title: "Continue with Discord",
-                        icon: Image("AuthDiscord"),
-                        action: { viewModel.signInWithOAuth(providerId: "discord") },
-                        enabled: !isBusy,
-                        loading: isDiscordBusy,
-                        variant: .secondary
-                    )
-                }
-                OmenAuthPrimaryButton(
-                    title: "Continue with email",
-                    icon: Image("AuthEmail"),
-                    action: { emailEntryVisible = true },
-                    enabled: !isBusy,
-                    tintsIcon: true,
-                    variant: .secondary
-                )
-
                 if viewModel.googleSignInAvailable || viewModel.discordSignInAvailable {
-                    Text(AuthSignInCopy.oauthBrowserDisclosure)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, OmenSpacing.step16)
+                    HStack(spacing: OmenSpacing.step10) {
+                        if viewModel.googleSignInAvailable {
+                            OmenAuthPrimaryButton(title: "Google", icon: Image("AuthGoogle"), action: { viewModel.signInWithOAuth(providerId: "google") },
+                                                  enabled: !isBusy, loading: isGoogleBusy, variant: .secondary)
+                                .accessibilityLabel("Continue with Google")
+                        }
+                        if viewModel.discordSignInAvailable {
+                            OmenAuthPrimaryButton(title: "Discord", icon: Image("AuthDiscord"), action: { viewModel.signInWithOAuth(providerId: "discord") },
+                                                  enabled: !isBusy, loading: isDiscordBusy, variant: .secondary)
+                                .accessibilityLabel("Continue with Discord")
+                        }
+                    }
                 }
-
+                if !providersAvailable {
+                    Text("Apple, Google and Discord sign-in aren\u{2019}t set up in this build. Use email.")
+                        .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if emailEntryVisible {
                     emailEntry
+                } else {
+                    OmenButton(title: "Use email", action: { emailEntryVisible = true }, variant: .secondary, size: .lg, enabled: !isBusy, fullWidth: true)
                 }
-
+                if let failureMessage {
+                    Text(failureMessage)
+                        .omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.Data.riskMedium)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityLabel("Error: \(failureMessage)")
+                }
                 if demoModeEnabled, !reauthPrompt, let onTryDemo {
-                    OmenCanvasTextAction(
-                        title: "Look around without an account →",
-                        action: onTryDemo,
-                        color: OmenColor.accent,
-                        weight: .semibold,
-                        height: 48,
-                        enabled: !isBusy
-                    )
+                    OmenBarTextButton(title: "Look around with a sample league", action: onTryDemo).disabled(isBusy)
                 }
+                if reauthPrompt, let onSignOut {
+                    OmenBarTextButton(title: "Sign out and start over", tone: OmenColor.textSecondary, action: onSignOut)
+                }
+                if viewModel.googleSignInAvailable || viewModel.discordSignInAvailable {
+                    Text(AuthSignInCopy.oauthBrowserDisclosure)
+                        .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                        .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                }
+                Text("By continuing you confirm you\u{2019}re 13 or older and agree to the Terms and Privacy Notice.")
+                    .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }
-
-            Color.clear.frame(height: 10)
-
-            Text("By continuing you confirm you're 13 or older and agree to the Terms and Privacy Notice.")
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textTertiary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, OmenSpacing.step16)
-
-            Color.clear.frame(height: OmenSpacing.step24)
-
-            if let failureMessage {
-                Text(failureMessage)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
-                    .accessibilityLabel("Error: \(failureMessage)")
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if reauthPrompt, let onSignOut {
-                OmenButton(
-                    title: "Sign out and start over",
-                    action: onSignOut,
-                    variant: .link,
-                    size: .sm
-                )
-            }
-
+            .padding(.bottom, OmenSpacing.step24)
         }
     }
 
     private var emailEntry: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step12) {
+        VStack(spacing: OmenSpacing.step10) {
             OmenFormField(label: "Email", errorMessage: emailErrorMessage) {
-                OmenTextField(
-                    value: $viewModel.emailField,
-                    label: "Email",
-                    placeholder: "you@example.com",
-                    variant: .email,
-                    enabled: !isBusy
-                )
+                OmenTextField(value: $viewModel.emailField, label: "Email", placeholder: "you@example.com", variant: .email, enabled: !isBusy)
             }
-            OmenButton(
-                title: "Email me a code",
-                action: { viewModel.submitEmail() },
-                variant: .secondary,
-                size: .lg,
-                enabled: !isBusy,
-                loading: isEmailBusy
-            )
-            .frame(maxWidth: .infinity)
+            OmenButton(title: "Email me a code", action: { viewModel.submitEmail() }, variant: .primary, size: .lg,
+                       enabled: !isBusy, loading: isEmailBusy, fullWidth: true)
         }
-        .padding(OmenSpacing.step16)
-        .background(OmenColor.surface1)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(OmenColor.border, lineWidth: 1)
-        )
     }
 
+    /// Frame EmailCode: the code fills in from Mail and submits itself at six digits.
     private var emailCodeScreen: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: OmenSpacing.step12)
-            OmenIconButton(
-                contentDescription: "Use a different email",
-                icon: Image("CanvasChevronLeft"),
-                action: resetEmailStep,
-                size: .sm,
-                enabled: !isOtpBusy
-            )
-            .frame(height: 44)
-
-            Color.clear.frame(height: 40)
-
+        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+            OmenBackButton(title: "Back", action: resetEmailStep).disabled(isOtpBusy).padding(.top, OmenSpacing.step8)
             VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                Text("Check your email.")
-                    .omenTextStyle(OmenTypography.h1)
-                    .foregroundStyle(OmenColor.textPrimary)
-                Text("We sent a six-digit code to \(viewModel.emailField). It's good for ten minutes.")
-                    .omenTextStyle(OmenTypography.body)
-                    .foregroundStyle(OmenColor.textSecondary)
+                Text("Check your email").omenTextStyle(OmenTypography.h1).foregroundStyle(OmenColor.textPrimary)
+                    .accessibilityAddTraits(.isHeader)
+                Text("We sent a 6-digit code to \(Self.masked(viewModel.emailField)).")
+                    .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            Color.clear.frame(height: OmenSpacing.step32)
-
+            .padding(.top, OmenSpacing.step24)
             codeEntry
-
-            Color.clear.frame(height: OmenSpacing.step24)
-
-            OmenAuthPrimaryButton(
-                title: "Continue",
-                action: { viewModel.submitOtp() },
-                enabled: OtpCodeValidator.isValid(viewModel.otpField) && !isOtpBusy,
-                loading: isOtpBusy
-            )
-
-            Color.clear.frame(height: OmenSpacing.step16)
-
-            codeDeliveryHelp
-
-            Spacer(minLength: 0)
-
-            OmenCanvasTextAction(
-                title: "Use a different email",
-                action: resetEmailStep,
-                color: OmenColor.textTertiary,
-                weight: .medium,
-                height: 44,
-                enabled: !isOtpBusy
-            )
-
-            Color.clear.frame(height: OmenSpacing.step24)
-
+                .onChange(of: viewModel.otpField) { _, code in
+                    if OtpCodeValidator.isValid(code), !isOtpBusy { viewModel.submitOtp() }
+                }
+            Text(isOtpBusy ? "Checking the code\u{2026}" : "The code fills in from Mail on its own.")
+                .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
             if let failureMessage {
-                Text(failureMessage)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
-                    .accessibilityLabel("Error: \(failureMessage)")
+                Text(failureMessage).omenTextStyle(OmenTypography.bodySmall).foregroundStyle(OmenColor.Data.riskMedium)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel("Error: \(failureMessage)")
             }
+            codeDeliveryHelp
+            Spacer(minLength: 0)
+            OmenBarTextButton(title: "Use a different email", tone: OmenColor.textSecondary, action: resetEmailStep)
+                .disabled(isOtpBusy)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, OmenSpacing.step24)
         }
+    }
+
+    /// "j•••@icloud.com": enough to recognise the address on a shared screen.
+    static func masked(_ email: String) -> String {
+        let parts = email.split(separator: "@", maxSplits: 1)
+        guard parts.count == 2, let first = parts[0].first else { return email }
+        return "\(first)\u{2022}\u{2022}\u{2022}@\(parts[1])"
     }
 
     private var codeEntry: some View {
@@ -316,39 +202,22 @@ struct SignInView: View {
     /// What to do when the code does not turn up.
     @ViewBuilder
     private var codeDeliveryHelp: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            OmenCanvasTextAction(
-                title: viewModel.otpResendSecondsRemaining > 0
-                    ? "Send it again in \(viewModel.otpResendSecondsRemaining)s"
-                    : "Send it again",
-                action: { viewModel.resendOtp() },
-                color: viewModel.otpResendSecondsRemaining == 0 && !isOtpBusy
-                    ? OmenColor.accent
-                    : OmenColor.textTertiary,
-                weight: .semibold,
-                height: 44,
-                enabled: viewModel.otpResendSecondsRemaining == 0 && !isOtpBusy
+        VStack(alignment: .leading, spacing: OmenSpacing.step4) {
+            let wait = viewModel.otpResendSecondsRemaining
+            OmenBarTextButton(
+                title: wait > 0 ? String(format: "Resend in %d:%02d", wait / 60, wait % 60) : "Resend the code",
+                tone: wait == 0 && !isOtpBusy ? OmenColor.accentHover : OmenColor.textTertiary,
+                action: { viewModel.resendOtp() }
             )
-
+            .disabled(wait > 0 || isOtpBusy)
             if viewModel.otpResent {
-                Text("Sent again.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textSecondary)
+                Text("Sent again.").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary)
             }
             if let resendError = viewModel.otpResendError {
-                Text(resendError)
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.Data.riskHigh)
+                Text(resendError).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.Data.riskMedium)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-    }
-
-    private func digit(at index: Int) -> String {
-        let normalized = OtpCodeValidator.normalize(viewModel.otpField)
-        guard index < normalized.count else { return "" }
-        let stringIndex = normalized.index(normalized.startIndex, offsetBy: index)
-        return String(normalized[stringIndex])
     }
 
     private func resetEmailStep() {
