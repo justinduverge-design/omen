@@ -102,3 +102,4 @@ infra/vector/logs/
 
 # Rust
 /target
+evals/decision-cases/private/

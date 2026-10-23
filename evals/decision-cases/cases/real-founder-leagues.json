@@ -1,0 +1,32 @@
+{
+  "about": "The founder's real teams, frozen at a decision time. The data (rosters, licensed projections) is captured locally into evals/decision-cases/private/<snapshot>.json and never committed; these are the judgements Omen must match. A case without its private snapshot is skipped, not failed.",
+  "cases": [
+    {
+      "id": "eb-football-w7-nix-claim",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR, FAAB $100",
+      "move": { "type": "waiver", "add": "Bo Nix", "drop": "Brian Thomas Jr.", "bid": 28 },
+      "verdict": "reject",
+      "why": "A third QB in a one-QB league. Free agents (no claim, no bid) at QB do at least as much: the claim must beat the best free add, not just this week's starter.",
+      "check": { "claim_must_beat_best_free_agent": true }
+    },
+    {
+      "id": "eb-football-w7-harvey-for-lamar",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR",
+      "move": { "type": "trade", "give": ["RJ Harvey"], "receive": ["Lamar Jackson"] },
+      "verdict": "reject",
+      "why": "Founder: a split-backfield RB with few touchdowns for a top-three fantasy QB who scores running and passing. Both lineups rise on paper, but the other manager gives away far more value than he gets, so nobody accepts it and Omen must not propose it.",
+      "check": { "max_value_gap_per_week": 2 }
+    },
+    {
+      "id": "eb-football-w7-start-sit-health",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, PPR",
+      "move": { "type": "start", "start": "Mike Evans", "over": "KC Concepcion Jr." },
+      "verdict": "reject_if_projected_out",
+      "why": "Omen's call was to start Mike Evans (Questionable). At capture Sleeper projected him 0 for weeks 7 and 8. Starting a player projected not to play is never the move; the call must read availability, not last week's number.",
+      "check": { "start_must_be_projected_to_play": true }
+    }
+  ]
+}
