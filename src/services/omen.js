@@ -1,5 +1,6 @@
 "use strict";
 
+const { endSentence } = require("../utils/sentence");
 const { reasonsFor } = require("./moveReasons");
 
 const { createClient } = require("@supabase/supabase-js");
@@ -1430,7 +1431,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     id: `live_omen_start_sit_${swap.to.player_key || "unknown"}`,
     type: "start_sit",
     title,
-    move: `Move ${primary.name} into your ${rosterSlot} slot and bench ${comparison.name}.`,
+    move: endSentence(`Move ${primary.name} into your ${rosterSlot} slot and bench ${comparison.name}.`),
     primary_player: primary,
     comparison_player: comparison,
     expected_value_delta: {
@@ -1444,7 +1445,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     ),
     risk: risk(riskLevel, riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform })),
     explanation: {
-      summary: `Your best live move is to start ${primary.name} over ${comparison.name}.`,
+      summary: endSentence(`Your best live move is to start ${primary.name} over ${comparison.name}.`),
       // Reasons first (moveReasons.js): availability and Omen's read, the point gap last.
       why_it_matters:
         reasonsFor({ gain: startPlayer, lose: sitPlayer, lineupGain: delta }).join(" ") ||
@@ -1511,7 +1512,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
     id: `live_omen_trade_${give.id || "unknown"}_${receive.id || "unknown"}`,
     type: "trade_suggestion",
     title: `Offer ${give.name} for ${receive.name}`,
-    move: `Offer ${give.name} to ${teamName} for ${receive.name}.`,
+    move: endSentence(`Offer ${give.name} to ${teamName} for ${receive.name}.`),
     // Additive structured form of the same data the sentence above is built from.
     trade: tradeStructure({ opponent: trade.opponent, teamName, give, receive }),
     // Observed warehouse usage for the two players; empty when the warehouse has nothing real to say.
@@ -1528,7 +1529,7 @@ function mapTradeSuggestionToMvpMove({ roster, connection, connectedPlatforms, t
       "The VORP fairness guard limits season-long value loss relative to the weekly lineup gain.",
     ]),
     explanation: {
-      summary: `Your best live trade candidate is ${give.name} for ${receive.name}.`,
+      summary: endSentence(`Your best live trade candidate is ${give.name} for ${receive.name}.`),
       why_it_matters: `The swap adds ${formatDelta(delta)} to your optimal weekly lineup while also improving ${teamName}'s lineup.`,
       risk: "A fair projected lineup gain is not a guarantee that the other manager will accept the offer.",
       confidence: bandSentence(
@@ -1630,7 +1631,7 @@ function mapYahooWaiverToMvpMove({ roster, waiver, connection, connectedPlatform
       "Yahoo's basic available-player response does not include a weekly projection, so Omen does not estimate a point delta.",
     ]),
     explanation: {
-      summary: `Add ${add.name} to cover for ${drop.name}.`,
+      summary: endSentence(`Add ${add.name} to cover for ${drop.name}.`),
       why_it_matters: `${drop.name} is unavailable and ${add.name} is an available ${add.position} in the selected Yahoo league.`,
       risk: "This is an availability-based replacement, not a projection-backed claim about the better weekly player.",
       confidence: bandSentence(

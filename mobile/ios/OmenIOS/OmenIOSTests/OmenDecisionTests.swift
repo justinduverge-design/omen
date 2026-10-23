@@ -1379,7 +1379,7 @@ final class OmenReadDecodingTests: XCTestCase {
     }
 
     func testAuthorityReceiptMapsIntoTheCustomerFacingLeadingRead() throws {
-        let json = #"{"state":"success","mode":"live","answered_for":{"platform":"espn","league_id":"1"},"recommendation":{"title":"Start Example Player","move":"Keep him in WR1.","primary_player":{"name":"Example Player","position":"WR","projected_points":12.8,"sight":{"version":"v2","position":"WR","sight_points":14.2,"drivers":[{"name":"target_share","points":1.4}],"authority":{"version":"forecast-authority.v1","state":"omen_leads","position":"WR","scoring_family":"ppr","sample_size":65,"weeks":2,"evaluated_at":"2026-10-15T12:00:00Z","omen_mae":4.21,"provider_mae":4.75},"crosswind":{"gap_points":1.4,"threshold_points":4.21,"drivers":[]}}}}}"#
+        let json = #"{"state":"success","mode":"live","answered_for":{"platform":"espn","league_id":"1"},"recommendation":{"title":"Start Example Player","move":"Keep him in WR1.","primary_player":{"name":"Example Player","position":"WR","projected_points":12.8,"sight":{"version":"v2","position":"WR","sight_points":14.2,"drivers":[{"name":"target_share","label":"Target share","points":1.4},{"name":"epa_per_target","points":0.5}],"authority":{"version":"forecast-authority.v1","state":"omen_leads","position":"WR","scoring_family":"ppr","sample_size":65,"weeks":2,"evaluated_at":"2026-10-15T12:00:00Z","omen_mae":4.21,"provider_mae":4.75},"crosswind":{"gap_points":1.4,"threshold_points":4.21,"drivers":[]}}}}}"#
         let envelope = try JSONDecoder().decode(OmenDecisionEnvelope.self, from: Data(json.utf8))
         guard case .success(let payload) = envelope.briefState() else { return XCTFail("expected success") }
         let comparison = try XCTUnwrap(payload.readComparison)
@@ -1390,6 +1390,7 @@ final class OmenReadDecodingTests: XCTestCase {
         XCTAssertEqual(comparison.providerPoints, 12.8)
         XCTAssertEqual(comparison.omenPoints, 14.2)
         XCTAssertEqual(comparison.sampleSize, 65)
-        XCTAssertEqual(comparison.portents, ["Target Share · +1.4"])
+        // The server's label is shown; a driver with no label is left out rather than printed as a model key.
+        XCTAssertEqual(comparison.portents, ["Target share · +1.4"])
     }
 }

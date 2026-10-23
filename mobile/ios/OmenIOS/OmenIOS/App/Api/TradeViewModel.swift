@@ -57,8 +57,10 @@ final class TradeViewModel: ObservableObject {
             rosterBrowseState = .demo
             return
         }
+        // No league named yet: the league overview is still loading. Waiting is the honest state; the builder retries
+        // when the league arrives, and says so if the league read itself failed. It is not a network failure.
         guard let leagueContext = offer.leagueContext else {
-            rosterBrowseState = .failed(.network)
+            rosterBrowseState = .idle
             return
         }
         // Reuse the league's rosters already in hand. Re-reading every team's roster (and blanking

@@ -302,6 +302,8 @@ struct OmenDecisionEnvelope: Decodable, Equatable {
     struct OmenRead: Decodable, Equatable {
         struct Driver: Decodable, Equatable {
             let name: String?
+            /// The server's plain-English name for the input ("Target share"). Preferred over `name`, a model key.
+            var label: String?
             let points: Double?
         }
 
@@ -747,8 +749,8 @@ extension OmenDecisionEnvelope {
             crosswindGap: read.crosswind?.gapPoints,
             crosswindThreshold: read.crosswind?.thresholdPoints,
             portents: read.drivers.compactMap { driver in
-                guard let name = driver.name else { return nil }
-                let label = name.replacingOccurrences(of: "_", with: " ").capitalized
+                // Only the server's label is shown; a model key like "epa_per_target" never reaches the screen.
+                guard let label = driver.label?.trimmingCharacters(in: .whitespacesAndNewlines), !label.isEmpty else { return nil }
                 return driver.points.map { "\(label) · \(String(format: "%+.1f", $0))" } ?? label
             }
         )
