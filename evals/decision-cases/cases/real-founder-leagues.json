@@ -148,6 +148,57 @@
       "check": {
         "owner_change_at_most": 0
       }
+    },
+    {
+      "id": "espn-everything-backwards-w7-wilson-for-lamar",
+      "snapshot": "espn-everything-backwards",
+      "league": "ESPN, 12 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Michael Wilson"
+        ],
+        "receive": [
+          "Lamar Jackson"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Founder: an easy no. A WR2 for a top fantasy QB; the other side gets back less than half the value it gives.",
+      "check": {}
+    },
+    {
+      "id": "eb-football-w7-harvey-for-maye",
+      "snapshot": "eb-football",
+      "league": "Sleeper, 10 teams, 1 QB",
+      "move": {
+        "type": "trade",
+        "give": [
+          "RJ Harvey"
+        ],
+        "receive": [
+          "Drake Maye"
+        ]
+      },
+      "verdict": "reject",
+      "why": "Founder: an easy no. A split-backfield RB for a top QB in a one-QB league.",
+      "check": {}
+    },
+    {
+      "id": "omen-app-data-w7-laporta-for-watson",
+      "snapshot": "omen-app-data",
+      "league": "Sleeper, 8 teams",
+      "move": {
+        "type": "trade",
+        "give": [
+          "Sam LaPorta"
+        ],
+        "receive": [
+          "Christian Watson"
+        ]
+      },
+      "verdict": "judgement_call",
+      "why": "Founder: a conversation. Omen may propose it; it must not be the only kind of trade it can find.",
+      "check": {}
     }
   ],
   "captured": {

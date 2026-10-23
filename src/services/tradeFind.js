@@ -275,6 +275,9 @@ function positionalGuard({ give, receive, ownNeeds, opponentNeeds }) {
 // every team set its best lineup (the formula fallback of trade value v3, until the free-agent pool is read here).
 // Founder, 2026-10-23: a split-backfield RB for a top-three QB raises both lineups on paper and nobody accepts it.
 const MAX_VALUE_GAP = 2;
+const MIN_VALUE_SHARE = 0.65;
+// Below this much value a week on both sides, the share is noise and only the absolute gap applies.
+const MIN_VALUE_FOR_SHARE = 0.5;
 
 // A replacement level read from a handful of rosters is not a league's; below this many teams the value check is off.
 const MIN_TEAMS_FOR_REPLACEMENT = 6;
@@ -319,8 +322,14 @@ function valueBalanced({ give, receive, replacement, userDelta, opponentDelta })
     if (Math.max(userDelta, opponentDelta) > MAX_GAIN_RATIO * Math.min(userDelta, opponentDelta)) return false;
   }
   if (!replacement) return true;
-  const gap = valueOver([receive], replacement) - valueOver([give], replacement);
-  return Math.abs(gap) <= MAX_VALUE_GAP;
+  const got = valueOver([receive], replacement);
+  const gave = valueOver([give], replacement);
+  if (Math.abs(got - gave) > MAX_VALUE_GAP) return false;
+  // Each side gets back a fair share of what it gives: an elite QB for a WR2 can sit inside the absolute gap because
+  // QB values bunch up in one-QB leagues, but the other side still gets back half (founder, 2026-10-23: Wilson for
+  // Lamar and Harvey for Maye, "an easy no").
+  const larger = Math.max(got, gave);
+  return larger <= MIN_VALUE_FOR_SHARE || Math.min(got, gave) / larger >= MIN_VALUE_SHARE;
 }
 
 // Need profiles per roster, so a guard called once per player pair builds each team's profile once.

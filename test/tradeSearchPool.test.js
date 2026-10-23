@@ -9,7 +9,7 @@ const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const { findTradeCandidate, createSearchBudget } = require("../src/services/tradeLineup");
-const { findLeagueTradeCandidates, mutualFairnessGuard } = require("../src/services/tradeFind");
+const { findLeagueTradeCandidates, mutualFairnessGuard, sensibleTradeGuard } = require("../src/services/tradeFind");
 const pool = require("../src/services/tradeSearchPool");
 
 const SLOTS = ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN", "BN"];
@@ -60,11 +60,13 @@ test.after(() => pool.closeTradeSearchPool());
 
 test("worker and inline trade search return identical results", async () => {
   const teams = league(8, 12, 2);
-  const leagueInput = () => ({
+  // The plain fairness check, so this generated league yields trades to compare; the full guard is compared below.
+  const leagueInput = (fairnessGuard = mutualFairnessGuard) => ({
     ownTeamId: "1",
     teams,
     rosterPositions: SLOTS,
     budget: createSearchBudget({ budgetMs: 30000 }),
+    fairnessGuard,
   });
   const candidateInput = (fairnessGuard) => ({
     ownTeam: { ...teams[0], roster_id: "1" },
@@ -79,6 +81,15 @@ test("worker and inline trade search return identical results", async () => {
   assert.deepStrictEqual(stable(leagueWorker), stable(leagueInline));
   assert.deepStrictEqual(stable(leagueWorker), stable(findLeagueTradeCandidates(leagueInput())));
   assert.ok(leagueWorker.candidates.length > 0, "fixture must produce candidates to compare");
+
+  // The production guard (value balance included) gives the same answer on both paths, even when it is "none".
+  const sensibleWorker = await withMode("worker", () =>
+    pool.findLeagueTradeCandidatesAsync(leagueInput(sensibleTradeGuard)),
+  );
+  const sensibleInline = await withMode("inline", () =>
+    pool.findLeagueTradeCandidatesAsync(leagueInput(sensibleTradeGuard)),
+  );
+  assert.deepStrictEqual(stable(sensibleWorker), stable(sensibleInline));
 
   for (const guard of [undefined, mutualFairnessGuard]) {
     const worker = await withMode("worker", () => pool.findTradeCandidateAsync(candidateInput(guard)));
