@@ -212,18 +212,28 @@ async function loadEspn(connection, userId, week) {
       return NOT_DETERMINED_PENDING_PROBE();
     }
   })();
-  const [roster, pool, system] = await Promise.all([rosterRead, poolRead, systemRead]);
+  // A rules read must never break waiver advice, even a synchronous throw.
+  const rulesRead = Promise.resolve()
+    .then(() => espnAdapter.fetchEspnScoringSettings(connection.league_id, credentials.espn_s2, credentials.swid))
+    .catch(() => null);
+  const [roster, pool, system, rules] = await Promise.all([rosterRead, poolRead, systemRead, rulesRead]);
 
+  // ESPN's projected points are its own appliedTotal, already scored by this league's rules. Reading
+  // the rules confirms that; without them the evidence still says so. scoringFormat stays null rather
+  // than a PPR guess (the A6 defect).
+  const rulesVerified = rules?.ruleCount > 0;
   return {
     roster,
     pool,
-    // ESPN exposes no scoring-settings mapping Omen has verified, so this stays
-    // null rather than defaulting to PPR — that default is the A6 defect.
     waiverSystem: system,
     scoringFormat: null,
     availabilityConfirmed: pool != null,
     limitations:
-      pool == null ? [] : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
+      pool == null
+        ? []
+        : rulesVerified
+          ? ["Projections are ESPN's own, scored with this league's rules."]
+          : ["Omen has not verified this league's scoring rules, so evidence omits league scoring."],
   };
 }
 
@@ -269,6 +279,9 @@ async function readYahooWaiverSystem(client, leagueId) {
   }
 }
 
+// Yahoo's own ceiling per status (four pages of 25); the top 50 left useful adds out.
+const YAHOO_POOL_COUNT = 100;
+
 async function loadYahoo(connection, userId, week) {
   const { client } = await getAuthenticatedYahooClient(userId);
   // The waiver-system read needs neither roster nor pool: start it now, await it last.
@@ -280,13 +293,16 @@ async function loadYahoo(connection, userId, week) {
   let poolProjection = null;
   let poolStatusSplit = null;
   try {
-    // G6: with YAHOO_POOL_STATUS_SPLIT=1 the pool is read as free agents and waivers separately,
-    // with percent owned. Documented by Yahoo, not yet exercised live, so it is off by default and
+    // G6: the pool is read as free agents and waivers separately, with percent owned, so a claim is
+    // never judged as a free add (founder cases, 2026-10-23). YAHOO_POOL_STATUS_SPLIT=0 turns it off;
     // any failure or partial read falls back to the single status=A read below.
     let normalizedPool = null;
-    if (process.env.YAHOO_POOL_STATUS_SPLIT === "1" && typeof client.getAvailablePlayerPool === "function") {
+    if (process.env.YAHOO_POOL_STATUS_SPLIT !== "0" && typeof client.getAvailablePlayerPool === "function") {
       try {
-        const split = await client.getAvailablePlayerPool(connection.league_id, { count: 25, sort: "AR" });
+        const split = await client.getAvailablePlayerPool(connection.league_id, {
+          count: YAHOO_POOL_COUNT,
+          sort: "AR",
+        });
         if (split.pages.length && !split.failed.length) {
           normalizedPool = rosterSvc.normalizeYahooPool(split);
           poolStatusSplit = { truncated: Boolean(split.truncated) };
@@ -296,7 +312,7 @@ async function loadYahoo(connection, userId, week) {
       }
     }
     if (!normalizedPool) {
-      const raw = await client.getAvailablePlayers(connection.league_id, { count: 50, sort: "AR" });
+      const raw = await client.getAvailablePlayers(connection.league_id, { count: YAHOO_POOL_COUNT, sort: "AR" });
       normalizedPool = rosterSvc.normalizeYahooWaivers(raw);
     }
     ({ pool, projectionMeta: poolProjection } = await projectYahooPool(
