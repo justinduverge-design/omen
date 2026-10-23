@@ -247,7 +247,7 @@ function mutualFairnessGuard({ give, receive, userDelta, opponentDelta } = {}) {
 }
 
 // Kickers and defenses are streamed off the waiver wire every week, so a lineup gain there is a waiver move, not a
-// reason to trade a real player. A found trade never sends or asks for one (founder, 2026-10-23: "trade a RB for a
+// reason to trade a real player. A found trade never sends or asks for one (founder, 2026-10-22: "trade a RB for a
 // defense when I'm light at RB").
 const STREAMED_POSITIONS = new Set(["K", "DST", "DEF", "D/ST"]);
 
@@ -289,6 +289,8 @@ function sensibleTradeGuard(pair = {}) {
   const opponentNeeds = cachedNeeds(pair.opponent, pair.rosterPositions);
   return positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair);
 }
+
+sensibleTradeGuard.excludes = (player) => STREAMED_POSITIONS.has(primaryPosition(player));
 
 function findLeagueTradeCandidates({
   ownTeamId,

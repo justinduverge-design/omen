@@ -437,6 +437,8 @@ function findTradeCandidate({
         break;
       }
       if (finiteProjection(give) === null || give.trade_locked === true) continue;
+      // A guard can rule a player out before any lineup is solved (kickers and defenses), so the budget goes to real pairs.
+      if (fairnessGuard.excludes?.(give)) continue;
       for (const receive of opponent.players) {
         if (ranOut || budget.exceeded) {
           ranOut = true;
@@ -444,6 +446,7 @@ function findTradeCandidate({
         }
         const receivePoints = finiteProjection(receive);
         if (receivePoints === null || receive.trade_locked === true) continue;
+        if (fairnessGuard.excludes?.(receive)) continue;
         // Bound obvious non-candidates without excluding cross-position trades:
         // a bench opponent asset needs to beat the user's weakest starter.
         const receiveId = String(receive.player_id || receive.player_key);

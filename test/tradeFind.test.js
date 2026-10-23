@@ -333,3 +333,15 @@ test("a league scan does not propose trading a short-handed RB for a defense, ev
     assert.notEqual(candidate.give.position === "RB" && candidate.receive.position !== "RB", true);
   }
 });
+
+test("kickers and defenses are skipped before any lineup is solved", () => {
+  const { sensibleTradeGuard } = require("../src/services/tradeFind");
+  const { findTradeCandidate } = require("../src/services/tradeLineup");
+  const own = team("own", "Own", thinAtRbRoster("o"));
+  const other = team("other", "Other", deepAtRbRoster("x"));
+  const withGuard = createSearchBudget();
+  findTradeCandidate({ ownTeam: { ...own, roster_id: "own" }, opponentTeams: [{ ...other, roster_id: "other" }], rosterPositions: ROSTER_POSITIONS, budget: withGuard, fairnessGuard: sensibleTradeGuard });
+  const without = createSearchBudget();
+  findTradeCandidate({ ownTeam: { ...own, roster_id: "own" }, opponentTeams: [{ ...other, roster_id: "other" }], rosterPositions: ROSTER_POSITIONS, budget: without, fairnessGuard: () => true });
+  assert.ok(withGuard.stats.solves < without.stats.solves, `${withGuard.stats.solves} solves with the guard, ${without.stats.solves} without`);
+});
