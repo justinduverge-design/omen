@@ -178,32 +178,8 @@ enum ScreenshotScenarios {
         // degraded one, and that is the contract rather than a convenience: the neutral variant
         // requires *all* positive quiet evidence, so it cannot occur in a pass where a provider
         // failed. Straight fires on exactly that.
-        "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(
-            label: "J2 nominal 2/4 — the switcher sheet over the desk",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
-                state: J2ScreenshotFixtures.nominalSwitchSheet,
-                onSelectFilter: { _ in },
-                onSelectRow: { _ in },
-                onToggleFavorite: { _ in },
-                onDismiss: {},
-                backdrop: {
-                    DeskScenario(phase: .ready)
-                }
-            )))) }
-        ),
-        "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(
-            label: "J2 degraded 2/4 — switcher naming the provider it could not list",
-            content: { AnyView(j2Shell(AnyView(OmenSwitchSheetOverlay(
-                state: J2ScreenshotFixtures.degradedSwitchSheet,
-                onSelectFilter: { _ in },
-                onSelectRow: { _ in },
-                onToggleFavorite: { _ in },
-                onDismiss: {},
-                backdrop: {
-                    DeskScenario(phase: .ready)
-                }
-            )))) }
-        ),
+        "journey-j2.nominal.02-switch-sheet": ScreenshotScenario(label: "J2 nominal 2/4 \u{2014} the team switcher", content: { AnyView(FoundationFixtures.switcher()) }),
+        "journey-j2.degraded.02-switch-sheet": ScreenshotScenario(label: "J2 degraded 2/4 \u{2014} the team switcher", content: { AnyView(FoundationFixtures.switcher()) }),
         "league.root": ScreenshotScenario(label: "League \u{2014} the tab root", content: { AnyView(OmenLeagueView(state: FoundationFixtures.league(degraded: false), teamControl: ("espn", "Titans of Slopsilonia"), onOpenWaivers: {})) }),
         "waivers.move": ScreenshotScenario(label: "Waivers \u{2014} the one add", content: { AnyView(NavigationStack { OmenWaiversScreen(state: FoundationFixtures.waivers(move: true), onOpenProvider: {}) }) }),
         "journey-j4.nominal.01-trade-build": ScreenshotScenario(label: "J4 nominal 1/4 \u{2014} build a deal, third team available", content: { AnyView(NavigationStack { OmenTradeBuilderScreen(state: FoundationFixtures.builder, onToggle: { _, _ in }, onRemove: { _, _ in }, onSwitchPartner: { _ in }, onOpenPlayer: { _ in }, onJudge: {}, onThreeTeam: {}) }) }),
@@ -313,6 +289,7 @@ enum ScreenshotScenarios {
             label: "About & data sources \u{2014} nflverse credit, provider data is the user's own",
             content: { AnyView(NavigationStack { OmenSourcesScreen() }) }
         ),
+        "support.contact": ScreenshotScenario(label: "Contact support", content: { AnyView(OmenReportComposerSheet(title: "Contact support", screen: .account, connectionState: OmenBetaReportConnectionState(provider: .espn, state: .connected), repository: StubBetaReportRepository(), onDismiss: {}, schema: StubBetaReportRepository.schema, topic: .question)) }),
         "account.how-calls": ScreenshotScenario(label: "How Omen makes a call", content: { AnyView(NavigationStack { OmenHowCallsScreen() }) }),
         "chrome.report-pill.composer": ScreenshotScenario(
             label: "Report pill \u{2014} the composer, showing exactly what it sends",
@@ -333,49 +310,7 @@ enum ScreenshotScenarios {
         // The REAL presented system sheet over a directory where every provider flags one league
         // `is_active` (as production does) while `active` names a single league: the capture must
         // show exactly one check mark.
-        "switcher.real-sheet": ScreenshotScenario(
-            label: "Team switcher — the system sheet, five teams over three providers, one check",
-            content: { AnyView(RealSwitcherSheetScreenshotHost()) }
-        ),
-        "switcher.team-sheet": ScreenshotScenario(
-            label: "Team switcher — pinned bar and the sheet, one favourite starred",
-            content: { AnyView(TeamSwitcherScreenshotHost()) }
-        ),
-        // §10.2 switcher. Rendered against a deterministic in-app stub rather than a live
-        // account, so the states are capturable without credentials — including the ones a
-        // real account would rarely show on demand (an unreadable directory, an empty one).
-        "league-switcher.loaded": ScreenshotScenario(
-            label: "League switcher — leagues across platforms",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .loaded)) }
-        ),
-        "league-switcher.empty": ScreenshotScenario(
-            label: "League switcher — nothing connected",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .empty)) }
-        ),
-        "league-switcher.failed": ScreenshotScenario(
-            label: "League switcher — directory unreadable",
-            content: { AnyView(LeagueSwitcherScreenshotHost(kind: .failed)) }
-        ),
-        "help-support.available": ScreenshotScenario(
-            label: "Help + Support — available",
-            content: { AnyView(OmenHelpSupportView(contextDescription: "Need help with your current Omen flow? Start with a topic below.")) }
-        ),
-        "help-support.no-account": ScreenshotScenario(
-            label: "Help + Support — no account",
-            content: { AnyView(OmenHelpSupportView(state: .noAccount)) }
-        ),
-        "help-support.offline": ScreenshotScenario(
-            label: "Help + Support — offline",
-            content: { AnyView(OmenHelpSupportView(state: .offline)) }
-        ),
-        "help-support.submission-unavailable": ScreenshotScenario(
-            label: "Help + Support — feedback unavailable",
-            content: { AnyView(OmenHelpSupportView(state: .submissionUnavailable)) }
-        ),
-        "help-support.provider-recovery": ScreenshotScenario(
-            label: "Help + Support — provider recovery",
-            content: { AnyView(OmenHelpSupportView(state: .providerRecovery)) }
-        ),
+        "switcher.sheet": ScreenshotScenario(label: "Team switcher \u{2014} every team, one checked, one signed out", content: { AnyView(FoundationFixtures.switcher()) }),
         // The retired Command screen carried six Waiver Watch states. The current v2 wire
         // contract has three different, server-backed meanings: confirmed opportunity,
         // no credible move, and waiver-system not determined. Only `no-credible-move` is the
@@ -1010,234 +945,6 @@ private enum J3ScreenshotFixtures {
     }
 }
 
-/// Screenshot host for the §10.2 switcher. The sheet itself takes a view model, so this
-/// supplies one backed by `StubLeagueDirectoryRepository` and renders the sheet's body
-/// inline rather than as a presented sheet — a modal presentation does not appear in a
-/// `simctl io screenshot` of the host window.
-struct LeagueSwitcherScreenshotHost: View {
-    enum Kind { case loaded, empty, failed }
-    let kind: Kind
-
-    @StateObject private var viewModel: LeagueSwitcherViewModel
-
-    init(kind: Kind) {
-        self.kind = kind
-        let result: Result<LeagueDirectory, OmenApiError>
-        switch kind {
-        case .loaded: result = .success(LeagueSwitcherScreenshotHost.sampleDirectory())
-        case .empty: result = .success(LeagueSwitcherScreenshotHost.emptyDirectory())
-        case .failed: result = .failure(.network)
-        }
-        _viewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
-            repository: StubLeagueDirectoryRepository(directory: result),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            )
-        ))
-    }
-
-    var body: some View {
-        OmenLeagueSwitcherSheet(
-            viewModel: viewModel,
-            onSelected: { _ in },
-            onConnectAnother: {},
-            onManageConnections: {},
-            onDismiss: {}
-        )
-    }
-
-    private static func decode(_ json: String) -> LeagueDirectory {
-        // Force-unwrapped deliberately: this is screenshot-only fixture data that ships with
-        // the app, and a malformed fixture should fail loudly in a capture run rather than
-        // render an empty screen that looks like a real empty state.
-        try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
-    }
-
-    /// Shared with `TeamSwitcherScreenshotHost` so both switcher captures describe the
-    /// same user rather than drifting into two different fixture worlds.
-    static func screenshotDirectory() -> LeagueDirectory { sampleDirectory() }
-
-    private static func sampleDirectory() -> LeagueDirectory {
-        decode("""
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":{"platform":"sleeper","league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans"},
-         "platforms":[
-          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"L-alpha","league_name":"Dynasty Dogs","season":2026,"scoring_format":"half_ppr","team_id":"3","team_name":"Justin Titans","is_active":true},
-            {"league_id":"L-fam","league_name":"Family League","season":2026,"scoring_format":"ppr","team_id":"5","team_name":"Titans Too","is_active":false}]},
-          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":"ESPN does not expose a league list to Omen, so only the connected league is shown.","leagues":[
-            {"league_id":"884411","league_name":null,"season":2026,"scoring_format":null,"team_id":"9","team_name":"Sunday Scaries","is_active":false}]},
-          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
-        """)
-    }
-
-    private static func emptyDirectory() -> LeagueDirectory {
-        decode("""
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":null,
-         "platforms":[
-          {"platform":"sleeper","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
-          {"platform":"espn","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]},
-          {"platform":"yahoo","connection_state":"not_connected","discovery":"unavailable","notice":null,"leagues":[]}]}
-        """)
-    }
-}
-
-/// Presents the production `OmenTeamPicker` sheet, not an inline imitation of it.
-struct RealSwitcherSheetScreenshotHost: View {
-    @StateObject private var viewModel: LeagueCarouselViewModel
-    @State private var presented = true
-
-    init() {
-        let json = """
-        {"contract_version":"league-directory.v1","season":2026,"selection_persistence":"provider_binding_only",
-         "active":{"platform":"yahoo","league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out"},
-         "platforms":[
-          {"platform":"espn","connection_state":"connected","discovery":"bound_only","notice":null,"leagues":[
-            {"league_id":"E1","league_name":"EB Football","season":2026,"team_id":"8","team_name":"Titans of Slopsilonia","is_active":true},
-            {"league_id":"E2","league_name":"Fantasy Madness","season":2026,"team_id":"3","team_name":"Davante\u{2019}s Inferno","is_active":false},
-            {"league_id":"884411","league_name":null,"season":2026,"team_id":"9","team_name":null,"is_active":false}]},
-          {"platform":"sleeper","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"S1","league_name":"Omen App Data","season":2026,"team_id":"1","team_name":"Hall Pass Heroes","is_active":true}]},
-          {"platform":"yahoo","connection_state":"connected","discovery":"full","notice":null,"leagues":[
-            {"league_id":"Y1","league_name":"Puk Around","season":2026,"team_id":"2","team_name":"Puk Around & Find Out","is_active":true}]}]}
-        """
-        let directory = try! JSONDecoder().decode(LeagueDirectory.self, from: Data(json.utf8))
-        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
-            directoryRepository: StubLeagueDirectoryRepository(directory: .success(directory)),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            ),
-            preferences: InMemoryLeagueSwitcherPreferences(
-                favorites: ["screenshot": LeagueFavorites(ordered: ["espn:E1"])]
-            )
-        ))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step16) {
-            OmenTeamPicker(
-                viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {},
-                externalPresentation: $presented
-            )
-            .padding(.horizontal, OmenSpacing.step16)
-            Text("Desk").omenTextStyle(OmenTypography.h2).foregroundStyle(OmenColor.textPrimary)
-                .padding(.horizontal, OmenSpacing.step16)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(OmenColor.bg)
-        .task { await viewModel.load(userID: "screenshot") }
-    }
-}
-
-/// Screenshot host for the 2026-09-05 team switcher: the pinned context bar and the sheet's
-/// body, rendered together against one deterministic directory.
-///
-/// Both are shown inline. A presented `.sheet` does not appear in a `simctl io screenshot` of
-/// the host window, and the bar is the half where the shipped defect lived — a scroll that ran
-/// off the right edge with no pinned control — so a capture that showed only the sheet would
-/// miss exactly what this change fixes.
-///
-/// One favourite is pre-seeded through the injected preferences store, because the ordering
-/// rule and the platinum star are the two things a reviewer needs to *see* rather than read.
-struct TeamSwitcherScreenshotHost: View {
-    @StateObject private var viewModel: LeagueCarouselViewModel
-
-    init() {
-        let preferences = InMemoryLeagueSwitcherPreferences(
-            // Sunday Scaries is the ESPN team and third in the server's order. Starring it
-            // proves the sort actually moved it, which a favourite that was already first
-            // could not.
-            favorites: ["screenshot": LeagueFavorites(ordered: ["espn:884411"])]
-        )
-        _viewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
-            directoryRepository: StubLeagueDirectoryRepository(
-                directory: .success(LeagueSwitcherScreenshotHost.screenshotDirectory())
-            ),
-            leagueRepository: StubLeagueRepository(result: .failure(.network)),
-            sessionManager: SessionManager(
-                store: InMemorySecureSessionStore(initial: Session(
-                    userID: "screenshot", accessToken: "t", refreshToken: "r", expiresAtEpochSeconds: 9_999_999_999
-                )),
-                nowEpochSeconds: { 0 }
-            ),
-            preferences: preferences
-        ))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step24) {
-            OmenTeamPicker(viewModel: viewModel, userID: "screenshot", onContextChanged: { _ in }, onAddLeague: {})
-                .padding(.horizontal, OmenSpacing.step16)
-            OmenTeamSwitcherSheet(
-                teams: teams,
-                platformFilters: filters,
-                selectedFilter: viewModel.selectedPlatform,
-                notice: nil,
-                // Live, not inert: the capture doubles as the manual check that a tap on the
-                // star toggles without switching, and a tap on the row switches.
-                onSelectFilter: { viewModel.selectedPlatform = $0 },
-                onSelectTeam: { team in
-                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
-                    Task { _ = await viewModel.commit(page) }
-                },
-                onToggleFavorite: { team in
-                    guard let page = viewModel.allPages.first(where: { $0.id == team.id }) else { return }
-                    viewModel.toggleFavorite(page)
-                },
-                onAddLeague: {}
-            )
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(OmenColor.bg)
-        .task { await viewModel.load(userID: "screenshot") }
-    }
-
-    private var teams: [OmenSwitcherTeam] {
-        viewModel.pages.map { page in
-            OmenSwitcherTeam(
-                id: page.id,
-                platform: page.platform == "espn" ? .espn : (page.platform == "yahoo" ? .yahoo : .sleeper),
-                teamName: page.teamName?.isEmpty == false ? page.teamName! : page.displayLeagueName,
-                subtitle: Self.subtitle(page),
-                isActive: viewModel.isCurrent(page),
-                isFavorite: viewModel.isFavorite(page),
-                isCommitting: false
-            )
-        }
-    }
-
-    /// Mirrors `OmenTeamPicker.subtitle(_:)`. Kept in step deliberately: a capture that showed
-    /// a different second line than the real screen would be a screenshot of something that does
-    /// not exist.
-    private static func subtitle(_ page: LeagueCarouselViewModel.Page) -> String {
-        let provider = platformDisplayName(page.platform)
-        guard page.teamName?.isEmpty == false else { return OmenTeamPicker.unnamedTeamSubtitle(provider: provider) }
-        guard page.leagueName?.isEmpty == false else { return provider }
-        return "\(provider) · \(page.displayLeagueName)"
-    }
-
-    private var filters: [OmenSwitcherPlatformFilter] {
-        [OmenSwitcherPlatformFilter(id: LeagueCarouselViewModel.allPlatforms, label: "All", tone: .omen, count: viewModel.allPages.count)]
-            + viewModel.availablePlatforms.map { platform in
-                OmenSwitcherPlatformFilter(
-                    id: platform,
-                    label: platformDisplayName(platform),
-                    tone: platform == "espn" ? .espn : (platform == "yahoo" ? .yahoo : .sleeper),
-                    count: viewModel.allPages.filter { $0.platform == platform }.count
-                )
-            }
-    }
-}
-
 /// Owns the carousel view model for the lifetime of the capture and kicks off its load.
 private struct CarouselScenarioHost: View {
     var scenarioKey: String
@@ -1401,46 +1108,6 @@ enum J2ScreenshotFixtures {
             text: "League standings were read and did not change this week\u{2019}s call.",
             emphasis: nil
         )
-    )
-
-    // MARK: SwitchSheet
-
-    private static let switchFilters = [
-        OmenSwitchFilter(id: "all", label: "All"),
-        OmenSwitchFilter(id: "espn", label: "ESPN"),
-        OmenSwitchFilter(id: "yahoo", label: "Yahoo"),
-        OmenSwitchFilter(id: "sleeper", label: "Sleeper")
-    ]
-
-    /// Favourites first, then everything else — in the order the directory returned them.
-    /// `orderPlatformsByFollowCount` is the single authority and clients must not re-sort, so
-    /// these arrays are written in final order and the screen never touches them.
-    private static let switchGroups = [
-        OmenSwitchGroup(title: "Favourites", rows: [
-            OmenSwitchRow(id: "tto", crest: "TTO", teamName: "Titans of Slopsilonia", subtitle: "ESPN", isFavorite: true, isActive: true),
-            OmenSwitchRow(id: "dsi", crest: "DSI", teamName: "Davante\u{2019}s Inferno", subtitle: "ESPN · EB Football", isFavorite: true, isActive: false)
-        ]),
-        OmenSwitchGroup(title: "All teams", rows: [
-            OmenSwitchRow(id: "pak", crest: "PAF", teamName: "Puk Around & Find Out", subtitle: "ESPN · Fantasy Madness", isFavorite: false, isActive: false),
-            // The artboard's own honest row: a league the provider named and a team it did not.
-            // "unnamed team" is the fallback and it is the caller's to decide, never the row's.
-            OmenSwitchRow(id: "dar", crest: "DAR", teamName: "League 884411", subtitle: "ESPN team \u{00B7} name not shared", isFavorite: false, isActive: false)
-        ])
-    ]
-
-    static let nominalSwitchSheet = OmenSwitchSheetState(
-        filters: switchFilters,
-        selectedFilterID: "espn",
-        groups: switchGroups
-    )
-
-    static let degradedSwitchSheet = OmenSwitchSheetState(
-        filters: switchFilters,
-        selectedFilterID: "espn",
-        groups: switchGroups,
-        // Named rather than silently absent. A user whose Yahoo teams vanished from this list
-        // would conclude they had lost them.
-        notice: "Yahoo did not answer, so any Yahoo teams are missing from this list. Your ESPN teams are all here."
     )
 
     // MARK: SwitchLoading

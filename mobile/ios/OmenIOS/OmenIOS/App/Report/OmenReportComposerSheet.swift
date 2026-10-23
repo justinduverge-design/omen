@@ -39,24 +39,22 @@ struct OmenReportComposerSheet: View {
         case done(OmenBetaReportOutcome)
     }
 
-    /// Everything the sheet needs that it must not read for itself. The screen a user is
-    /// reporting on and their provider state belong to the caller — a composer that resolved
-    /// its own "current screen" would name the composer.
+    /// "Report a problem" as a sheet; "Contact support" as the Support page, which opens on Question.
+    var title = "Report a problem"
     let screen: OmenBetaReportScreen
     let connectionState: OmenBetaReportConnectionState
     var recentErrorCodes: [String] = []
     let repository: OmenBetaReportRepository
-    /// Nil in demo mode and in screenshot scenarios, where there is no session. The send button
-    /// is disabled and says why rather than failing on tap.
+    /// Nil in demo mode and screenshots: Send stays off and says why.
     var accessToken: String?
     var onDismiss: () -> Void
 
-    /// Screenshot scenarios mount the sheet directly in a state. Production starts `.composing`.
+    /// Screenshot scenarios mount the composer in a state. Production starts `.composing`.
     @State var phase: Phase = .composing
     @State var schema: OmenBetaReportSchema?
+    @State var topic: OmenBetaReportTopic = .bug
     @State private var note: String = ""
     @State private var disclosureAccepted: Bool = false
-    @State private var topic: OmenBetaReportTopic = .bug
 
     private var report: OmenBetaReport {
         OmenBetaReport(
@@ -74,188 +72,144 @@ struct OmenReportComposerSheet: View {
     }
 
     var body: some View {
-        OmenModalSheet(title: "Report a problem") {
-            // Scrolls, and has to. The composer is the disclosure plus six itemised fields plus
-            // a note field plus three controls; on a 390x844 frame the accept control and the
-            // Send button both start below the fold. The first build did not scroll and
-            // `ChromeInteractionUITests` failed with "the disclosure acceptance control is
-            // missing" — which was true: it was rendered, clipped, and unreachable. A consent
-            // control a user cannot reach is worse than one that is absent.
-            ScrollView {
-                VStack(alignment: .leading, spacing: OmenSpacing.step20) {
-                    switch phase {
-                    case .composing, .sending:
-                        composer
-                    case .done(let outcome):
-                        result(outcome)
-                    }
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: OmenSpacing.step16) {
+                OmenSheetHeader(title: title, closeTitle: phase.isDone ? "Done" : "Cancel", onClose: onDismiss)
+                switch phase {
+                case .composing, .sending: composer
+                case .done(let outcome): result(outcome)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .padding(.horizontal, OmenSpacing.step20)
+            .padding(.top, OmenSpacing.step20)
+            .padding(.bottom, OmenSpacing.step24)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .background(OmenColor.surface1.ignoresSafeArea())
         .accessibilityIdentifier("chrome.report-composer")
-        .task {
-            // `CONTRACTS.md`: schema first, then POST. The read is what supplies the disclosure
-            // the user accepts, so it is not an optimisation that can be skipped.
-            if schema == nil { schema = await repository.schema() }
-        }
+        .omenScreenReady("report")
+        // Schema first, then POST: the read supplies the disclosure the user accepts.
+        .task { if schema == nil { schema = await repository.schema() } }
     }
 
-    // MARK: - Composing
-
     @ViewBuilder private var composer: some View {
-        Text("Omen sends the facts below and nothing else. It never sends your league, your roster, a screenshot, or anything you signed in with.")
-            .omenTextStyle(OmenTypography.body)
-            .foregroundStyle(OmenColor.textSecondary)
+        Text("A real person reads every one. Replies come to your account email.")
+            .omenTextStyle(OmenTypography.body).foregroundStyle(OmenColor.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
 
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            Text("About")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            Picker("About", selection: $topic) {
-                ForEach(OmenBetaReportTopic.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.menu)
-            .tint(OmenColor.accentHover)
-            .disabled(phase != .composing)
-        }
+        FlowChips(topics: OmenBetaReportTopic.allCases, selected: topic, enabled: phase == .composing) { topic = $0 }
 
-        OmenFormField(label: "What happened?") {
-            OmenTextField(
-                value: $note,
-                label: "What happened?",
-                placeholder: "What you did, and what Omen did.",
-                size: .lg,
-                enabled: phase == .composing
-            )
-        }
+        OmenTextField(value: $note, label: "What happened?", placeholder: "What you did, and what Omen did.", size: .lg, enabled: phase == .composing)
 
-        disclosedFields
-
+        // The payload itemised from the struct that gets encoded, so this sentence and the request cannot disagree.
+        Text("Sent with it: " + report.disclosedLines.map { "\($0.field.lowercased()) \($0.value)" }.joined(separator: ", ") + ".")
+            .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("chrome.report-composer.disclosed-fields")
         if let schema {
-            // The server's sentence, rendered as the server's sentence. It is above the accept
-            // control because consent to a disclosure you scroll past afterwards is not consent.
             Text(schema.disclosure)
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textTertiary)
+                .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("chrome.report-composer.disclosure")
-
             if !schema.screenshotsSupported {
-                // Stated, not silently absent. "Attach a screenshot" is the first thing a beta
-                // tester looks for, and its absence reads as a missing feature rather than a
-                // deliberate one. `beta-report.v1` says `screenshots_supported: false` and the
-                // server rejects attachments outright.
                 Text("Screenshots can\u{2019}t be attached. Describe what you saw instead.")
-                    .omenTextStyle(OmenTypography.bodySmall)
-                    .foregroundStyle(OmenColor.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
             }
         }
 
-        OmenCanvasTextAction(
-            title: disclosureAccepted ? "\u{2713}  I understand what this sends" : "I understand what this sends",
-            action: { disclosureAccepted.toggle() },
-            color: disclosureAccepted ? OmenColor.accent : OmenColor.textSecondary,
-            enabled: phase == .composing
-        )
+        OmenPressable(action: { disclosureAccepted.toggle() }) {
+            HStack(spacing: OmenSpacing.step10) {
+                Image(systemName: disclosureAccepted ? "checkmark.square.fill" : "square")
+                    .font(.system(size: 20)).foregroundStyle(disclosureAccepted ? OmenColor.accentHover : OmenColor.textTertiary)
+                Text("I understand what this sends").omenTextStyle(OmenTypography.rowTitle).foregroundStyle(OmenColor.textPrimary)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .disabled(phase != .composing)
         .accessibilityIdentifier("chrome.report-composer.accept")
         .accessibilityAddTraits(disclosureAccepted ? .isSelected : [])
 
         OmenButton(
-            title: "Send report",
+            title: "Send",
             action: { Task { await send() } },
             variant: .primary,
             size: .lg,
-            // `disclosure_accepted: true` is a server requirement, so an unaccepted report is
-            // not a report. Disabled rather than hidden: the user should be able to see what
-            // they have not done yet.
+            // The server requires disclosure_accepted, so an unaccepted report is not a report.
             enabled: accessToken != nil && report.isSendable && phase == .composing,
-            loading: phase == .sending
+            loading: phase == .sending,
+            fullWidth: true
         )
         .accessibilityIdentifier("chrome.report-composer.send")
-
         if accessToken == nil {
-            Text("Sign in to send a report.")
-                .omenTextStyle(OmenTypography.bodySmall)
-                .foregroundStyle(OmenColor.textTertiary)
+            Text("Sign in to send a report.").omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textTertiary)
         }
-
-        OmenButton(title: "Cancel", action: onDismiss, variant: .link, size: .sm)
     }
-
-    /// The payload, itemised. Rendered from `report.disclosedLines`, which is derived from the
-    /// struct that gets encoded — so this list and the request cannot disagree.
-    private var disclosedFields: some View {
-        VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-            Text("What this sends")
-                .omenTextStyle(OmenTypography.micro)
-                .foregroundStyle(OmenColor.textTertiary)
-            ForEach(report.disclosedLines, id: \.field) { line in
-                HStack(alignment: .firstTextBaseline, spacing: OmenSpacing.step8) {
-                    Text(line.field)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textTertiary)
-                        .frame(width: 128, alignment: .leading)
-                    Text(line.value)
-                        .omenTextStyle(OmenTypography.bodySmall)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .accessibilityElement(children: .combine)
-            }
-        }
-        .padding(OmenSpacing.step12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OmenColor.surface2)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .accessibilityIdentifier("chrome.report-composer.disclosed-fields")
-    }
-
-    // MARK: - Result
 
     @ViewBuilder private func result(_ outcome: OmenBetaReportOutcome) -> some View {
         switch outcome {
         case .received(let id):
-            // Not an `OmenStateSurface`: its kinds are `empty / loading / error / disconnected
-            // / stale / mock` and none of them is "this worked". Inventing a `success` kind to
-            // reuse the component would put a seventh state into a primitive for one call site.
-            OmenCard(variant: .outlined, tone: .omen) {
-                VStack(alignment: .leading, spacing: OmenSpacing.step8) {
-                    Text("Received")
-                        .omenTextStyle(OmenTypography.h3)
-                        .foregroundStyle(OmenColor.textPrimary)
-                    // The server's own word, and the id it issued. No promise about what
-                    // happens next: `beta-report.v1` says a report was received and says
-                    // nothing about it being read, and neither does this.
-                    Text(id.isEmpty
-                         ? "A person reads every report. Any reply comes to your account email."
-                         : "A person reads every report. Any reply comes to your account email. Reference \(id).")
-                        .omenTextStyle(OmenTypography.body)
-                        .foregroundStyle(OmenColor.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            // The server's word and the id it issued; no promise about when it is read.
+            OmenStateBlock(
+                kind: .hold,
+                title: "Received",
+                message: "A person reads every report. Any reply comes to your account email." + (id.isEmpty ? "" : " Reference \(id).")
+            )
         case .notSaved:
-            OmenStateSurface(
-                kind: .error,
+            OmenStateBlock(
+                kind: .failed,
                 title: "Your report was not saved",
-                // The storage gate, in the only words that are true: nothing was kept. The
-                // advice is the useful half — a user told this can put the detail somewhere
-                // that survives, which is exactly what they cannot do if we say "sent".
                 message: "Omen could not store it, so nothing was kept. Nothing about your league left the device. Write down what happened if you want to send it again later."
             )
         case .rejected(let message), .failed(let message):
-            OmenStateSurface(kind: .error, title: "Not sent", message: message)
+            OmenStateBlock(kind: .failed, title: "Not sent", message: message)
         }
-        OmenButton(title: "Done", action: onDismiss, variant: .secondary, size: .lg)
     }
 
     private func send() async {
         guard let accessToken else { return }
         phase = .sending
         phase = .done(await repository.send(report, accessToken: accessToken))
+    }
+}
+
+private extension OmenReportComposerSheet.Phase {
+    var isDone: Bool { if case .done = self { true } else { false } }
+}
+
+/// The four topics as capsules that wrap onto a second line.
+private struct FlowChips: View {
+    let topics: [OmenBetaReportTopic]
+    let selected: OmenBetaReportTopic
+    let enabled: Bool
+    let onSelect: (OmenBetaReportTopic) -> Void
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: OmenSpacing.step8) { chips(topics) }
+            VStack(alignment: .leading, spacing: OmenSpacing.step8) {
+                HStack(spacing: OmenSpacing.step8) { chips(Array(topics.prefix(2))) }
+                HStack(spacing: OmenSpacing.step8) { chips(Array(topics.dropFirst(2))) }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("About")
+    }
+
+    private func chips(_ list: [OmenBetaReportTopic]) -> some View {
+        ForEach(list) { topic in
+            let on = topic == selected
+            OmenPressable(action: { onSelect(topic) }) {
+                Text(topic.title)
+                    .omenTextStyle(OmenTypography.cardLead)
+                    .foregroundStyle(on ? OmenColor.textOnAccent : OmenColor.textSecondary)
+                    .padding(.horizontal, OmenSpacing.step14)
+                    .frame(minHeight: 44)
+                    .background(on ? OmenColor.accent : OmenColor.surface2, in: Capsule())
+                    .fixedSize()
+            }
+            .disabled(!enabled)
+            .accessibilityAddTraits(on ? .isSelected : [])
+        }
     }
 }

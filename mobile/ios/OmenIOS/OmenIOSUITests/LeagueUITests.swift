@@ -64,8 +64,27 @@ final class LeagueUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["The week hasn\u{2019}t been played yet"].waitForExistence(timeout: 10))
     }
 
+    func testTheSwitcherChecksTheCurrentTeamAndSendsASignedOutOneToConnect() {
+        let app = launch("switcher.sheet")
+        let current = app.buttons.containing(NSPredicate(format: "label BEGINSWITH %@", "Titans of Slopsilonia")).firstMatch
+        assertHittable(current, "the current team")
+        XCTAssertTrue(current.label.hasSuffix("current team"))
+        let signedOut = app.buttons.containing(NSPredicate(format: "label BEGINSWITH %@", "Gridiron Gumbo")).firstMatch
+        XCTAssertTrue(signedOut.label.contains("sign in again"))
+        assertHittable(app.buttons["Connect a league"], "connect")
+        assertHittable(app.buttons["Account"], "account")
+        assertHittable(app.buttons["Done"], "done")
+    }
+
+    func testContactSupportOpensOnQuestionAndCannotSendUntilAccepted() {
+        let app = launch("support.contact")
+        XCTAssertTrue(app.staticTexts["Contact support"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Question"].isSelected)
+        XCTAssertFalse(app.buttons["chrome.report-composer.send"].isEnabled)
+    }
+
     func testLeagueScreensPassTheAccessibilityAudit() throws {
-        for scenario in ["league.root", "journey-j5.degraded.01-league-degraded", "waivers.move", "journey-j5.nominal.03-waiver-no-move", "ledger.root", "journey-j6.degraded.01-ledger", "ledger.receipt", "journey-j6.degraded.02-ledger-detail"] {
+        for scenario in ["league.root", "journey-j5.degraded.01-league-degraded", "waivers.move", "journey-j5.nominal.03-waiver-no-move", "ledger.root", "journey-j6.degraded.01-ledger", "ledger.receipt", "journey-j6.degraded.02-ledger-detail", "switcher.sheet", "support.contact"] {
             let app = launch(scenario)
             try app.performAccessibilityAudit(for: [.dynamicType, .sufficientElementDescription, .hitRegion, .contrast]) { issue in
                 print("AUDIT \(scenario): \(issue.auditType.rawValue) \(issue.compactDescription) :: \(issue.element?.debugDescription.prefix(200) ?? "nil")")

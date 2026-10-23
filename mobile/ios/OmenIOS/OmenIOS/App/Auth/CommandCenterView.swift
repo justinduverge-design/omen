@@ -16,15 +16,12 @@ struct CommandCenterView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var commandCenterViewModel: CommandCenterViewModel
     @StateObject private var omenDecisionViewModel: OmenDecisionViewModel
-    @StateObject private var leagueSwitcherViewModel: LeagueSwitcherViewModel
     /// The Command Center carousel. Its own view model rather than the switcher's: the two
     /// read the same route for different reasons, cache different things, and must fail
     /// independently — the same reasoning already recorded for `leagueDirectoryRepository`.
     @StateObject private var leagueCarouselViewModel: LeagueCarouselViewModel
     private let connectRepository: ConnectRepository
-    /// Held as well as consumed into `leagueSwitcherViewModel`: Account's connected-leagues
-    /// section needs the same seam, and it owns its own view model rather than sharing the
-    /// switcher's — the two read the same route for different reasons and fail independently.
+    /// Account's league list reads the directory through its own view model, apart from the carousel.
     private let leagueDirectoryRepository: LeagueDirectoryRepository
     @Environment(\.omenEnvironment) private var environment
     /// The command center owns one modal presenter. Independent sheet booleans can all become
@@ -83,10 +80,6 @@ struct CommandCenterView: View {
         ))
         _leagueTradeTargetsViewModel = StateObject(wrappedValue: LeagueTradeTargetsViewModel(
             repository: tradeFindRepository,
-            sessionManager: sessionManager
-        ))
-        _leagueSwitcherViewModel = StateObject(wrappedValue: LeagueSwitcherViewModel(
-            repository: leagueDirectoryRepository,
             sessionManager: sessionManager
         ))
         _leagueCarouselViewModel = StateObject(wrappedValue: LeagueCarouselViewModel(
@@ -478,7 +471,16 @@ struct CommandCenterView: View {
             case .howCalls: OmenHowCallsScreen()
             }
         case .support:
-            OmenHelpSupportView()
+            OmenReportComposerSheet(
+                title: "Contact support",
+                screen: .account,
+                connectionState: reportConnectionState,
+                repository: URLSessionBetaReportRepository(apiBaseURL: environment.apiBaseURL),
+                accessToken: sessionManager.currentSession?.accessToken,
+                onDismiss: { if !deskPath.isEmpty { deskPath.removeLast() } },
+                topic: .question
+            )
+            .toolbar(.hidden, for: .navigationBar)
         case .receipt(let id):
             if let entry = commandCenterViewModel.ledgerState.entries.first(where: { $0.id == id }) {
                 LedgerReceiptView(entry: entry, load: { await commandCenterViewModel.loadReceipt(id: $0) })
@@ -782,28 +784,24 @@ struct CommandCenterView: View {
     /// three off-tab views winning SwiftUI's presentation race. That is the device-visible
     /// "nothing happened until I tapped something else" failure this ownership removes.
     private var shellSwitcherSheet: some View {
-        OmenTeamPicker(
-            viewModel: leagueCarouselViewModel,
-            userID: userID,
-            onContextChanged: { _ in
-                Task { await reloadAllAfterContextChange() }
+        OmenTeamSwitcherSheet(
+            teams: deskTeams,
+            selectedID: deskSelection.wrappedValue,
+            committingID: leagueCarouselViewModel.committingPageID,
+            error: leagueCarouselViewModel.selectionError.map { "That switch didn\u{2019}t take. " + commandCenterFailureMessage($0) },
+            onSelect: { team in
+                guard let page = leagueCarouselViewModel.allPages.first(where: { $0.id == team.id }) else { return }
+                Task {
+                    if await leagueCarouselViewModel.commit(page) != nil {
+                        presentedSheet = nil
+                        await reloadAllAfterContextChange()
+                    }
+                }
             },
-            onAddLeague: { presentSheet(.connect) },
-            externalPresentation: switcherPresentedBinding
-        )
-        .switcherSheet
-    }
-
-    private var switcherPresentedBinding: Binding<Bool> {
-        Binding(
-            get: {
-                if case .switcher = presentedSheet { return true }
-                return false
-            },
-            set: { isPresented in
-                if isPresented { presentSheet(.switcher) }
-                else if case .switcher = presentedSheet { presentedSheet = nil }
-            }
+            onReconnect: { _ in presentedSheet = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) } },
+            onConnect: { presentedSheet = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { presentSheet(.connect) } },
+            onAccount: { presentedSheet = nil; selectedTab = .command; deskPath = [.account] },
+            onDone: { presentedSheet = nil }
         )
     }
 

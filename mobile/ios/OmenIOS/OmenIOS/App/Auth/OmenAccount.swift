@@ -276,6 +276,20 @@ struct OmenPrivacyScreen: View {
     }
 }
 
+/// The Yahoo API Access and Use Agreement (executed 2026-08-20) requires attribution inside the app, in an
+/// About or similar section, wherever Yahoo Fantasy Information can appear. Only `.onHold` means no Yahoo data
+/// exists anywhere in the app, so only `.onHold` hides the line.
+let omenYahooAttributionText = "Fantasy data provided by Yahoo Fantasy."
+
+var omenShowsYahooAttribution: Bool {
+    omenYahooAttributionApplies(to: ConnectProvider.yahoo.availability)
+}
+
+func omenYahooAttributionApplies(to availability: ConnectAvailability) -> Bool {
+    if case .onHold = availability { return false }
+    return true
+}
+
 /// The nflverse credit is a licence term (CC BY 4.0: attribution, licence link, note of changes); a test pins it.
 enum OmenDataSources {
     static let nflverseCredit = "Player and usage statistics: nflverse data, CC BY 4.0."

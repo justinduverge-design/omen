@@ -62,6 +62,16 @@ enum FoundationFixtures {
         )
     }
 
+    /// Frame Sheets, "Your teams": three teams, the first checked, one signed out of Yahoo.
+    static func switcher() -> some View {
+        let teams = [
+            OmenTeamCardModel(id: "e", platform: "espn", leagueName: "Slops Saloon", teamName: "Titans of Slopsilonia", record: "5\u{2013}2", score: 64.8, opponentScore: 51.2, status: .live(nil)),
+            OmenTeamCardModel(id: "s", platform: "sleeper", leagueName: "Dynasty Degens", teamName: "Slopsilonia Dynasty", record: "4\u{2013}3", score: 88.1, opponentScore: 92.4, status: .final),
+            OmenTeamCardModel(id: "y", platform: "yahoo", leagueName: "Work League", teamName: "Gridiron Gumbo", record: "3\u{2013}4", status: .reconnect),
+        ]
+        return OmenTeamSwitcherSheet(teams: teams, selectedID: "e", onSelect: { _ in }, onReconnect: { _ in }, onConnect: {}, onAccount: {}, onDone: {})
+    }
+
     /// Frame Ledger: the contested record, the weeks as bars, every call. `graded: false` is before any result.
     static func ledger(graded: Bool) -> OmenLedgerState {
         let entries: [OmenLedgerEntry] = [

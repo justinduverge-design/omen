@@ -155,12 +155,10 @@ final class ChromeInteractionUITests: XCTestCase {
     func testTheComposerListsExactlyWhatItSendsAndPromisesNoStorage() {
         let app = launch("chrome.report-pill.composer")
 
-        for field in ["Screen", "App", "Device", "Connection", "Recent error codes", "Your note"] {
-            XCTAssertTrue(
-                app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", field)).firstMatch
-                    .waitForExistence(timeout: 10),
-                "the composer does not list \(field) among what it sends"
-            )
+        let sent = app.staticTexts["chrome.report-composer.disclosed-fields"]
+        XCTAssertTrue(sent.waitForExistence(timeout: 10), "the composer does not say what it sends")
+        for field in ["screen", "app", "device", "connection", "recent error codes", "your note"] {
+            XCTAssertTrue(sent.label.contains(field), "the composer does not list \(field) among what it sends")
         }
 
         // `beta-report.v1` says `screenshots_supported: false`. Stated, not silently absent:

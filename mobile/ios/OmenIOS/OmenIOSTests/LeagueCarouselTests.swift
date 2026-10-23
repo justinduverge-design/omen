@@ -459,11 +459,6 @@ final class LeagueCarouselTests: XCTestCase {
 
     // MARK: - Walk-1: honest wording for unnamed ESPN teams
 
-    func testUnnamedTeamSubtitleIsHonest() {
-        XCTAssertEqual(OmenTeamPicker.unnamedTeamSubtitle(provider: "ESPN"), "ESPN team \u{00B7} name not shared")
-        XCTAssertFalse(OmenTeamPicker.unnamedTeamSubtitle(provider: "ESPN").contains("unnamed"))
-    }
-
     // MARK: - Walk-1: nflverse credit
 
     func testDataSourcesCarryTheNflverseCreditAndLink() {

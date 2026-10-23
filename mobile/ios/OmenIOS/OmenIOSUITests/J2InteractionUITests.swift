@@ -81,39 +81,6 @@ final class J2InteractionUITests: XCTestCase {
 
     // MARK: - The switcher sheet
 
-    func testTheSwitcherSheetOffersEveryProviderSegment() {
-        let app = launch("journey-j2.nominal.02-switch-sheet")
-        for provider in ["All", "ESPN", "Yahoo", "Sleeper"] {
-            assertTappable(app.buttons[provider], "\(provider) segment")
-        }
-        assertTapDoesNotBreak(app.buttons["Sleeper"], app)
-    }
-
-    /// The star and the row are **two targets**, and this is the assertion that keeps them that
-    /// way. Collapsing them into one row button would make curating favourites impossible
-    /// without also switching the active league four times.
-    func testEveryTeamRowHasASeparateStarAndASeparateSwitch() {
-        let app = launch("journey-j2.nominal.02-switch-sheet")
-        assertTappable(app.buttons["Unstar Titans of Slopsilonia"], "star on the active team")
-        assertTappable(app.buttons["Star Puk Around & Find Out"], "star on an unstarred team")
-        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Davante")).firstMatch
-        assertTappable(row, "a switchable team row")
-        // The star, not the row: tapping the row switches team and dismisses the sheet, which
-        // would take the rest of this screen's tree with it.
-        assertTapDoesNotBreak(app.buttons["Star Puk Around & Find Out"], app)
-    }
-
-    /// A provider the directory could not list is **named**, not quietly missing.
-    ///
-    /// `capability-expression-v1.md` acceptance rule 4 requires it, and the failure it prevents
-    /// is specific: a user whose Yahoo teams silently vanished from this sheet concludes they
-    /// have lost them.
-    func testTheDegradedSwitcherNamesTheProviderItCouldNotList() {
-        let app = launch("journey-j2.degraded.02-switch-sheet")
-        let notice = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Yahoo did not answer")).firstMatch
-        XCTAssertTrue(notice.waitForExistence(timeout: 10), "the unread provider is not named in the sheet")
-    }
-
     // MARK: - The degraded pass says what it could not read
 
     // MARK: - D11, measured
