@@ -43,6 +43,8 @@ data class OmenColorScheme(
      * (7.94:1 on `surface1`), which already cleared AA. iOS mirror: `OmenColor.omenChip`.
      */
     val omenChip: Color,
+    /** Destructive controls. A fixed dark red vanishes on the dark surface. iOS mirror: `OmenColor.danger`. */
+    val danger: Color,
     val umber: Color,
     /** Derived from [accent]; solid stroke color for the focus-ring outline (registry §2.2, §4). */
     val focusRing: Color,
@@ -153,6 +155,7 @@ val OmenDarkColors = OmenColorScheme(
     textOnAccent = Color(0xFF14140F),
     omen = Color(0xFF2F7D5B),
     omenChip = Color(0xFF4FAE81),
+    danger = Color(0xFFF2766B),
     umber = Color(0xFF5A3A25),
     focusRing = Color(0xFFC4933B),
     focusRingHalo = Color(0xFFC4933B).copy(alpha = 0.4f),
@@ -175,6 +178,7 @@ val OmenLightColors = OmenColorScheme(
     textOnAccent = Color(0xFFFFFFFF),
     omen = Color(0xFF1A5C3E),
     omenChip = Color(0xFF1A5C3E),
+    danger = Color(0xFFA51D1D),
     umber = Color(0xFF5A3A25),
     focusRing = Color(0xFF8A5E10),
     focusRingHalo = Color(0xFF8A5E10).copy(alpha = 0.4f),
