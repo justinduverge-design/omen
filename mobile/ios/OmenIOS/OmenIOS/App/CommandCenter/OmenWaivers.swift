@@ -51,7 +51,7 @@ extension OmenWaiversState {
         let add = summary(move?.add, id: "add")
         let drop = summary(move?.drop, id: "drop")
         let headline: String? = add.map { add in
-            drop.map { "Add \(add.name). Drop \($0.name)." } ?? "Add \(add.name)."
+            drop.map { "Add \(add.name). Drop \(Self.sentence($0.name))" } ?? "Add \(Self.sentence(add.name))"
         }
         let bid = move?.bid?.amount.map { "Bid $\(Int($0.rounded()))" }
         self.init(
@@ -75,6 +75,9 @@ extension OmenWaiversState {
 }
 
 extension OmenWaiversState {
+    /// Ends a name with one full stop: "Brian Thomas Jr." stays as it is instead of becoming "Jr..".
+    static func sentence(_ name: String) -> String { name.hasSuffix(".") ? name : name + "." }
+
     /// Only a finished read may say nothing beats the bench; an unread or unsupported wire says so instead.
     static func emptyTitle(_ state: WaiverAnalysis.State) -> String {
         switch state {

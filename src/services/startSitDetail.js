@@ -1,5 +1,7 @@
 "use strict";
 
+const { endSentence } = require("../utils/sentence");
+
 /**
  * Start/Sit detail (visual briefs §5).
  *
@@ -197,7 +199,7 @@ function buildEvidence({
     kind: "inference",
     statement:
       delta >= CLOSE_DECISION_DELTA
-        ? `The available data favors ${start.name}.`
+        ? endSentence(`The available data favors ${start.name}.`)
         : `The available data slightly favors ${start.name}, and the gap is inside normal projection variance.`,
   });
 
@@ -269,7 +271,9 @@ function buildCapabilities({ state, scoringFormat, recommendation = null }) {
       kind: hasProjectionPair ? "projection" : "limitation",
       source: "normalized_roster",
       statement: hasProjectionPair
-        ? `Omen compared the available provider projections for ${recommendation.start.name} and ${recommendation.over.name}.`
+        ? endSentence(
+            `Omen compared the available provider projections for ${recommendation.start.name} and ${recommendation.over.name}.`,
+          )
         : "Omen does not have a complete projection pair for this lineup comparison.",
     }),
     capability({

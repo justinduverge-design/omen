@@ -1,5 +1,52 @@
 "use strict";
 
+// What each Sight input means, in the words a manager uses. The app shows these under "What moved the call"; a key
+// with no entry is shown as null so the app never prints a model's internal name.
+const SIGHT_DRIVER_LABELS = Object.freeze({
+  production_ppg: "Points per game",
+  target_share: "Target share",
+  carry_share: "Carry share",
+  usage_trend: "Usage trend",
+  vacated_share: "Work left by teammates",
+  implied_team_total: "Team's expected points",
+  opponent_allowed_to_position: "Matchup vs the position",
+  wind_mph: "Wind",
+  cold: "Cold",
+  precip_in: "Rain",
+  team_elements_gap: "Weather vs team style",
+  epa_per_target: "Value per target",
+  air_yards_per_target: "Air yards per target",
+  red_zone_target_rate: "Red-zone targets",
+  catch_over_expected: "Catches over expected",
+  yac_epa_per_reception: "Yards after catch",
+  explosive_catch_rate: "Big-play catches",
+  explosive_run_rate: "Big-play runs",
+  rush_epa: "Rushing value",
+  rush_epa_per_carry: "Value per carry",
+  rush_success_rate: "Run success rate",
+  designed_rush_share: "Designed runs",
+  dropback_share: "Dropbacks",
+  epa_per_dropback: "Value per dropback",
+  cpoe: "Completion rate over expected",
+  accuracy_over_expected: "Accuracy over expected",
+  long_attempt_share: "Deep throws",
+  pass_rate: "Team pass rate",
+  sack_rate: "Sacks taken",
+  sack_avoidance_rate: "Sacks avoided",
+  turnover_rate: "Turnovers",
+  fumble_rate: "Fumbles",
+  fg_attempts_per_game: "Field-goal tries per game",
+  xp_attempts_per_game: "Extra points per game",
+  points_allowed_per_game: "Points allowed per game",
+  takeaway_rate: "Takeaways",
+  defensive_td_per_game: "Defensive touchdowns",
+  epa_allowed_per_play: "Yards and points allowed per play",
+});
+
+function sightDriverLabel(name) {
+  return SIGHT_DRIVER_LABELS[name] || null;
+}
+
 // Read Sight for app players. Input: provider refs as the app holds them (sleeper:4046, espn:4262921,
 // yahoo:470.p.30123); each resolves through the player index (football_player_ids) to one Omen player, then
 // to that player's value in the latest succeeded Sight run of the requested version. Public football facts
@@ -420,7 +467,9 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
           flex_grade: Number.isFinite(Number(c.flex_grade)) ? Math.round(Number(c.flex_grade)) : null,
           sight_points: Number.isFinite(Number(row.value)) ? Math.round(Number(row.value) * 10) / 10 : null,
           // The three inputs that moved the number most, in points; the full breakdown stays in the warehouse.
-          drivers: contributions.slice(0, 3).map((p) => ({ name: p.name, points: Math.round(p.points * 10) / 10 })),
+          drivers: contributions
+            .slice(0, 3)
+            .map((p) => ({ name: p.name, label: sightDriverLabel(p.name), points: Math.round(p.points * 10) / 10 })),
           // Sleeper's injury report (once a day). Absent means Sleeper lists no injury, not "healthy for sure".
           ...(row.injury_status
             ? {
@@ -458,4 +507,12 @@ function createWarehouseSightRepository({ query, timeoutMs = 2_000, now = () => 
   return repository;
 }
 
-module.exports = { createWarehouseSightRepository, parseRef, parseDefenseRef, hintOf, normalName };
+module.exports = {
+  SIGHT_DRIVER_LABELS,
+  sightDriverLabel,
+  createWarehouseSightRepository,
+  parseRef,
+  parseDefenseRef,
+  hintOf,
+  normalName,
+};

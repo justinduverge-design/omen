@@ -309,14 +309,17 @@ final class TradeRosterAndShareTests: XCTestCase {
         XCTAssertNil(sut.partnerRoster)
     }
 
-    func testNoLeagueConnectedFailsRatherThanGuessingALeague() async {
+    /// Live walk, 2026-10-22: opening Trade before the league overview loaded said "couldn't reach the server".
+    /// With no league named yet the builder waits (and never guesses a league); it is not a network failure.
+    func testNoLeagueYetWaitsRatherThanGuessingOrBlamingTheNetwork() async {
         let vm = TradeViewModel(
             repository: StubTradeRepository(result: .failure(.network), rosterResult: .success(rosterFixture())),
             playerSearch: StubPlayerSearchRepository(result: .success([])),
             sessionManager: signedInSessionManager()
         )
         await vm.loadRoster(userID: "user-1")
-        XCTAssertEqual(vm.rosterBrowseState, .failed(.network))
+        XCTAssertEqual(vm.rosterBrowseState, .idle)
+        XCTAssertNil(vm.partnerRoster)
     }
 
     // MARK: - Share: calls the route, handles both outcomes

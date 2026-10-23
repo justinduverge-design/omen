@@ -276,10 +276,13 @@ struct CommandCenterView: View {
     @ViewBuilder
     private var tradeBuilder: some View {
         switch tradeViewModel.rosterBrowseState {
+        case .idle where { if case .failed = leagueViewModel.viewState { return true } else { return false } }():
+            OmenStateBlock(kind: .failed, title: "Omen couldn\u{2019}t read your league", message: "Trades are built from your league\u{2019}s rosters, and that read didn\u{2019}t come back.", actionTitle: "Try again", action: { Task { await loadLeagueForSelectedContext() } })
+                .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
         case .idle, .loading:
             OmenStateBlock(kind: .loading, title: "Reading your league\u{2019}s rosters", message: "Your team and every other team, so you can pick from both.")
                 .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
-                .task { await tradeViewModel.loadRoster(userID: userID) }
+                .task(id: tradeViewModel.offer.leagueContext) { await tradeViewModel.loadRoster(userID: userID) }
         case .demo:
             OmenStateBlock(kind: .notEnoughToGoOn, title: "Building a trade needs your league", message: "Demo mode has no real rosters. Connect ESPN, Yahoo or Sleeper to build from your own team.", actionTitle: "Connect a league", action: { presentSheet(.connect) })
                 .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
@@ -566,8 +569,12 @@ struct CommandCenterView: View {
                 async let call: Void = pickedLeagueScope == nil
                     ? omenDecisionViewModel.load(userID: userID, scope: nil)
                     : omenDecisionViewModel.loadIfLeagueChanged(userID: userID, scope: pickedLeagueScope)
+                // The league overview names the league Trade and the Desk's "Your team" read rosters from. Loaded
+                // at launch beside the other reads, not only when the League tab opens: before this, opening Trade
+                // first left it with no league and the false "couldn't reach the server" (live walk, 2026-10-22).
+                async let league: Void = loadLeagueIfNeeded()
                 await commandCenterViewModel.load(userID: userID, scope: pickedLeagueScope)
-                await call
+                _ = await (call, league)
             }
             .tabItem { CommandCenterTab.command.label }
             .tag(CommandCenterTab.command)
@@ -598,7 +605,9 @@ struct CommandCenterView: View {
                 .navigationTitle("Omen")
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: OmenRoute.self) { _ in
-                    if let payload = fullArgumentPayload {
+                    // The saved argument, else the call on screen now: a destination built before the tap's state
+                    // landed showed "no call to argue" beside a live call (live walk, 2026-10-22).
+                    if let payload = fullArgumentPayload ?? omenDecisionViewModel.briefState(visibleScope: pickedLeagueScope).payload {
                         OmenFullArgumentScreen(payload: payload)
                     } else {
                         OmenStateBlock(kind: .notEnoughToGoOn, title: "There\u{2019}s no call to argue yet", message: "Go back once Omen has made this week\u{2019}s call.")
@@ -715,7 +724,9 @@ struct CommandCenterView: View {
             .task {
                 // Demo is the reviewer's network-free door: it never calls the API.
                 guard userID != SessionManager.demoUserID else { return }
+                async let league: Void = loadLeagueIfNeeded()
                 await tradeViewModel.loadCapabilities()
+                await league
             }
             // The league to personalize against comes from the SAME `league-overview.v1` read
             // the League destination uses. Trade never discovers a league on its own, so the
@@ -955,6 +966,14 @@ struct CommandCenterView: View {
     /// which case the server uses the account's selected league, as it always did.
     private var pickedLeagueScope: OmenCallScope? {
         leagueCarouselViewModel.activePage?.omenCallScope
+    }
+
+    /// Starts the league overview unless it is already loaded or loading.
+    private func loadLeagueIfNeeded() async {
+        switch leagueViewModel.viewState {
+        case .idle, .failed: await loadLeagueForSelectedContext()
+        default: return
+        }
     }
 
     private func loadLeagueForSelectedContext() async {
