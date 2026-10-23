@@ -52,19 +52,30 @@ final class LiveWalkUITests: XCTestCase {
         }
         tab("Desk")
         settle("desk", since: tapped, ready: app.buttons["Account and support"])
-        guard let (current, total) = teamPosition() else {
+        guard let (_, total) = teamPosition() else {
             XCTFail("no teams on the Desk")
             return
         }
-        let card = app.scrollViews.firstMatch
-        for _ in 0..<(current - 1) { card.swipeRight(); sleepBriefly() }
         for team in 1...total {
+            // Switch with the team switcher, the way a person does, then visit each tab for that team.
+            tab("Omen")
+            settle("team \(team): omen tab", since: tapped, ready: nil)
+            if tapIfPresent(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Switch team")).firstMatch) {
+                let rows = app.buttons.matching(NSPredicate(format: "label CONTAINS %@ OR label CONTAINS %@ OR label CONTAINS %@", "Sleeper", "ESPN", "Yahoo"))
+                    .allElementsBoundByIndex.filter { $0.isHittable && $0.frame.height >= 50 }
+                if rows.indices.contains(team - 1) {
+                    attach("t\(team)-team", rows[team - 1].label)
+                    let start = Date()
+                    rows[team - 1].tap()
+                    settle("team \(team): switch", since: start, ready: nil)
+                } else {
+                    app.buttons["Done"].firstMatch.tap()
+                }
+            }
             tab("Desk")
-            for _ in 0..<4 { app.swipeDown() }
-            if team > 1 {
-                let start = Date()
-                app.scrollViews.firstMatch.swipeLeft()
-                settle("team \(team): switch", since: start, ready: nil)
+            if !app.buttons["Account and support"].waitForExistence(timeout: 5) {
+                auditIssues.append("t\(team): tapping the Desk tab did not show the Desk")
+                snap("t\(team)-desk-tab-missed")
             }
             let tag = "t\(team)"
             audit("\(tag)-desk")
@@ -123,6 +134,17 @@ final class LiveWalkUITests: XCTestCase {
             stopMeasuring()
             app.swipeDown(velocity: .fast)
         }
+    }
+
+    /// Swiping between teams on the Desk: iOS's hitch measurement while the team cards page.
+    func testTeamSwipeFeel() throws {
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
+        tab("Desk")
+        settle("desk", since: tapped, ready: app.buttons["Account and support"])
+        let options = XCTMeasureOptions()
+        options.invocationOptions = [.manuallyStop]
+        options.iterationCount = 5
         let rolodex = app.scrollViews.firstMatch
         measure(metrics: [XCTOSSignpostMetric.scrollingAndDecelerationMetric], options: options) {
             rolodex.swipeLeft(velocity: .fast)
@@ -160,6 +182,7 @@ final class LiveWalkUITests: XCTestCase {
                 let overlap = fa.intersection(fb)
                 guard !overlap.isNull, overlap.width > 2, overlap.height > 2 else { continue }
                 if fa.contains(fb) || fb.contains(fa) { continue }
+                if a.contains(b) || b.contains(a) { continue }
                 layoutIssues.append("\(name): \"\(a)\" runs into \"\(b)\" (\(Int(overlap.width))×\(Int(overlap.height)) pt)")
             }
         }
@@ -335,8 +358,17 @@ final class LiveWalkUITests: XCTestCase {
     }
 
     private func back() {
-        let back = app.navigationBars.buttons.firstMatch
-        if back.exists && back.isHittable { back.tap() } else { app.swipeRight() }
+        let custom = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Back")).firstMatch
+        let system = app.navigationBars.buttons.firstMatch
+        if custom.exists && custom.isHittable {
+            custom.tap()
+        } else if system.exists && system.isHittable {
+            system.tap()
+        } else {
+            // The edge swipe a person uses; a swipe from mid-screen does not go back.
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.01, dy: 0.5))
+            start.press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)))
+        }
         sleepBriefly()
     }
 
