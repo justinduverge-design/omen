@@ -3,7 +3,7 @@
   "route": "(built)",
   "body": {
     "alternatives": [],
-    "availability_state": "confirmed",
+    "availability_state": "unconfirmed",
     "best_move": {
       "add": {
         "name": "B",
@@ -13,7 +13,13 @@
         "status": null,
         "team": null
       },
-      "bid": null,
+      "bid": {
+        "amount": 56,
+        "basis": "About 70% of your remaining $80, based on roughly 28 projected points gained over the next 4 weeks.",
+        "implies_claim_success": false,
+        "model_version": "waiver-bid.v1",
+        "of_budget_remaining": 80
+      },
       "displaces": {
         "name": "A",
         "player_key": "s",
@@ -24,8 +30,9 @@
       },
       "drop": null,
       "improvement": 7,
+      "lineup_gain": 7,
       "solves_unavailable_starter": false,
-      "why_now": "B projects above your weakest eligible starter for this week."
+      "why_now": "Adding B raises your best lineup by about 7 points a week over the next 3 weeks."
     },
     "contract_version": "waiver-analysis.v1",
     "cost": null,
@@ -45,13 +52,13 @@
     "season": 2026,
     "state": "no_low_cost_drop",
     "waiver_system": {
-      "budget_remaining": null,
-      "budget_text": null,
-      "budget_total": null,
-      "determined_from": "not_determined",
+      "budget_remaining": 80,
+      "budget_text": "Your budget $80 of $100",
+      "budget_total": 100,
+      "determined_from": "provider_settings",
       "order_text": null,
       "priority_position": null,
-      "system": "not_determined"
+      "system": "faab"
     },
     "week": 3
   }

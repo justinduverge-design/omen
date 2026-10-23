@@ -174,6 +174,11 @@ function buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds
   };
 }
 
+// The coming weeks are the search's working data (comingWeeks.js), not part of the trade-find contract.
+function withoutWeeks({ projected_points_by_week: _weeks, ...player }) {
+  return player;
+}
+
 function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, ownNeeds, opponentNeeds }) {
   const receivePosition = primaryPosition(candidate.receive);
   const givePosition = primaryPosition(candidate.give);
@@ -198,8 +203,8 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
     id: `find_${opponentTeamId ?? "unknown"}_${candidate.give.player_key || candidate.give.player_id || "give"}_${candidate.receive.player_key || candidate.receive.player_id || "receive"}`,
     opponent_team_id: opponentTeamId ?? null,
     opponent_team_name: opponentTeamName ?? null,
-    give: candidate.give,
-    receive: candidate.receive,
+    give: withoutWeeks(candidate.give),
+    receive: withoutWeeks(candidate.receive),
     user_lineup_delta: candidate.userDelta,
     opponent_lineup_delta: candidate.opponentDelta,
     valuation,

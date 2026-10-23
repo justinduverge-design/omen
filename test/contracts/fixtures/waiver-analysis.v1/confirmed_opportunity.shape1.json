@@ -31,6 +31,7 @@
         "team": null
       },
       "improvement": 7,
+      "lineup_gain": null,
       "solves_unavailable_starter": false,
       "why_now": "Tracy projects above your weakest eligible starter for this week."
     },
@@ -48,19 +49,16 @@
         "category": "immediate_need",
         "kind": "roster_math",
         "statement": "Tracy projects 7 points above Weak RB, your weakest eligible starter."
-      },
-      {
-        "category": "league_fact",
-        "kind": "league_context",
-        "statement": "This comparison uses your league's half PPR scoring."
       }
     ],
     "generated_at": "2026-01-01T00:00:00.000Z",
-    "league_id": "L1",
-    "limitations": [],
+    "league_id": "12345",
+    "limitations": [
+      "Omen has not verified this league's scoring rules, so evidence omits league scoring."
+    ],
     "message": null,
-    "platform": "sleeper",
-    "scoring_format": "half PPR",
+    "platform": "espn",
+    "scoring_format": null,
     "season": 2026,
     "state": "confirmed_opportunity",
     "waiver_system": {
