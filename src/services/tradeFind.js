@@ -270,6 +270,59 @@ function positionalGuard({ give, receive, ownNeeds, opponentNeeds }) {
   return keepsDepth(ownNeeds, givePosition) && keepsDepth(opponentNeeds, receivePosition);
 }
 
+// A trade both managers would accept gives up about as much value as it gets. Value is points a week above a
+// replacement-level player at the position in this league: the first player at that position who would not start if
+// every team set its best lineup (the formula fallback of trade value v3, until the free-agent pool is read here).
+// Founder, 2026-10-23: a split-backfield RB for a top-three QB raises both lineups on paper and nobody accepts it.
+const MAX_VALUE_GAP = 2;
+
+// A replacement level read from a handful of rosters is not a league's; below this many teams the value check is off.
+const MIN_TEAMS_FOR_REPLACEMENT = 6;
+
+function leagueReplacement(teams = [], rosterPositions = []) {
+  if (!Array.isArray(teams) || teams.length < MIN_TEAMS_FOR_REPLACEMENT) return null;
+  const effective = effectiveStarters(parseRosterSlots(rosterPositions));
+  const byPosition = {};
+  for (const team of teams) {
+    for (const player of team?.players || []) {
+      const points = Number(player?.projected_points);
+      if (!Number.isFinite(points)) continue;
+      const position = primaryPosition(player);
+      if (!byPosition[position]) byPosition[position] = [];
+      byPosition[position].push(points);
+    }
+  }
+  const out = {};
+  for (const [position, list] of Object.entries(byPosition)) {
+    list.sort((a, b) => b - a);
+    const startersLeagueWide = Math.round((effective[position] || 0) * teams.length);
+    out[position] = list[Math.min(startersLeagueWide, list.length - 1)] ?? 0;
+  }
+  return out;
+}
+
+function valueOver(players, replacement) {
+  return players.reduce((sum, player) => {
+    const points = Number(player?.projected_points);
+    if (!Number.isFinite(points)) return sum;
+    return sum + Math.max(0, points - (replacement[primaryPosition(player)] ?? 0));
+  }, 0);
+}
+
+// Neither lineup gains more than this many times the other's: a trade where one side gets nearly all the gain is a
+// trade the other side has no reason to make (live walk, 2026-10-23: +1.2 for you, +6.5 for them).
+const MAX_GAIN_RATIO = 3;
+
+/** Neither side gives away more than MAX_VALUE_GAP points a week of value over replacement, nor takes most of the gain. */
+function valueBalanced({ give, receive, replacement, userDelta, opponentDelta }) {
+  if (Number.isFinite(userDelta) && Number.isFinite(opponentDelta) && userDelta > 0 && opponentDelta > 0) {
+    if (Math.max(userDelta, opponentDelta) > MAX_GAIN_RATIO * Math.min(userDelta, opponentDelta)) return false;
+  }
+  if (!replacement) return true;
+  const gap = valueOver([receive], replacement) - valueOver([give], replacement);
+  return Math.abs(gap) <= MAX_VALUE_GAP;
+}
+
 // Need profiles per roster, so a guard called once per player pair builds each team's profile once.
 const needCache = new WeakMap();
 function cachedNeeds(team, rosterPositions) {
@@ -288,7 +341,9 @@ function sensibleTradeGuard(pair = {}) {
   const ownNeeds = cachedNeeds(pair.ownTeam, pair.rosterPositions);
   const opponentNeeds = cachedNeeds(pair.opponent, pair.rosterPositions);
   return (
-    positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) && mutualFairnessGuard(pair)
+    positionalGuard({ give: pair.give, receive: pair.receive, ownNeeds, opponentNeeds }) &&
+    valueBalanced(pair) &&
+    mutualFairnessGuard(pair)
   );
 }
 
@@ -332,6 +387,7 @@ function findLeagueTradeCandidates({
   }
 
   const ownNeeds = buildTeamNeedProfile({ team: ownTeam, rosterPositions });
+  const replacement = leagueReplacement(allTeams, rosterPositions);
   const others = allTeams.filter((team) => String(team?.team_id) !== String(ownTeamId));
 
   const degradedTeams = [];
@@ -379,6 +435,7 @@ function findLeagueTradeCandidates({
       budget,
       fairnessGuard,
       tally,
+      replacement,
       onBudgetExceeded: (stats) => {
         budgetExceeded = true;
         if (onBudgetExceeded) {
@@ -432,6 +489,8 @@ module.exports = {
   mutualFairnessGuard,
   positionalGuard,
   sensibleTradeGuard,
+  leagueReplacement,
+  valueBalanced,
   MIN_SIDE_LINEUP_GAIN,
   MAX_OPPONENT_TEAMS_PER_SCAN,
   MAX_CANDIDATES_RETURNED,

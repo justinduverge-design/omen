@@ -54,3 +54,15 @@ for (const c of manifest.cases) {
     }
   });
 }
+
+// Phase 1: Omen's own Find a Trade, run on the saved league, must no longer propose a rejected trade.
+const { omenTrades } = require("../evals/decision-cases/omen");
+for (const c of manifest.cases.filter((x) => x.move.type === "trade" && x.verdict === "reject")) {
+  const file = path.join(__dirname, "../evals/decision-cases/private", `${c.snapshot}.json`);
+  test(`Omen does not propose: ${c.id}`, { skip: !fs.existsSync(file) && "private snapshot not captured here" }, () => {
+    const snapshot = JSON.parse(fs.readFileSync(file, "utf8"));
+    const proposed = omenTrades(snapshot).trades;
+    const same = proposed.find((t) => c.move.give.includes(t.give) && c.move.receive.includes(t.receive));
+    assert.equal(same, undefined, `${c.why}`);
+  });
+}

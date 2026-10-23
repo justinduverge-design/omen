@@ -397,6 +397,9 @@ function findTradeCandidate({
   budget = createSearchBudget(),
   onBudgetExceeded = null,
   tally = null,
+  // Points a week of a replacement-level player per position in this league (tradeFind.leagueReplacement), handed to
+  // the guard so it can weigh what each side gives against what it gets.
+  replacement = null,
 } = {}) {
   if (!ownTeam || !Array.isArray(ownTeam.players)) return null;
   const ownBaseline = solveOptimalLineup({ players: ownTeam.players, rosterPositions, budget });
@@ -478,7 +481,10 @@ function findTradeCandidate({
         if (tally) tally.pairs_evaluated += 1;
         if (userDelta <= 0 || opponentDelta <= 0) continue;
         if (tally) tally.mutual_gain += 1;
-        if (!fairnessGuard({ give, receive, userDelta, opponentDelta, ownTeam, opponent, rosterPositions })) continue;
+        if (
+          !fairnessGuard({ give, receive, userDelta, opponentDelta, ownTeam, opponent, rosterPositions, replacement })
+        )
+          continue;
         if (tally) tally.passed_fairness += 1;
         candidates.push({
           opponent,
