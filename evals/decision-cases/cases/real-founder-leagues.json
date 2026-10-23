@@ -5,28 +5,74 @@
       "id": "eb-football-w7-nix-claim",
       "snapshot": "eb-football",
       "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR, FAAB $100",
-      "move": { "type": "waiver", "add": "Bo Nix", "drop": "Brian Thomas Jr.", "bid": 28 },
+      "move": {
+        "type": "waiver",
+        "add": "Bo Nix",
+        "drop": "Brian Thomas Jr.",
+        "bid": 28
+      },
       "verdict": "reject",
       "why": "A third QB in a one-QB league. Free agents (no claim, no bid) at QB do at least as much: the claim must beat the best free add, not just this week's starter.",
-      "check": { "claim_must_beat_best_free_agent": true }
+      "check": {
+        "claim_must_beat_best_free_agent": true
+      }
     },
     {
       "id": "eb-football-w7-harvey-for-lamar",
       "snapshot": "eb-football",
       "league": "Sleeper, 10 teams, 1 QB, 2 flex, PPR",
-      "move": { "type": "trade", "give": ["RJ Harvey"], "receive": ["Lamar Jackson"] },
+      "move": {
+        "type": "trade",
+        "give": [
+          "RJ Harvey"
+        ],
+        "receive": [
+          "Lamar Jackson"
+        ]
+      },
       "verdict": "reject",
       "why": "Founder: a split-backfield RB with few touchdowns for a top-three fantasy QB who scores running and passing. Both lineups rise on paper, but the other manager gives away far more value than he gets, so nobody accepts it and Omen must not propose it.",
-      "check": { "max_value_gap_per_week": 2 }
+      "check": {
+        "max_value_gap_per_week": 2
+      }
     },
     {
       "id": "eb-football-w7-start-sit-health",
       "snapshot": "eb-football",
       "league": "Sleeper, 10 teams, PPR",
-      "move": { "type": "start", "start": "Mike Evans", "over": "KC Concepcion Jr." },
+      "move": {
+        "type": "start",
+        "start": "Mike Evans",
+        "over": "KC Concepcion Jr."
+      },
       "verdict": "reject_if_projected_out",
       "why": "Omen's call was to start Mike Evans (Questionable). At capture Sleeper projected him 0 for weeks 7 and 8. Starting a player projected not to play is never the move; the call must read availability, not last week's number.",
-      "check": { "start_must_be_projected_to_play": true }
+      "check": {
+        "start_must_be_projected_to_play": true
+      }
     }
+  ],
+  "captured": {
+    "sleeper": [
+      "eb-football (10 teams, 1 QB, 2 flex)",
+      "d465 (12 teams, 1 QB, 2 flex, 6-pt pass TD)",
+      "omen-app-data (8 teams, 1 QB, 2 flex)"
+    ],
+    "espn": [
+      "13338821 (12 teams, 1 QB, flex)",
+      "1330728110 (12 teams, 1 QB, flex, no DEF)",
+      "517756847 (10 teams, 1 QB, flex)"
+    ],
+    "yahoo": [
+      "470.l.1358570 (12 teams, 1 QB, W/R/T)",
+      "470.l.1255365 (10 teams, 1 QB, W/R/T)"
+    ]
+  },
+  "gaps_found_2026_10_23": [
+    "ESPN: league scoring is not read ('Omen has not verified this league's scoring rules') in all three ESPN leagues.",
+    "Yahoo: projections are Sleeper's re-scored with approximate Yahoo rules.",
+    "ESPN and Yahoo: a free agent (add now) and a player on waivers (claim, maybe a bid) are not told apart.",
+    "Yahoo: the free-agent pool stops at the top 50; ESPN: about half the pool carries a projection.",
+    "ESPN and Yahoo: only the current week is read, so byes and coming weeks can't be counted yet."
   ]
 }

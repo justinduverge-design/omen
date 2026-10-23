@@ -467,3 +467,6 @@ router.get("/analysis", requireAuth, async (req, res, next) => {
 module.exports = router;
 module.exports.scoringFormatFromSleeperLeague = scoringFormatFromSleeperLeague;
 module.exports.presentAnalysis = presentAnalysis;
+// For evals/decision-cases/capture-server.js: the same roster and free-agent reads the waiver route makes.
+module.exports.loadForConnection = loadForConnection;
+module.exports.CONNECTION_COLUMNS = CONNECTION_COLUMNS;
