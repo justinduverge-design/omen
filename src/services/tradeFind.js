@@ -41,7 +41,7 @@
  * The thing #404 actually broke was the CPU work done with that data.
  */
 
-const { findTradeCandidate, createSearchBudget, weeklyAverage } = require("./tradeLineup");
+const { findTradeCandidate, createSearchBudget, weeklyAverage, lineupWeeks } = require("./tradeLineup");
 const { compareTrade, primaryPosition } = require("./tradeValue");
 const {
   DEFAULT_STARTERS,
@@ -179,7 +179,7 @@ function withoutWeeks({ projected_points_by_week: _weeks, ...player }) {
   return player;
 }
 
-function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, ownNeeds, opponentNeeds }) {
+function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, ownNeeds, opponentNeeds, weeks = [] }) {
   const receivePosition = primaryPosition(candidate.receive);
   const givePosition = primaryPosition(candidate.give);
   const valuation = compareTrade({ send: [candidate.give], receive: [candidate.receive] });
@@ -210,6 +210,13 @@ function buildCandidateRecord({ candidate, opponentTeamId, opponentTeamName, own
     valuation,
     reasoning: buildReasoning({ receivePosition, givePosition, ownNeeds, opponentNeeds, valuation }),
     the_catch: theCatch,
+    // The weeks the trade was judged over and each player's number in them, so the route can say who misses which
+    // week (moveReasons.js) without the per-week field riding on the player objects.
+    weeks: {
+      judged: weeks,
+      give: candidate.give.projected_points_by_week || {},
+      receive: candidate.receive.projected_points_by_week || {},
+    },
   };
 }
 
@@ -402,6 +409,7 @@ function findLeagueTradeCandidates({
 
   const ownNeeds = buildTeamNeedProfile({ team: ownTeam, rosterPositions });
   const replacement = leagueReplacement(allTeams, rosterPositions);
+  const judgedWeeks = lineupWeeks(allTeams);
   const others = allTeams.filter((team) => String(team?.team_id) !== String(ownTeamId));
 
   const degradedTeams = [];
@@ -468,6 +476,7 @@ function findLeagueTradeCandidates({
         opponentTeamName: opponent.team_name,
         ownNeeds,
         opponentNeeds,
+        weeks: judgedWeeks,
       }),
     );
   }

@@ -1,5 +1,7 @@
 "use strict";
 
+const { reasonsFor } = require("./moveReasons");
+
 const { createClient } = require("@supabase/supabase-js");
 const config = require("../config");
 const {
@@ -1218,15 +1220,9 @@ function expectedValueLabel(delta) {
 
 function riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform }) {
   const platformLabel = displayPlatform(platform);
-  const reasons = [
-    `The optimizer sees a ${formatDelta(swap.delta)} projection edge from the normalized ${platformLabel} roster.`,
-  ];
-  if (isRiskyStatus(startPlayer?.status)) {
-    reasons.push(`${startPlayer.name} carries availability risk.`);
-  }
-  if (isOutStatus(sitPlayer?.status)) {
-    reasons.push(`${sitPlayer.name} appears unavailable, which strengthens the swap.`);
-  }
+  // Reasons first (moveReasons.js): who is out or hurt, Omen's read of both players, then the lineup change.
+  const reasons = reasonsFor({ gain: startPlayer, lose: sitPlayer, lineupGain: swap?.delta });
+  if (!reasons.length) reasons.push(`Your ${platformLabel} lineup gains ${formatDelta(swap.delta)} with this swap.`);
   reasons.push(`Waiver and trade market signals are not part of this first live ${platformLabel} MVP Move.`);
   return reasons;
 }
@@ -1449,7 +1445,10 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     risk: risk(riskLevel, riskReasonsForSwap({ startPlayer, sitPlayer, swap, platform })),
     explanation: {
       summary: `Your best live move is to start ${primary.name} over ${comparison.name}.`,
-      why_it_matters: `${primary.name} grades as the better ${rosterSlot} option by ${formatDelta(delta)} in the normalized ${platformLabel} lineup.`,
+      // Reasons first (moveReasons.js): availability and Omen's read, the point gap last.
+      why_it_matters:
+        reasonsFor({ gain: startPlayer, lose: sitPlayer, lineupGain: delta }).join(" ") ||
+        `${primary.name} is the better ${rosterSlot} option this week in your ${platformLabel} lineup.`,
       risk: `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
       confidence: bandSentence(
         bandFromScore(confidenceScore),

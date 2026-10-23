@@ -1,5 +1,7 @@
 "use strict";
 
+const { reasonsFor } = require("./moveReasons");
+
 /**
  * Waiver Analysis (visual briefs §6).
  *
@@ -690,6 +692,13 @@ function buildWaiverAnalysis({
   const drop = best.drop;
   const alternatives = alternativesFrom(ranked, scoringFormat);
 
+  const judgedWeeks = Array.from({ length: weeks }, (_, k) => Number(base.week) + k).filter(Number.isInteger);
+  const moveReasons = reasonsFor({
+    gain: best.player,
+    lose: drop?.player ?? best.displaced,
+    weeks: judgedWeeks,
+    lineupGain: best.lineup_gain,
+  });
   return envelope({
     ...base,
     state: drop ? STATES.CONFIRMED : STATES.NO_LOW_COST_DROP,
@@ -703,10 +712,12 @@ function buildWaiverAnalysis({
         lineup_gain: best.lineup_gain ?? null,
         solves_unavailable_starter: best.solves_out_starter,
         displaces: playerView(best.displaced),
+        // Reasons first (moveReasons.js): who is out or on bye in which weeks, Omen's read, then the lineup change.
+        reasons: moveReasons,
         why_now: best.solves_out_starter
           ? `${nameOf(best.displaced)} is unavailable, and ${nameOf(best.player)} is the strongest available option for that slot.`
-          : best.lineup_gain != null
-            ? `Adding ${nameOf(best.player)}${drop ? ` for ${nameOf(drop.player)}` : ""} raises your best lineup by about ${best.lineup_gain} points a week over the next ${weeks} weeks.`
+          : moveReasons.length
+            ? moveReasons.join(" ")
             : `${nameOf(best.player)} projects above your weakest eligible starter for this week.`,
         // Phase 3. Null unless the league was verified FAAB and every input is
         // present. Never zero, never invented, never a claim forecast.

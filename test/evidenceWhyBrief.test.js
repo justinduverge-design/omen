@@ -36,8 +36,8 @@ test("brief: explanation carries ranked why_statements from the swap's own field
   );
   assert.equal(statements[0].text, "Bench Wideout is listed questionable.");
   assert.equal(statements[1].text, "Starter Wideout projects 15.2 and Bench Wideout projects 13.1.");
-  // Existing fields are untouched.
-  assert.match(response.recommendation.explanation.why_it_matters, /better WR option by \+2\.10 pts/);
+  // Reasons first (moveReasons.js, founder 2026-10-23): the point gap only as the lineup change, no "by +2.10 pts".
+  assert.match(response.recommendation.explanation.why_it_matters, /Your best lineup gains 2\.1 points a week/);
 });
 
 test("brief: a swap with no projections yields the honest not-enough-evidence statement, not a null-as-zero claim", () => {

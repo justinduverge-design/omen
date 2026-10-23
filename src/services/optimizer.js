@@ -1,5 +1,7 @@
 "use strict";
 
+const { reasonsFor } = require("./moveReasons");
+
 /**
  * =================================================================
  * Optimizer service - Start/Sit + Waiver math
@@ -155,13 +157,10 @@ function waiverConfidence(delta) {
 }
 
 function buildReasoning(from, to, delta) {
-  const parts = [`${to.name} projects ${delta.toFixed(2)} pts higher than ${from.name}`];
-  const fStat = String(effectiveStatus(from) || "").toUpperCase();
-  const tStat = String(effectiveStatus(to) || "").toUpperCase();
-  if (OUT.has(fStat)) parts.push(`(${from.name} is OUT)`);
-  else if (RISKY.has(fStat)) parts.push(`(${from.name} is questionable)`);
-  if (RISKY.has(tStat)) parts.push(`(${to.name} is questionable - some risk)`);
-  return parts.join(" ");
+  // Reasons first (moveReasons.js): availability and Omen's read of both players; the point gap only closes it.
+  const reasons = reasonsFor({ gain: to, lose: from, lineupGain: delta });
+  if (reasons.length) return reasons.join(" ");
+  return `${to.name} gives your lineup ${delta.toFixed(1)} more points this week than ${from.name}.`;
 }
 
 /**
