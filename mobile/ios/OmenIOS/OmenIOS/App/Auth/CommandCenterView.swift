@@ -113,6 +113,7 @@ struct CommandCenterView: View {
     // MARK: - Desk (foundation v1)
 
     @State private var deskPath: [DeskRoute] = []
+    @State private var deletingAccount = false
     @State private var omenPath: [OmenRoute] = []
     @State private var leaguePath: [LeagueRoute] = []
     @State private var tradePath: [TradeRoute] = []
@@ -436,18 +437,51 @@ struct CommandCenterView: View {
         case .waivers:
             waiversScreen
         case .ledger:
+            switch commandCenterViewModel.ledgerState {
+            case .loading:
+                OmenStateBlock(kind: .loading, title: "Reading the Ledger")
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .error(let message):
+                OmenStateBlock(kind: .failed, title: "The Ledger didn\u{2019}t load", message: message)
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .notConnected:
+                OmenStateBlock(kind: .notEnoughToGoOn, title: "No league connected", message: "Connect a league and Omen starts keeping the record.")
+                    .padding(OmenSpacing.step20).frame(maxHeight: .infinity, alignment: .top).background(OmenColor.bg)
+            case .entries, .empty:
             OmenLedgerScreen(
-                state: {
-                    var state = OmenLedgerState.from(entries: commandCenterViewModel.ledgerState.entries)
-                    state.headline = commandCenterViewModel.ledgerHeadline
-                    return state
-                }(),
-                onOpenAccount: { presentSheet(.account) },
-                onOpenCall: { call in deskPath.append(.receipt(call.id)) }
+                state: OmenLedgerState(
+                    entries: commandCenterViewModel.ledgerState.entries,
+                    record: commandCenterViewModel.ledgerRecord,
+                    providerName: deskProviderName,
+                    season: commandCenterViewModel.ledgerSeason
+                ),
+                onOpenCall: { deskPath.append(.receipt($0)) }
             )
+            }
+        case .account:
+            AccountView(
+                userID: userID,
+                sessionManager: sessionManager,
+                leagueDirectoryRepository: leagueDirectoryRepository,
+                needsSignIn: Set(deskTeams.filter { $0.status == .reconnect }.map(\.platform)),
+                onOpen: { deskPath.append(.accountPage($0)) },
+                onConnect: { presentSheet(.connect) },
+                onContactSupport: { deskPath.append(.support) },
+                onReportProblem: { presentSheet(.report(.account)) }
+            )
+        case .accountPage(let page):
+            switch page {
+            case .signIn: OmenSignInScreen(identity: userID, authViewModel: authViewModel)
+            case .privacy: OmenPrivacyScreen(onExport: nil, onDelete: { deletingAccount = true })
+                .sheet(isPresented: $deletingAccount) { OmenDeleteAccountSheet(sessionManager: sessionManager) }
+            case .sources: OmenSourcesScreen()
+            case .howCalls: OmenHowCallsScreen()
+            }
+        case .support:
+            OmenHelpSupportView()
         case .receipt(let id):
             if let entry = commandCenterViewModel.ledgerState.entries.first(where: { $0.id == id }) {
-                LedgerReceiptView(entry: entry, load: { await commandCenterViewModel.loadReceipt(id: $0) }, onOpenAccount: { presentSheet(.account) })
+                LedgerReceiptView(entry: entry, load: { await commandCenterViewModel.loadReceipt(id: $0) })
             } else {
                 OmenStateBlock(kind: .notEnoughToGoOn, title: "This call isn\u{2019}t in the Ledger Omen just read", message: "Go back to see the current Ledger.")
                     .padding(OmenSpacing.step20)
@@ -481,7 +515,7 @@ struct CommandCenterView: View {
                             if await leagueCarouselViewModel.commitSelection() != nil { await reloadAllAfterContextChange() }
                         }
                     },
-                    onAccount: { presentSheet(.account) },
+                    onAccount: { deskPath.append(.account) },
                     onRetry: {
                         Task {
                             await leagueCarouselViewModel.load(userID: userID)
@@ -803,29 +837,6 @@ struct CommandCenterView: View {
                     }
                 }
             }
-        case .account:
-            NavigationStack {
-                AccountView(
-                    userID: userID,
-                    sessionManager: sessionManager,
-                    authViewModel: authViewModel,
-                    leagueDirectoryRepository: leagueDirectoryRepository,
-                    onReportProblem: { presentSheet(.report(.account)) }
-                )
-                .navigationTitle("Account")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        OmenContextualHelpButton(
-                            topic: OmenContextualHelpContent.topic(for: .account),
-                            size: .sm
-                        )
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        OmenButton(title: "Done", action: { presentedSheet = nil }, variant: .link, size: .sm)
-                    }
-                }
-            }
         case .report(let screen):
             OmenReportComposerSheet(
                 screen: screen,
@@ -976,7 +987,6 @@ struct CommandCenterView: View {
 private enum CommandCenterSheet: Identifiable {
     case switcher
     case connect
-    case account
     case report(OmenBetaReportScreen)
     case tradeShareSetup
     case tradeActivity(URL)
@@ -985,7 +995,6 @@ private enum CommandCenterSheet: Identifiable {
         switch self {
         case .switcher: return "switcher"
         case .connect: return "connect"
-        case .account: return "account"
         case .report(let screen): return "report-\(screen.rawValue)"
         case .tradeShareSetup: return "trade-share-setup"
         case .tradeActivity(let url): return "trade-activity-\(url.absoluteString)"
@@ -1039,6 +1048,9 @@ enum DeskRoute: Hashable {
     case waivers
     case ledger
     case receipt(String)
+    case account
+    case accountPage(AccountRoute)
+    case support
 }
 
 /// User-facing copy for a shell read failure. Deliberately says what the user can do and

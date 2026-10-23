@@ -161,7 +161,7 @@ struct OmenHelpSupportView: View {
 
                 OmenCard {
                     NavigationLink {
-                        OmenAboutDataSourcesView()
+                        OmenSourcesScreen()
                     } label: {
                         OmenListRow(
                             title: "About & data sources",

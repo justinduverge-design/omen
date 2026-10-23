@@ -158,7 +158,8 @@ struct OmenProviderMark: View {
             .accessibilityElement(children: .combine)
         case .tag:
             HStack(spacing: OmenSpacing.step6) {
-                Circle().fill(color).frame(width: 8, height: 8)
+                // Yahoo's purple barely shows on dark, so the dot carries a light ring.
+                Circle().fill(color).frame(width: 8, height: 8).overlay(Circle().stroke(OmenColor.textTertiary, lineWidth: 1))
                 Text(name).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary)
             }
             .padding(.horizontal, OmenSpacing.step10)

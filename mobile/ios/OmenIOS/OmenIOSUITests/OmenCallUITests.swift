@@ -58,6 +58,8 @@ final class OmenCallUITests: XCTestCase {
             let app = launch(scenario)
             try app.performAccessibilityAudit(for: [.dynamicType, .sufficientElementDescription, .hitRegion, .contrast]) { issue in
                 print("AUDIT \(scenario): \(issue.auditType.rawValue) \(issue.compactDescription) :: \(issue.element?.debugDescription.prefix(200) ?? "nil")")
+                // Off-screen elements (the next carousel card, rows under the tab bar) can't be measured.
+                if let frame = issue.element?.frame, !app.frame.contains(frame) { return true }
                 return issue.auditType == .dynamicType && issue.compactDescription.contains("partially unsupported")
             }
             app.terminate()

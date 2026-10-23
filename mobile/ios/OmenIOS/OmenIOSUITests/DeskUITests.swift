@@ -60,6 +60,8 @@ final class DeskUITests: XCTestCase {
             try app.performAccessibilityAudit(for: [.dynamicType, .sufficientElementDescription, .hitRegion, .contrast]) { issue in
                 print("AUDIT \(scenario): \(issue.auditType.rawValue) \(issue.compactDescription) :: \(issue.element?.debugDescription.prefix(200) ?? "nil")")
                 // Text that wraps rather than truncates is reported as clipped by the audit when it is not.
+                // Off-screen elements (the next carousel card, rows under the tab bar) can't be measured.
+                if let frame = issue.element?.frame, !app.frame.contains(frame) { return true }
                 return issue.auditType == .dynamicType && issue.compactDescription.contains("partially unsupported")
             }
             app.terminate()

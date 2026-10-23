@@ -1,6 +1,6 @@
 import XCTest
 
-/// League and Waivers on the foundation (frames: Main League, Waivers).
+/// League, Waivers and the Ledger on the foundation (frames: Main League, Waivers, Ledger, LedgerReceipt).
 final class LeagueUITests: XCTestCase {
     override func setUp() {
         super.setUp()
@@ -45,11 +45,32 @@ final class LeagueUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Make this claim in ESPN"].exists, "no hand-off without a move")
     }
 
+    func testTheLedgerLeadsWithTheRecordAndKeepsSelfReportsMarked() {
+        let app = launch("ledger.root")
+        XCTAssertTrue(app.staticTexts["41 right, 19 wrong"].waitForExistence(timeout: 10))
+        let passed = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Add Spears, drop Tracy")).firstMatch
+        assertHittable(passed, "a call")
+        XCTAssertTrue(passed.label.hasPrefix("Wrong."))
+        XCTAssertTrue(passed.label.contains("(your word)"))
+        XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "couldn\u{2019}t see what you did")).firstMatch.exists)
+    }
+
+    func testAReceiptIsFrozenAndAnOpenOneSaysTheWeekIsUnplayed() {
+        var app = launch("ledger.receipt")
+        XCTAssertTrue(app.staticTexts["What Omen said then"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Tue 3:00 AM"].exists)
+        app.terminate()
+        app = launch("journey-j6.degraded.02-ledger-detail")
+        XCTAssertTrue(app.staticTexts["The week hasn\u{2019}t been played yet"].waitForExistence(timeout: 10))
+    }
+
     func testLeagueScreensPassTheAccessibilityAudit() throws {
-        for scenario in ["league.root", "journey-j5.degraded.01-league-degraded", "waivers.move", "journey-j5.nominal.03-waiver-no-move"] {
+        for scenario in ["league.root", "journey-j5.degraded.01-league-degraded", "waivers.move", "journey-j5.nominal.03-waiver-no-move", "ledger.root", "journey-j6.degraded.01-ledger", "ledger.receipt", "journey-j6.degraded.02-ledger-detail"] {
             let app = launch(scenario)
             try app.performAccessibilityAudit(for: [.dynamicType, .sufficientElementDescription, .hitRegion, .contrast]) { issue in
                 print("AUDIT \(scenario): \(issue.auditType.rawValue) \(issue.compactDescription) :: \(issue.element?.debugDescription.prefix(200) ?? "nil")")
+                // Off-screen elements (the next carousel card, rows under the tab bar) can't be measured.
+                if let frame = issue.element?.frame, !app.frame.contains(frame) { return true }
                 return issue.auditType == .dynamicType && issue.compactDescription.contains("partially unsupported")
             }
             app.terminate()

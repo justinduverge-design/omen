@@ -62,6 +62,37 @@ enum FoundationFixtures {
         )
     }
 
+    /// Frame Ledger: the contested record, the weeks as bars, every call. `graded: false` is before any result.
+    static func ledger(graded: Bool) -> OmenLedgerState {
+        let entries: [OmenLedgerEntry] = [
+            .init(id: "c7", period: "WEEK 7", callType: "START/SIT", summary: "Start Meyers over D. Smith", outcome: "", action: .followed(.verified), ledgerOutcome: .pending, week: 7),
+            .init(id: "c6", period: "WEEK 6", callType: "START/SIT", summary: "Start Wright over R. Johnson", outcome: "", action: .followed(.verified), ledgerOutcome: graded ? .worked : .pending, week: 6),
+            .init(id: "c5", period: "WEEK 5", callType: "WAIVER", summary: "Add Spears, drop Tracy", outcome: "", action: .passed(.selfReported), ledgerOutcome: graded ? .didNotWork : .pending, week: 5),
+            .init(id: "c4", period: "WEEK 4", callType: "START/SIT", summary: "Start Pierce over Shakir", outcome: "", action: .unknown, ledgerOutcome: graded ? .notVerified : .pending, week: 4),
+            .init(id: "c3", period: "WEEK 3", callType: "TRADE", summary: "Trade: Etienne for McBride", outcome: "", action: .followed(.verified), ledgerOutcome: graded ? .worked : .pending, week: 3),
+        ]
+        let record = MovesHistory.Record(worked: nil, didNotWork: nil, contestedWorked: graded ? 41 : 0, contestedDidNotWork: graded ? 19 : 0, contestUnknown: nil, uncontested: nil)
+        return OmenLedgerState(entries: graded ? entries : [entries[0]], record: record, providerName: "ESPN", season: 2026)
+    }
+
+    /// Frame LedgerReceipt: one call, frozen as issued. `closed: false` is a week not yet played.
+    static func receipt(closed: Bool) -> OmenLedgerReceiptState {
+        OmenLedgerReceiptState(
+            eyebrow: closed ? "Right \u{00B7} Week 6" : "Pending \u{00B7} Week 7",
+            outcome: closed ? .worked : .pending,
+            headline: closed ? "Start Wright over R. Johnson" : "Start Meyers over D. Smith",
+            detail: "Start/Sit \u{00B7} you made the move",
+            result: closed ? "Wright scored 16.2, Johnson 2.4: +13.8 points" : nil,
+            fairnessNote: "Graded on your league\u{2019}s half-PPR scoring. It counts toward the record because the other player was a real option: active and healthy.",
+            said: [
+                .init(id: 0, text: "Pollard is out three weeks and Wright took 71% of the backfield snaps last Sunday.", unread: false),
+                .init(id: 1, text: "the weather forecast for the game", unread: true),
+            ],
+            issued: "Issued Tue 3:00 AM",
+            choice: "Made the move (your word)"
+        )
+    }
+
     /// Frame Waivers: one add and drop with a bid, or nothing worth doing.
     static func waivers(move: Bool) -> OmenWaiversState {
         let spears = OmenPlayerSummary(id: "add", name: "Tyjae Spears", position: "RB", team: "TEN", omenPoints: 10.8, providerPoints: 8.9, providerName: "ESPN", grade: 66, lead: .omen, detail: "RB \u{00B7} TEN \u{00B7} 12% rostered")

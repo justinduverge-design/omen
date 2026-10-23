@@ -29,6 +29,8 @@ final class CommandCenterViewModel: ObservableObject {
     @Published private(set) var ledger: OmenLedgerPreviewState?
     /// The contested record, the Ledger's headline ("11 of 14 close calls held up.").
     @Published private(set) var ledgerHeadline: String?
+    @Published private(set) var ledgerRecord: MovesHistory.Record?
+    @Published private(set) var ledgerSeason: Int?
 
     /// The whole `waiver-analysis.v1` payload, kept rather than reduced.
     ///
@@ -334,10 +336,14 @@ final class CommandCenterViewModel: ObservableObject {
 
     private func loadLedger(accessToken: String, platform: String, leagueId: String) async {
         ledger = .loading
+        ledgerRecord = nil
+        ledgerSeason = nil
         switch await movesRepository.fetchMoves(accessToken: accessToken, platform: platform, leagueId: leagueId) {
         case .success(let history):
             ledger = history.ledgerState
             ledgerHeadline = history.contestedHeadline
+            ledgerRecord = history.record
+            ledgerSeason = history.season
         case .failure(let error):
             // A 401 here is not routed to re-auth: the summary call that just succeeded used
             // the same token, so this is far more likely a route-level problem than a dead
