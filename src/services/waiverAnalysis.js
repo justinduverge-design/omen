@@ -487,12 +487,15 @@ function envelope({
 // lineupHorizon), playoff weeks weighted by playoffWeekWeight; three weeks is only the fallback. Dynasty value
 // beyond this season is phase 3.
 const DEFAULT_LINEUP_WEEKS = 3;
+// Weeks the projections actually cover (this one and comingWeeks.js's three). Judging further would repeat this
+// week's number, and cost a lineup solve per week for nothing.
+const MAX_LINEUP_WEEKS = 4;
 
-/** Weeks to judge from `week`: through the league's final playoff week if known, never past it. */
+/** Weeks to judge from `week`: up to MAX_LINEUP_WEEKS, never past the league's final playoff week when it is known. */
 function lineupHorizon({ week, lastPlayoffWeek = null } = {}) {
   const now = Number(week);
   const last = Number(lastPlayoffWeek);
-  if (Number.isInteger(now) && Number.isInteger(last) && last >= now) return last - now + 1;
+  if (Number.isInteger(now) && Number.isInteger(last) && last >= now) return Math.min(MAX_LINEUP_WEEKS, last - now + 1);
   return DEFAULT_LINEUP_WEEKS;
 }
 const CANDIDATES_CHECKED = 15;
@@ -585,7 +588,9 @@ function judgeByLineup(ranked, { starters, bench, week, weeks = DEFAULT_LINEUP_W
       }
       remaining = remaining.filter((p) => !sameKey(p, option.player));
     }
-    if (!drop) continue;
+    // Nobody the add can replace (an open roster spot, or no bench player chooseDrop allows): judge the add alone and
+    // leave the drop empty, which the analysis reports as no low-cost drop, as it did before.
+    if (!drop) after = lineupOver([...roster, entry.player], rosterPositions, week, weeks, weekWeight);
     const gain = round2((after - before) / weeks);
     if (gain < MIN_IMPROVEMENT) continue;
     judged.push({ ...entry, drop, lineup_gain: gain, acquisition: acquisitionOf(entry.player) });

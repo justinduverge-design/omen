@@ -113,3 +113,27 @@ test("a trade is judged over the coming weeks: a receiver out after this week is
   assert.equal(overWeeks.receive.name, "Their WR");
   assert.deepEqual([overWeeks.userDelta, overWeeks.opponentDelta], [9, 3]);
 });
+
+test("with nobody to drop, a real upgrade is still the move, with the drop left empty", () => {
+  const roster = {
+    week: 7,
+    slots: { starters: [{ ...p("RB Starter", "RB", 5), selected_position: "RB" }], bench: [] },
+  };
+  const result = buildWaiverAnalysis({
+    roster,
+    pool: [p("RB Wire", "RB", 12, { acquisition: "free_agent" })],
+    platform: "sleeper",
+    leagueId: "L",
+    week: 7,
+    availabilityConfirmed: true,
+  });
+  assert.equal(result.best_move.add.name, "RB Wire");
+  assert.equal(result.best_move.drop, null);
+});
+
+test("the waiver window stops at the weeks the projections cover", () => {
+  const { lineupHorizon } = require("../src/services/waiverAnalysis");
+  assert.equal(lineupHorizon({ week: 5, lastPlayoffWeek: 17 }), 4);
+  assert.equal(lineupHorizon({ week: 16, lastPlayoffWeek: 17 }), 2);
+  assert.equal(lineupHorizon({ week: 5 }), 3);
+});

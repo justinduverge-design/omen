@@ -1055,9 +1055,9 @@ async function fetchSleeperProjectionStatLines(season, week, opts = {}) {
  * the other way produces a recommendation the user cannot act on.
  *
  * Returns the same normalized player shape as buildNormalizedRoster, ranked by
- * projected points. Players with no projection sort last and keep
- * `projected_points: null` — never 0, which would read as a real projection of
- * zero rather than absent data.
+ * projected points. Players Sleeper has no row for sort last and keep
+ * `projected_points: null`. A row with no points is Sleeper projecting the player
+ * not to play, which is a real 0 (normalizeProjections).
  */
 async function fetchSleeperAvailablePlayers(leagueId, week, season) {
   const targetSeason = season || currentSeason();

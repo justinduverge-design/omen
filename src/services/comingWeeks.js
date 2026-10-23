@@ -63,7 +63,7 @@ async function attachComingWeeks({ platform, players, week, season, weeks = EXTR
   const coming = Array.from({ length: extra }, (_, i) => first + 1 + i).filter((w) => w <= 18);
   const [sleeperPlayers, now, ...ahead] = await Promise.all([
     platform === "sleeper" ? null : deps.fetchSleeperPlayers(),
-    deps.fetchSleeperProjections(season, first),
+    deps.fetchSleeperProjections(season, first).catch(() => null),
     ...coming.map((w) => deps.fetchSleeperProjections(season, w).catch(() => null)),
   ]);
   const index = sleeperIndex(sleeperPlayers);
