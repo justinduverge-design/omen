@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 .claude/
+.agents/skills/*
+!.agents/skills/run-slops-saloon/
 
 # Secrets - NEVER COMMIT
 .env

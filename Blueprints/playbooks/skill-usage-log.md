@@ -48,3 +48,4 @@ three-weekly skill check (`Direction/reviews/2026-10-03-harness-design-outline.m
 
 - 2026-10-19 · Build 12 screens + canvas (#754 to #758) · invoked: slops-code-review (3 fresh-agent reviews), figma-use (archive) · skipped: workflow-tree-spec and pre-build-research (the canvas brief and BUILD.md covered them) · Claude
 - 2026-10-25 · Build 12 close (#773 to #779) · invoked: slops-code-review (5 fresh-agent reviews) · skipped: slops-native-ui-audit (founder walked the Desk on device instead), pre-build-research (no new external data)
+2026-10-20 | Antigravity runtime setup + .agents/skills linker parity (L0/L2) | agy-customizations, slops-repo-inspector, slops-context-markdown, rbac-risk-review | skipped slops-tdd: harness/runtime docs and skill-link extension verified via link-skills.mjs --check, check-kickoff-drift.js, harness-cost.js, and check-sprint-staleness.js
