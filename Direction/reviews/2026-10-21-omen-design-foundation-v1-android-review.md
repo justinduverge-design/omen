@@ -120,14 +120,14 @@ If we are building these 10 components once in `DesignSystem/` (`mobile/ios/.../
    * **Spec addition:** Define the collapse threshold: once the user scrolls down past the Rolodex card's bottom edge and it collapses into the **Pinned score bar**, horizontal flicking on the pinned bar is **disabled** (or tapping the pinned bar scrolls back to top / opens the switcher sheet). You only flick the full Rolodex when at the top of the Desk.
    * Also specify the **Rolodex stack cue**: how does a user with 3 teams know the first card is a stack? Specify a **peek edge** (e.g., 12pt of the next card peeking on the trailing edge, or a subtle stacked card bottom edge + `1 of 3` count in the header, matching `OmenLeagueCarousel.kt:61`'s accessibility rule that page indicators cannot rely on color alone).
 2. **Trade Builder (§4): Three-Team & Provider Lock Truth:**
-   * **Source:** `Direction/2026-10-20-build-12-plan.md` L27–35 (*"Build anchors the user's team, excludes it from opponent choices, supports the approved two- and three-team composition... and provider lock/editability state"*).
+   * **Source:** `Archive/build-12/2026-10-20-build-12-plan.md` L27–35 (*"Build anchors the user's team, excludes it from opponent choices, supports the approved two- and three-team composition... and provider lock/editability state"*).
    * Spec §4 currently describes `Trade builder` as two-sided only: *"Partner, then You send and You get trays, then a roster toggle (yours / theirs) with a check per row"*.
    * **Spec addition:** Account for:
      * **Locked / In-flight players:** A player whose game has started (or is non-tradeable per provider rules) must show a quiet lock state on their `Player row` rather than an active checkbox.
      * **2-team default, 3-team expansion (where provider supports it, e.g. Sleeper):** Keep the 2-team `Yours / Theirs` segmented toggle as the clean default, with an optional `+ Add third team` affordance only when capability `multiTeamTrade == true`.
 3. **"The Machine Stays Backstage" vs. Required Mock/Live & Provenance Honesty (§2 & §8):**
    * **Spec §2:** *"Nothing on a main screen says what Omen could not read, which source was stale, or how a signal was weighed. That lives in 'See the full argument'."*
-   * **Source:** `Direction/2026-10-20-build-12-plan.md` L37–39 & `OmenCommandCenterScreen.kt:70–74` (Facts-of-record #7: mock/demo data must be visibly labeled, never presented as live; degraded provider sub-reads stay local and honest).
+   * **Source:** `Archive/build-12/2026-10-20-build-12-plan.md` L37–39 & `OmenCommandCenterScreen.kt:70–74` (Facts-of-record #7: mock/demo data must be visibly labeled, never presented as live; degraded provider sub-reads stay local and honest).
    * **How to reconcile both rules cleanly:**
      * Keep internal signal weights and warehouse coverage telemetry backstage inside `"See the full argument"`.
      * **Never hide Demo Mode or stale provider sync:** If the user is in Demo Mode, the top badge still says `Demo`. If ESPN's cookie expired or a roster read is 6 hours stale, the Rolodex card or section header shows a quiet, human 1-line status (`"ESPN needs sign-in"` or `"Updated Tue 4:10 PM"`), never raw plumbing jargon (`"nflverse_weekly_stats missing"`).
@@ -136,7 +136,7 @@ If we are building these 10 components once in `DesignSystem/` (`mobile/ios/.../
 
 ## 7. Protecting Build 12 Scope: Sequence the Rollout in §10
 
-**Source:** `Direction/2026-10-20-build-12-plan.md` L16–24 (*"Final Build 12 scope lock — 2026-10-15: Build 12 is one Trade release with supporting provider and data foundations. It is not a general League rewrite..."*).
+**Source:** `Archive/build-12/2026-10-20-build-12-plan.md` L16–24 (*"Final Build 12 scope lock — 2026-10-15: Build 12 is one Trade release with supporting provider and data foundations. It is not a general League rewrite..."*).
 
 Right now, §6 lists 16 screens. If we try to block Build 12's ship on rebuilding all 16 screens + the physics-based Team Rolodex + Pinned collapsing score + Waivers + Ledger on both iOS and Android, Build 12 will slip by weeks.
 

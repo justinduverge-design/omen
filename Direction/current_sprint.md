@@ -54,7 +54,7 @@ founder, or store work.
 - **Priority:** P0
 - **Cost:** medium
 - **Do not touch:** store consoles without approval; merge cutoff is the Monday afternoon before each release, no deploying merges Monday evening through the release day
-- **Scope:** `Direction/2026-10-20-build-12-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
+- **Scope:** `Archive/build-12/2026-10-20-build-12-plan.md` (active build), `Direction/2026-10-12-rolling-three-beta-frame.md` (cadence), `Direction/2026-10-27-beta-readiness.md` (unallocated horizon/index), `Direction/2026-10-13-release-rollback-card.md` (Build 9 rollback provenance).
 - **Done when:** the founder ships the build and the release day's canary passes.
 
 **2026-10-13 execution note:** no new beta version has installs yet. ESPN fresh-login verification is
@@ -143,7 +143,7 @@ partner/manual-compare journey and ESPN/Yahoo/Sleeper terminal-state evidence; R
 - **Status:** READY
 - **Priority:** P2
 - **Cost:** medium (docs only)
-- **Scope:** founder direction 2026-10-12 (`Direction/decision_log.md`); outputs `Blueprints/specs/football-data/omen-evidence-layer-map-v1.md`, `omen-information-architecture-v1.md`, `omen-provider-discovery-v1.md`. The first attempt was cut off by the rate limit and produced nothing.
+- **Scope:** founder direction 2026-10-12 (`Direction/decision_log.md`); outputs (not written yet) omen-evidence-layer-map-v1.md, omen-information-architecture-v1.md and omen-provider-discovery-v1.md under the football-data specs. The first attempt was cut off by the rate limit and produced nothing.
 - **Done when:** the three specs exist, cite files, and carry a phased plan.
 
 ### WH-PROJECTIONS-APPLY — apply the weekly projections schema and enable the store (after a release)

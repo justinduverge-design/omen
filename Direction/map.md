@@ -39,7 +39,7 @@ Analyzer is the front door; Omen of the Week is the main event. Detail: `Directi
 
 Focus: Build 11 is the current tester baseline and Build 12 is next. During the beta a build ships when it is
 ready, not on a fixed Tuesday (founder, 2026-10-17); a fixed schedule returns at the public launch. The active sprint frame is
-`Direction/2026-10-20-build-12-plan.md`; cadence, inspection gate and unallocated horizon live in
+`Archive/build-12/2026-10-20-build-12-plan.md`; cadence, inspection gate and unallocated horizon live in
 `Direction/2026-10-12-rolling-three-beta-frame.md`;
 the 2026-10-27 readiness index remains in `Direction/2026-10-27-beta-readiness.md`. Latest state:
 `Blueprints/handoffs/2026-10-13-build-11-shipped-codex-handoff.md`. Pinned task: `Direction/agent_inbox.md`.

@@ -20,7 +20,7 @@ merge, deploy or touch App Store Connect.
 
 - **Build 11 / uploaded 2026-10-12:** current tester baseline; fresh-account ESPN remains unproven.
 - **Build 12 / 2026-10-20 at the earliest:** active planning; scope waits for the foundation inspection in
-  `Direction/2026-10-20-build-12-plan.md`.
+  `Archive/build-12/2026-10-20-build-12-plan.md`.
 - **2026-10-27:** hopeful horizon populated only as the rolling frame advances.
 
 ## Known findings, not diagnoses

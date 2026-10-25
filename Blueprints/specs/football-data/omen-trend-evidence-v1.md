@@ -1,5 +1,7 @@
 # Omen trend evidence v1 — play-type splits, small-sample shrinkage, and cause / correlation / coincidence
 
+<!-- truth-gate: targets-not-sources — a proposal: the files it names are to be built, not yet in the tree -->
+
 **Status:** Proposed — awaiting founder approval
 **Date:** 2026-10-10
 **Sprint item:** `FM-TREND` in `Direction/current_sprint.md`
