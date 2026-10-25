@@ -76,11 +76,13 @@ const HOT_ROUTE_WINDOW_MS = 60 * 1000;
 const HOT_ROUTE_LIMITS = Object.freeze({
   quiet_week: Object.freeze({ method: "GET", path: "/api/dashboard/quiet-week", perIp: 20, perUser: 10 }),
   beta_report: Object.freeze({ method: "POST", path: "/api/beta/reports", perIp: 20, perUser: 5 }),
+  // Founder, 2026-10-25: 10 a minute refused a tester swiping through 8 teams. The limit stops abuse, never a
+  // manager reading every team; repeats inside a minute come from the response cache.
   omen_mvp_move: Object.freeze({
     method: "POST",
     path: "/api/omen/mvp-move",
-    perIp: 20,
-    perUser: 10,
+    perIp: 300,
+    perUser: 120,
   }),
   trade_compare: Object.freeze({
     method: "POST",
