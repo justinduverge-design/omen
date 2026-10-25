@@ -119,11 +119,15 @@ struct OmenDeskView: View {
         case .noLeague: return "Connect a league to start"
         case .loading, .failed: return "Desk"
         case .ready:
-            // Out of every team, never just the ones read so far. Projections count before kickoff.
-            guard teams.contains(where: { $0.isAhead != nil }) else { return teams.count > 1 ? "Your \(teams.count) teams" : "Your team" }
-            let up = teams.filter { $0.isAhead == true }.count
-            let onTheBoard = teams.contains { $0.hasScores }
-            return onTheBoard ? "Up in \(up) of \(teams.count)" : "Projected to win \(up) of \(teams.count)"
+            // Once any game has points, only scored matchups count ("Up in"); before that, every matchup Omen could
+            // read counts on projection. A team it can't read (sign in again, unavailable) is never counted as a loss.
+            let scored = teams.filter(\.hasScores)
+            if !scored.isEmpty {
+                return "Up in \(scored.filter { $0.isAhead == true }.count) of \(scored.count)"
+            }
+            let read = teams.filter { $0.isAhead != nil }
+            guard !read.isEmpty else { return teams.count > 1 ? "Your \(teams.count) teams" : "Your team" }
+            return "Projected to win \(read.filter { $0.isAhead == true }.count) of \(read.count)"
         }
     }
 

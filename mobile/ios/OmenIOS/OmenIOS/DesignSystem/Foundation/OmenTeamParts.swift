@@ -186,7 +186,7 @@ struct OmenTeamCard: View {
                                 .foregroundStyle(OmenColor.textTertiary)
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel("Projected points: \(Int((share * 100).rounded())) percent yours")
+                        .accessibilityLabel("\(projectedLine). \(Int((share * 100).rounded())) percent of projected points are yours")
                     }
                     if let line = team.line {
                         Text(line).omenTextStyle(OmenTypography.quiet).foregroundStyle(OmenColor.textSecondary).fixedSize(horizontal: false, vertical: true)

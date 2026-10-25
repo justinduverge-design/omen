@@ -173,7 +173,9 @@ struct OmenApiClient {
             guard attempt < 2, let http = response as? HTTPURLResponse, http.statusCode == 429 else { return (data, response) }
             attempt += 1
             let asked = (http.value(forHTTPHeaderField: "Retry-After")).flatMap(Double.init) ?? Double(attempt * 2)
-            try await Task.sleep(nanoseconds: UInt64(min(8, max(1, asked)) * 1_000_000_000))
+            // A little random spread, so requests refused together don't all come back at the same instant.
+            let wait = min(8, max(1, asked)) + Double.random(in: 0...0.75)
+            try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
         }
     }
 

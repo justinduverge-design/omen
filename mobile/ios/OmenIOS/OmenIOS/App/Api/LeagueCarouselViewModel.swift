@@ -433,9 +433,17 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// intentionally not awaited by the shell's first useful state: scores fill progressively,
     /// and a slow provider cannot delay leagues that already answered.
     func prefetchRemainingPages() async {
-        // Together, not one after another: the Desk headline counts every team, so all of them are wanted at once.
+        // Three at a time, not one after another: the Desk headline counts every team, and a manager with 8 leagues
+        // should not wait on them in turn, nor send all 8 reads at once.
+        let waiting = pages.filter { pageStates[$0.id] == nil }
         await withTaskGroup(of: Void.self) { group in
-            for page in pages where pageStates[page.id] == nil {
+            var next = 0
+            for _ in 0..<min(3, waiting.count) {
+                let page = waiting[next]; next += 1
+                group.addTask { await self.loadPage(page) }
+            }
+            while await group.next() != nil, next < waiting.count, !Task.isCancelled {
+                let page = waiting[next]; next += 1
                 group.addTask { await self.loadPage(page) }
             }
         }
