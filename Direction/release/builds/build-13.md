@@ -6,7 +6,24 @@
 scope commitment or a reason to hold a Build 12 candidate that passes its final iPhone walk and TestFlight
 gate.
 
-## Provider liabilities
+## Forecast liability (founder, 2026-10-25)
+
+**Sight forecasts points only.** Today Sight predicts one number per player, next week's PPR points, plus a
+0-100 grade. Omen's whole point is to forecast fantasy football, so Build 13 makes Sight forecast the stat
+line, for each of the coming weeks:
+
+- targets, catches and receiving yards; carries and rushing yards; passing yards; TDs of each kind (QB, RB,
+  WR, TE first; K and DEF after);
+- scored with each league's own rules, which also replaces Yahoo's approximate scoring and covers custom ESPN
+  scoring;
+- built alongside the current Sight and switched over once (`SIGHT_VERSION`), and allowed to lead only where its
+  measured error beats the provider's (the forecast-authority block already carries the scorecard);
+- shown on the decision screens as a small table: season so far, Omen expects, and the league's own projection,
+  for the two players in each move (trade: get/send; start/sit; waivers: add/drop).
+- **win probability on the Desk cards**, from Omen's own stat-line forecast rather than the provider's points
+  (founder, 2026-10-25). Build 12's bar shows the share of projected points, labelled as such.
+
+
 
 ### ESPN first-time path
 
