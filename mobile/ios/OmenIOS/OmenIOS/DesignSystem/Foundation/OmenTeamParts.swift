@@ -38,9 +38,17 @@ struct OmenTeamCardModel: Equatable, Identifiable {
         return projected / (projected + opponentProjected)
     }
 
+    /// Ahead on the scoreboard once points are on it; before that, ahead on projection.
     var isAhead: Bool? {
-        guard let score, let opponentScore else { return nil }
-        return score >= opponentScore
+        if let score, let opponentScore, score > 0 || opponentScore > 0 { return score >= opponentScore }
+        if let projected, let opponentProjected { return projected >= opponentProjected }
+        return nil
+    }
+
+    /// True once any points are on the board; before kickoff the card shows projections instead.
+    var hasScores: Bool {
+        guard let score, let opponentScore else { return false }
+        return score > 0 || opponentScore > 0
     }
 }
 
@@ -172,7 +180,8 @@ struct OmenTeamCard: View {
                                 }
                             }
                             .frame(height: 6)
-                            Text("Projected points")
+                            // The bar's own numbers, yours first. Win probability from Omen's forecast is Build 13.
+                            Text(projectedLine)
                                 .omenTextStyle(OmenTypography.quiet)
                                 .foregroundStyle(OmenColor.textTertiary)
                         }
@@ -185,6 +194,11 @@ struct OmenTeamCard: View {
                 }
             }
         }
+    }
+
+    private var projectedLine: String {
+        guard let mine = team.projected, let theirs = team.opponentProjected else { return "Projected points" }
+        return "Projected \(OmenPlayerSummary.one(mine)) \u{2013} \(OmenPlayerSummary.one(theirs))"
     }
 
     private var statusText: String {

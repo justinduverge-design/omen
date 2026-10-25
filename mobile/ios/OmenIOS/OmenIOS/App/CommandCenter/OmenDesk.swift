@@ -119,10 +119,11 @@ struct OmenDeskView: View {
         case .noLeague: return "Connect a league to start"
         case .loading, .failed: return "Desk"
         case .ready:
-            let scored = teams.filter { $0.isAhead != nil }
-            guard !scored.isEmpty else { return teams.count > 1 ? "Your \(teams.count) teams" : "Your team" }
-            let up = scored.filter { $0.isAhead == true }.count
-            return "Up in \(up) of \(scored.count)"
+            // Out of every team, never just the ones read so far. Projections count before kickoff.
+            guard teams.contains(where: { $0.isAhead != nil }) else { return teams.count > 1 ? "Your \(teams.count) teams" : "Your team" }
+            let up = teams.filter { $0.isAhead == true }.count
+            let onTheBoard = teams.contains { $0.hasScores }
+            return onTheBoard ? "Up in \(up) of \(teams.count)" : "Projected to win \(up) of \(teams.count)"
         }
     }
 

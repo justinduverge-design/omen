@@ -411,6 +411,8 @@ final class LeagueCarouselViewModel: ObservableObject {
             selectIndexProgrammatically(pages.firstIndex(where: { isCurrent($0) }) ?? 0)
             viewState = allPages.isEmpty ? .empty : .loaded
             await loadCurrentPage()
+            // Every other team's matchup, so the Desk counts all of them without waiting for a swipe.
+            Task { await self.prefetchRemainingPages() }
         case .failure(.cancelled) where Task.isCancelled:
             // The awaiting task was cancelled: the load that replaced it resolves the state. A live-task
             // cancel falls through to `.failed`, never an endless spinner.
@@ -431,9 +433,11 @@ final class LeagueCarouselViewModel: ObservableObject {
     /// intentionally not awaited by the shell's first useful state: scores fill progressively,
     /// and a slow provider cannot delay leagues that already answered.
     func prefetchRemainingPages() async {
-        for page in pages where pageStates[page.id] == nil {
-            guard !Task.isCancelled else { return }
-            await loadPage(page)
+        // Together, not one after another: the Desk headline counts every team, so all of them are wanted at once.
+        await withTaskGroup(of: Void.self) { group in
+            for page in pages where pageStates[page.id] == nil {
+                group.addTask { await self.loadPage(page) }
+            }
         }
     }
 
