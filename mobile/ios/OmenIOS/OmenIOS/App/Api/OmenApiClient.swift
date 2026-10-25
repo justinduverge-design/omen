@@ -164,6 +164,21 @@ struct OmenApiClient {
         return request
     }
 
+    /// A 429 is the server asking for a moment, not a failure the user should see: wait (its Retry-After, at most
+    /// 8 s) and ask again, twice at most. Only after that does the caller get the 429.
+    private func fetchWaitingOutLimits(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        var attempt = 0
+        while true {
+            let (data, response) = try await fetcher.data(for: request)
+            guard attempt < 2, let http = response as? HTTPURLResponse, http.statusCode == 429 else { return (data, response) }
+            attempt += 1
+            let asked = (http.value(forHTTPHeaderField: "Retry-After")).flatMap(Double.init) ?? Double(attempt * 2)
+            // A little random spread, so requests refused together don't all come back at the same instant.
+            let wait = min(8, max(1, asked)) + Double.random(in: 0...0.75)
+            try await Task.sleep(nanoseconds: UInt64(wait * 1_000_000_000))
+        }
+    }
+
     private func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async -> Result<T, OmenApiError> {
         let data: Data
         let response: URLResponse
@@ -175,7 +190,7 @@ struct OmenApiClient {
         var lastStatus: Int?
         defer { OmenSignposts.endRequest(signpost, name: signpostName, status: lastStatus) }
         do {
-            (data, response) = try await fetcher.data(for: request)
+            (data, response) = try await fetchWaitingOutLimits(request)
         } catch {
             OmenRequestTiming.log(request, status: nil, since: started)
             return .failure(OmenApiError.transport(error))
