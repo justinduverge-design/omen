@@ -261,6 +261,12 @@ Welcome, email code, Connect and league pick, connect failed, the passkey offer 
 
 ## Known issues / next
 
+### Known limit in this build
+
+Sight, Omen's own read, forecasts **points only** (next week's PPR total and a grade), not catches, yards,
+carries or touchdowns. Decisions and the new "Why" reasons (#775) rest on that. The stat-line forecast is the
+first Build 13 item (`build-13.md`, Forecast liability).
+
 ### Explicit Build 13 carry-forward
 
 - Re-prove the complete first-time ESPN connection, discovery and ingestion journey with a new account,
