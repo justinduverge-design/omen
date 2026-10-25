@@ -1,5 +1,7 @@
 # Omen fantasy metrics v1 — expected fantasy points, opportunity, role chart, dynasty outlook
 
+<!-- truth-gate: targets-not-sources — a proposal: the files it names are to be built, not yet in the tree -->
+
 **Status:** Proposed — awaiting founder approval
 **Date:** 2026-10-10
 **Sprint item:** `FM-XFP` in `Direction/current_sprint.md`

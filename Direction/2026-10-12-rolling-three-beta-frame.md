@@ -21,7 +21,7 @@ hopeful horizon that becomes real only as the frame rolls forward.
 | Release | Date | Confidence | Scope now | Scope is chosen when |
 |---|---|---|---|---|
 | Build 11 | uploaded 2026-10-12 | current tester baseline; fresh-account ESPN path remains on the watch list | Observe the repaired first-login flow. The Build 9 phone-walk Trade failures remain historical product evidence, not proof of Build 11 behavior. | beta feedback and status-only log correlation |
-| Build 12 | Tue 2026-10-20 at the earliest | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Direction/2026-10-20-build-12-plan.md`. | after the foundation inspection and first Thu-Sun build window |
+| Build 12 | Tue 2026-10-20 at the earliest | active planning; scope unallocated | Choose the smallest coherent outcome only after the foundation inspection. Plan: `Archive/build-12/2026-10-20-build-12-plan.md`. | after the foundation inspection and first Thu-Sun build window |
 | Beta 3 | Tue 2026-10-27 | hopeful horizon | Candidate backlog only: projection recovery, provider-read slices, evidence/IA/discovery specs, Omen evidence summary, League completion and Account refinement. None is promised to this release before inspection and Beta 2 evidence. | when the frame rolls on Mon 2026-10-19 and again on Mon 2026-10-26 |
 
 Every Monday, remove the shipped Tuesday, promote the next Tuesday to the committed position, and

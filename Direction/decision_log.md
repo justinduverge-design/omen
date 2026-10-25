@@ -35,7 +35,7 @@
 ## 2026-10-12 — Renumber: the planned Build 10 is now Build 12
 
 - **Why:** Build 9 had stale code, so Build 10 shipped the same night from current main, and Build 11 followed with the ESPN first-login fix (settle the cookie pair, patient discovery, Check again; server logs the real ESPN status).
-- **Rule:** the 2026-10-20 plan is Build 12 (`Direction/2026-10-20-build-12-plan.md`). Earlier entries that say "Build 10" for 2026-10-20 mean Build 12.
+- **Rule:** the 2026-10-20 plan is Build 12 (`Archive/build-12/2026-10-20-build-12-plan.md`). Earlier entries that say "Build 10" for 2026-10-20 mean Build 12.
 
 ## 2026-10-12 — Build 9 is distributed; Build 10 becomes the active release target
 
@@ -4823,3 +4823,21 @@ logos; the account avatar stays initials for now. Progress and the per-screen ga
 trade, and league." Each is rebuilt on the foundation, the old screens and pieces it replaces are
 deleted in the same change, and each passes the progress-file gate. Commit and push freely on
 `claude/build12-app`; no merge until the screen work is done.
+
+## 2026-10-23 to 10-25 — Build 12 close: reasons first, real-launch limits, the forecast is Build 13
+
+**Decisions (founder).**
+- *Reasons first (2026-10-23):* "I don't wanna just see points being compared." Every move (Omen call,
+  start/sit, waivers, trades) leads with who misses which weeks, Omen's grade and what drives it, then the
+  lineup change; points close it (#775). Trades and waivers are judged over this week and up to three
+  coming ones, on all three providers (#774).
+- *Treat the beta as a launch (2026-10-25):* 20+ testers, marketing next. The Omen call limit went from 10 to
+  120 per user and 300 per IP a minute after the founder's walk hit 429s swiping 8 teams (#777); the app
+  waits out a limit instead of showing "try again" (#779).
+- *Desk card (2026-10-25):* scores stay a dash until kickoff; the projected numbers sit on the bar (#779).
+- *Build 12 keeps points; Build 13 forecasts the stat line (2026-10-25):* Sight forecasts next week's
+  points only. Build 13 makes it forecast targets, catches, yards, carries and TDs per coming week, scored
+  with each league's rules, with a season-so-far / Omen-expects / provider table and win probability from
+  Omen's own numbers (`Direction/release/builds/build-13.md`).
+- *Nothing ships unreviewed (2026-10-23):* the founder rejected an archive containing changes he had not
+  accepted. Build 12's binary is cut only from main after his walk.

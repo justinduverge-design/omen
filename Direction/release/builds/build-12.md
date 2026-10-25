@@ -148,6 +148,17 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 
 43 PRs, #670 to #713, merged 2026-10-15 to 2026-10-17; then #714 to #752 to 2026-10-19. Builds 10 and 11 were #645 to #669.
 
+**Close, 2026-10-23 to 10-25 (#772 to #779):**
+- #772 trades never offer kickers or defenses or sell a thin position; #774 claims and trades judged by the
+  whole lineup over the coming weeks on Sleeper, ESPN and Yahoo; a Sleeper row with no points is a 0 (the
+  "Start Mike Evans" bug); ESPN tells free agents from claims and reads league scoring; Yahoo reads free agents
+  and waivers separately, 100 deep.
+- #775 reasons first on every surface (the trade card's "Why"); #773 the live walk's fixes (Build a Trade's
+  false "couldn't reach the server", "Jr..", labelled Sight drivers) and the walk itself.
+- #777 Omen call limit 120/user, 300/IP a minute; body-parser and fast-uri advisories fixed.
+- #779 Desk: every team counted ("Projected to win x of N"), projected numbers on the bar, a limit waited
+  out quietly, three team reads at a time; app build number 12.
+
 | PR | Area | Title |
 |---|---|---|
 | #670 | Trades | Build 12: Trade reliability and projection foundation |

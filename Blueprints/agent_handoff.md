@@ -46,7 +46,7 @@ Do not touch `Archive/quarantine`.
 - `Blueprints/specs/omen-ux-ui-design-system-v1.md` — written to canonical path (was worktree-only)
 
 **Frontend — theme system:**
-- `frontend/tailwind.config.js` — added Omen brand color tokens (raven, charcoal, bone, gold, crimson, omen)
+- frontend Tailwind config (since removed in the Tailwind 4 move) — added Omen brand color tokens (raven, charcoal, bone, gold, crimson, omen)
 - `frontend/src/index.css` — full CSS custom property token system for dark/light modes with system fallback
 - frontend/src/lib/theme.js (deleted 2026-07-11, PR #96) — `applyTheme()`, `getThemeSetting()`, `setTheme()` — reads `localStorage.slops-theme`
 - `frontend/src/App.jsx` — initializes theme on load, updates on OS preference change

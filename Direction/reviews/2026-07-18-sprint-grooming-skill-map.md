@@ -23,7 +23,7 @@ This grooming pass converts the sprint into an execution contract. Every active 
 - `Direction/agent_inbox.md`
 - `Direction/sprints_completed.md`
 - `Direction/decision_log.md`
-- `Blueprints/playbooks/sprint-synergy.md`
+- `Archive/build-12/sprint-synergy.md`
 - `Blueprints/playbooks/skill-activation-runbook.md`
 - `Blueprints/playbooks/skill-usage-ledger.md`
 - `Blueprints/backlog/ui-component-system.md`

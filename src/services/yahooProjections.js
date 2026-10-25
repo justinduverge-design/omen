@@ -441,11 +441,12 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
  * Project an available-player pool the same way as a roster. The pool keeps its shape
  * (`projected_points` stays null where no honest number exists); the meta says what was covered.
  */
-async function projectYahooPool(client, leagueKey, week, pool, { rosterMeta = null } = {}) {
+async function projectYahooPool(client, leagueKey, week, pool, { rosterMeta = null, deps } = {}) {
   // One budget per request: when the roster pass already spent it and timed out, the pool only gets a
   // short grace for the in-flight reads to land, not a second 2.5 s.
   const budgetMs = isTransientMeta(rosterMeta) ? POOL_GRACE_MS : BUDGET_MS;
-  const projectionMeta = await enrichYahooPlayers(pool, { client, leagueKey, week, budgetMs });
+  // `deps` reaches the loader too, so a caller's (or a test's) data source is the one used.
+  const projectionMeta = await enrichYahooPlayers(pool, { client, leagueKey, week, budgetMs, deps });
   return { pool, projectionMeta };
 }
 

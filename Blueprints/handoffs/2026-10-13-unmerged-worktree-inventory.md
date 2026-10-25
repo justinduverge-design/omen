@@ -2,7 +2,7 @@
 
 **Why this exists.** On 2026-10-13 the founder authorized deleting stale worktrees. 59 clean, fully pushed worktrees were
 removed. The ones below were kept because they hold work that is not on GitHub. Some of it may feed **Build 12**
-(2026-10-20; see `Direction/2026-10-20-build-12-plan.md` once it is merged). Nothing here has been reviewed for merge.
+(2026-10-20; see `Archive/build-12/2026-10-20-build-12-plan.md` once it is merged). Nothing here has been reviewed for merge.
 
 **What is and is not safe.** Commits live in the shared repo object store, so a committed branch survives deleting its worktree
 folder. Uncommitted files live only in the folder on this Mac. Deleting a folder below loses its uncommitted files.

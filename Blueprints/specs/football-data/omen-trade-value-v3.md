@@ -1,5 +1,7 @@
 # Omen trade value v3 — "Crown Odds": what a trade does to your title chances
 
+<!-- truth-gate: targets-not-sources — a proposal: the files it names are to be built, not yet in the tree -->
+
 **Status:** Proposed — awaiting founder approval
 **Date:** 2026-10-10
 **Sprint item:** `TV-V3` in `Direction/current_sprint.md`
