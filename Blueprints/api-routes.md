@@ -262,7 +262,7 @@ request, per rolling 60-second window.
 
 | Route | Per IP | Per credential | Why these numbers |
 | --- | --- | --- | --- |
-| `POST /api/omen/mvp-move` | 20 / min | 10 / min | Heaviest request Omen serves — provider fan-out plus an LLM call. There is one real Omen per user per week; everything past that is a refresh tap. |
+| `POST /api/omen/mvp-move` | 300 / min | 120 / min | One call per team, and a manager with 8 teams swipes through all of them (founder walk 2026-10-25: 10/min returned 429). Repeats inside a minute come from the response cache; the limit is for abuse only. |
 | `POST /api/trade/compare` | 20 / min | 20 / min | LLM-backed and the free front door, so a session of genuine back-to-back comparisons has to fit. Sits under the 120/min public-tool limit on `/api/trade/*`, making the expensive endpoint the tighter of the two rather than a redundant duplicate. |
 | `GET /api/dashboard/summary` | 60 / min | 30 / min | Cheapest and most polled — app launch, tab focus, post-connect refresh. A household or campus NAT puts many real users behind one IP, so its per-IP number is deliberately the loosest. |
 | `GET /api/dashboard/quiet-week` | 20 / min | 10 / min | Reads live Omen context for the quiet-week predicate without persisting a move. Same cost class as Omen recommendation generation, so it uses the same authenticated budget. |
