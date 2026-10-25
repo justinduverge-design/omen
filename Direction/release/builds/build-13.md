@@ -20,6 +20,8 @@ line, for each of the coming weeks:
   measured error beats the provider's (the forecast-authority block already carries the scorecard);
 - shown on the decision screens as a small table: season so far, Omen expects, and the league's own projection,
   for the two players in each move (trade: get/send; start/sit; waivers: add/drop).
+- **win probability on the Desk cards**, from Omen's own stat-line forecast rather than the provider's points
+  (founder, 2026-10-25). Build 12's bar shows the share of projected points, labelled as such.
 
 
 
