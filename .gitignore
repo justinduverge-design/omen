@@ -109,3 +109,5 @@ infra/vector/logs/
 # Rust
 /target
 evals/decision-cases/private/
+.npm-cache/
+.cloud-setup-test.log
