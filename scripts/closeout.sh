@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Close-out gates in one command (was five commands agents had to remember; see AGENTS.md → The loop).
 # A P0 or a failure exits non-zero. A gate that cannot run here says NOT RUN; it never reports a pass.
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 rc=0
 run() { echo "== $1"; shift; "$@" || rc=1; }
 run "sprint staleness"   node scripts/check-sprint-staleness.js

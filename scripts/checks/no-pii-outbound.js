@@ -15,14 +15,25 @@ const ROOT = path.resolve(__dirname, "../..");
 const DIRS = ["src", "test", "scripts", "evals", "warehouse", "crates"];
 const EXT = /\.(js|mjs|cjs|ts|py|rs|json|sh)$/;
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
-const SAFE = /@(example\.(com|org|net)|[a-z0-9.-]*\.test|[a-z0-9.-]*\.invalid|localhost)$|^(no-?reply|noreply|test|user|demo)@/i;
+const SAFE =
+  /@(example\.(com|org|net)|[a-z0-9.-]*\.test|[a-z0-9.-]*\.invalid|localhost)$|^(no-?reply|noreply|test|user|demo)@/i;
 const OUTBOUND = /user-agent|\bfrom\b\s*:|fetch\(|axios|headers|reqwest|requests\./i;
 const ROLE = ["hello@slopssaloon.com", "reports@slopssaloon.com"];
-const allow = new Set([...ROLE, ...(process.env.OMEN_CONTACT_ALLOW || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)]);
+const allow = new Set([
+  ...ROLE,
+  ...(process.env.OMEN_CONTACT_ALLOW || "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean),
+]);
 
 function* walk(dir) {
   let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
   for (const e of entries) {
     if (e.name === "node_modules" || e.name === "target" || e.name.startsWith(".")) continue;
     const p = path.join(dir, e.name);

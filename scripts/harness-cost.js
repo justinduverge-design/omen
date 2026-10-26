@@ -47,9 +47,7 @@ if (process.argv.includes("--json")) {
     );
   for (const f of codexExtra) {
     const b = fs.existsSync(path.join(ROOT, f)) ? fs.statSync(path.join(ROOT, f)).size : 0;
-    console.log(
-      `${String(tokens(b)).padStart(7)} tok  ${String(b).padStart(7)} B  ${f}  (adapter, not in the total)`,
-    );
+    console.log(`${String(tokens(b)).padStart(7)} tok  ${String(b).padStart(7)} B  ${f}  (adapter, not in the total)`);
   }
   console.log(
     `${String(total).padStart(7)} tok  total always-loaded (budget ${TOTAL_BUDGET_TOKENS}; was ~92,000 on 2026-10-03)`,
