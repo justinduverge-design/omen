@@ -219,12 +219,12 @@ All of it was built on `build-12/integration`, reviewed by a fresh agent, and me
 ## Where it lives
 
 - **Production API and warehouse:** everything above.
-- **In the app on `main`, not yet on TestFlight:** the Command desk and shared shell; provider-aware Desk,
+- **In the app on TestFlight 0.1.0 (12), 2026-10-25:** the Command desk and shared shell; provider-aware Desk,
   Omen, Start/Sit, Waivers, League, Trade and Ledger screens; light and dark lockups; ESPN discovery and
   background late-listing recovery; Find a Trade reasons and "the catch"; Trade horizon states; Sight and
   warehouse evidence; contested records; signposts and MetricKit.
-- **On the founder's iPhone:** the #760 Release build, including the light/dark sign-in proof. The final
-  #761/#762 source compiles and signs, but still needs its connected-device install and walk.
+- **On TestFlight:** 0.1.0 (12), uploaded 2026-10-25 from `main` after #779. Whether the final
+  connected-device accessibility walk ran on that archive is not recorded (see Proof).
 - **Switches in production:** `SIGHT_ENABLED=true`, `SIGHT_VERSION=v2`, `YAHOO_ENABLED=true`,
   `LEAGUE_TRANSACTIONS_YAHOO=1`, `LEAGUE_TRANSACTIONS_ESPN=1`.
 
@@ -327,7 +327,7 @@ current queue. Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`.
   the product better. Claude designs; the founder approves or rejects. Use references where unsure, and
   record each one as a principle, not a copied layout.
 
-### Build 12 release blockers (closed: uploaded 2026-10-25, TestFlight 0.1.0 (12))
+### Build 12 release blockers (history: uploaded 2026-10-25 as TestFlight 0.1.0 (12); the walk on that archive is not recorded)
 
 1. **Run the final physical-iPhone gate.** Install the final signed Release build, run the Build 12 screen
    and accessibility walk against the already-connected leagues, and record any honest degraded states.
@@ -450,8 +450,9 @@ PLEASE TEST
 - **Final production deploy:** merge `36835f11` deployed successfully in run `39473388464`; backend tests,
   recorded contracts, dependency audit, frontend build, image builds, `/api/health`, deployed-logo check and
   public-route visual canary all passed.
-- **Not yet done:** install the final signed build on the paired iPhone; run the screen and unfiltered
-  accessibility walk below; upload the proven archive to TestFlight. Fresh-account ESPN and the rejected
+- **Then (2026-10-25):** the archive was uploaded to TestFlight 0.1.0 (12). The final unfiltered
+  accessibility walk on that exact build is not recorded here; the #773 live walk (8 real teams) is the
+  latest recorded device proof. Fresh-account ESPN and the rejected
   legacy row are explicitly carried into Build 13.
 
 ### Founder device walk, 2026-10-20
