@@ -5,17 +5,16 @@ from __future__ import annotations
 
 import argparse
 import csv
-from datetime import datetime, timezone
 import gzip
 import hashlib
 import io
 import json
 import os
-from pathlib import Path
 import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-
 
 PRODUCTION_ROOT = Path("/var/lib/omen-football-witness")
 PHASE3_ACCEPTANCE_SHA256 = "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea"
@@ -32,15 +31,50 @@ MAX_BYTES = 64 * 1024 * 1024
 SOURCES = {
     "stats_player": {
         "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{season}.csv",
-        "required": ("player_id", "player_name", "season", "week", "season_type", "fantasy_points", "fantasy_points_ppr"),
+        "required": (
+            "player_id",
+            "player_name",
+            "season",
+            "week",
+            "season_type",
+            "fantasy_points",
+            "fantasy_points_ppr",
+        ),
     },
     "stats_team": {
         "url": "https://github.com/nflverse/nflverse-data/releases/download/stats_team/stats_team_week_{season}.csv",
-        "required": ("season", "week", "team", "season_type", "game_id", "opponent_team", "def_sacks", "def_interceptions", "fumble_recovery_opp", "fg_made", "pat_made"),
+        "required": (
+            "season",
+            "week",
+            "team",
+            "season_type",
+            "game_id",
+            "opponent_team",
+            "def_sacks",
+            "def_interceptions",
+            "fumble_recovery_opp",
+            "fg_made",
+            "pat_made",
+        ),
     },
     "schedules": {
         "url": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
-        "required": ("game_id", "season", "game_type", "week", "gameday", "away_team", "away_score", "home_team", "home_score", "old_game_id", "gsis", "pfr", "pff", "espn"),
+        "required": (
+            "game_id",
+            "season",
+            "game_type",
+            "week",
+            "gameday",
+            "away_team",
+            "away_score",
+            "home_team",
+            "home_score",
+            "old_game_id",
+            "gsis",
+            "pfr",
+            "pff",
+            "espn",
+        ),
     },
 }
 
@@ -50,7 +84,7 @@ def parse_time(value: str) -> datetime:
     result = datetime.fromisoformat(selected)
     if result.tzinfo is None:
         raise ValueError("timestamp must include a timezone")
-    return result.astimezone(timezone.utc)
+    return result.astimezone(UTC)
 
 
 def source_url(dataset: str, season: int) -> str:
@@ -91,7 +125,7 @@ def immutable_bytes(path: Path, value: bytes) -> None:
             handle.write(value)
     except FileExistsError:
         if path.read_bytes() != value:
-            raise ValueError("immutable witness conflict")
+            raise ValueError("immutable witness conflict") from None
 
 
 def retain_two_snapshots(directory: Path) -> None:
@@ -128,7 +162,9 @@ def capture_all(root: Path, season: int, now: datetime) -> dict:
             "source_columns_sha256": hashlib.sha256(json.dumps(headers, separators=(",", ":")).encode()).hexdigest(),
             "attribution": "Data sourced from nflverse-data under CC BY 4.0.",
         }
-        manifest_path = root / "manifests" / dataset / str(season) / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{digest[:16]}.json"
+        manifest_path = (
+            root / "manifests" / dataset / str(season) / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{digest[:16]}.json"
+        )
         immutable_bytes(manifest_path, (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode())
         datasets[dataset] = {"sha256": digest, "byte_length": len(data)}
     status = {
@@ -276,7 +312,10 @@ def attest_phase3(root: Path, acceptance_path: Path, receipt_path: Path, now: da
         observed_hash = hashlib.sha256(acceptance_bytes).hexdigest()
         if observed_hash != PHASE3_ACCEPTANCE_SHA256:
             conditions.append({"code": "witness_mismatch", "severity": "critical"})
-        if receipt.get("schema") != "omen-football-scoring-replay.v1" or receipt.get("acceptance_sha256") != observed_hash:
+        if (
+            receipt.get("schema") != "omen-football-scoring-replay.v1"
+            or receipt.get("acceptance_sha256") != observed_hash
+        ):
             conditions.append({"code": "witness_mismatch", "severity": "critical"})
     except (FileNotFoundError, OSError, json.JSONDecodeError):
         conditions.append({"code": "witness_outage", "severity": "high"})
@@ -291,7 +330,9 @@ def attest_phase3(root: Path, acceptance_path: Path, receipt_path: Path, now: da
         "attestation": "phase3_acceptance",
         "publication_authorized": False,
     }
-    atomic_json(root / "observations" / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{PHASE3_ACCEPTANCE_SHA256[:16]}.json", observation)
+    atomic_json(
+        root / "observations" / f"{now.strftime('%Y%m%dT%H%M%SZ')}-{PHASE3_ACCEPTANCE_SHA256[:16]}.json", observation
+    )
     return observation, 0 if not conditions else 2
 
 
@@ -310,7 +351,7 @@ def parser() -> argparse.ArgumentParser:
     compare.add_argument("--maximum-age-seconds", type=int, default=36 * 60 * 60)
     capture = subparsers.add_parser("capture")
     capture.add_argument("--root", type=Path, default=PRODUCTION_ROOT)
-    capture.add_argument("--season", type=int, default=datetime.now(timezone.utc).year)
+    capture.add_argument("--season", type=int, default=datetime.now(UTC).year)
     capture.add_argument("--now")
     attest = subparsers.add_parser("attest-phase3")
     attest.add_argument("--root", type=Path, default=PRODUCTION_ROOT)
@@ -327,7 +368,7 @@ def main() -> int:
         print(json.dumps(signal, sort_keys=True))
         return 0
     if options.command == "compare":
-        now = parse_time(options.now) if options.now else datetime.now(timezone.utc)
+        now = parse_time(options.now) if options.now else datetime.now(UTC)
         observation, result = compare_status(
             options.root.resolve(),
             options.status_file.resolve(),
@@ -338,12 +379,12 @@ def main() -> int:
         print(json.dumps(observation, sort_keys=True))
         return result
     if options.command == "capture":
-        now = parse_time(options.now) if options.now else datetime.now(timezone.utc)
+        now = parse_time(options.now) if options.now else datetime.now(UTC)
         status = capture_all(options.root.resolve(), options.season, now)
         print(json.dumps(status, sort_keys=True))
         return 0
     if options.command == "attest-phase3":
-        now = parse_time(options.now) if options.now else datetime.now(timezone.utc)
+        now = parse_time(options.now) if options.now else datetime.now(UTC)
         observation, result = attest_phase3(
             options.root.resolve(),
             options.acceptance_file.resolve(),
