@@ -247,12 +247,4 @@ Rule 7 is the difference between a 5-week plan and an 8-week one.
 
 ## 6. Definition of done
 
-> **Superseded 2026-10-26** by `Direction/omen-1.0-done.md` (founder-answered). Kept below as history.
-
-**Beta (Phase 5):** both apps installable via internal tracks; three providers
-pass real-account QA; zero unlabeled mock output; native crashes visible within
-60s on both platforms; forced-update gate working; 10+ real testers in real leagues.
-
-**Public 1.0 (Phase 7):** one clean Tuesday scoring run on real data; two stable
-weeks after Week 1; load test passed; both apps approved for public release;
-no P0 Truth Gate findings; support channel staffed.
+The definition of done is `Direction/omen-1.0-done.md` (founder-answered 2026-10-26).
