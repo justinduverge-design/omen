@@ -58,7 +58,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Database, migrations, RLS, erase/export | `Blueprints/rebuild/omen-database-redo-v1.md`, `sql/2026-10-01-redo/`, latest `Blueprints/handoffs/2026-10-0*` | `slops-api-hardening`, `security-privacy-evidence`, `rbac-risk-review`; request `@codex review` |
 | ESPN / Yahoo / Sleeper connection or sync | `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`, `Blueprints/specs/espn-connect-guide-v1.md` | `slops-provider-resilience` |
 | API routes, server code | `Blueprints/api-routes.md`, `test/` | `slops-tdd`, `slops-api-hardening` |
-| Native iPhone screen | the native read gate (below), the approved Claude Design artifact, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-figma-to-native`, `slops-native-sim-drive`, `slops-native-ui-audit` |
+| Native iPhone screen | the native read gate (below), the approved Claude Design artifact, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-native-sim-drive`, `slops-native-ui-audit` |
 | Shared UI components or team theming | `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | `slops-ux-copy` for words |
 | Recommendations / scoring / football data | `Blueprints/specs/football-data/`, `Direction/football-data-and-schemes-research.md` | `slops-tdd` |
 | Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |

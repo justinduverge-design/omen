@@ -1,5 +1,9 @@
 # Omen Native Mobile Design Delivery Workflow v1
 
+> **Figma is retired (founder, 2026-10-26).** Wherever this file says Figma (file, node, pages, `figma-*`
+> skills), read: the approved Claude Design artifact ("Omen Build 12 Redesign", "Omen Whole-App Canvas") and
+> `design/foundation-v1-canvas/`. `design/figma-archive/` is history. Gate: `Direction/map.md` → Native read gate.
+
 **Status:** Active workflow for M0 native design and every native screen thereafter  
 **Date:** 2026-07-19  
 **Applies to:** SwiftUI iPhone work, Kotlin/Jetpack Compose Android work, Figma, components, onboarding, provider connection, and visual QA.

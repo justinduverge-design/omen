@@ -1,5 +1,9 @@
 # Omen Native Delivery Governance v1
 
+> **Figma is retired (founder, 2026-10-26).** Wherever this file says Figma (file, node, pages, `figma-*`
+> skills), read: the approved Claude Design artifact ("Omen Build 12 Redesign", "Omen Whole-App Canvas") and
+> `design/foundation-v1-canvas/`. `design/figma-archive/` is history. Gate: `Direction/map.md` → Native read gate.
+
 **Status:** Proposed active operating contract  
 **Date:** 2026-07-19  
 **Purpose:** Give future agents the tools, direction, oversight, guardrails, and security boundaries needed to build native Omen without product drift.
