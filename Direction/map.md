@@ -58,7 +58,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Database, migrations, RLS, erase/export | `Blueprints/rebuild/omen-database-redo-v1.md`, `sql/2026-10-01-redo/`, latest `Blueprints/handoffs/2026-10-0*` | `slops-api-hardening`, `security-privacy-evidence`, `rbac-risk-review`; request `@codex review` |
 | ESPN / Yahoo / Sleeper connection or sync | `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`, `Blueprints/specs/espn-connect-guide-v1.md` | `slops-provider-resilience` |
 | API routes, server code | `Blueprints/api-routes.md`, `test/` | `slops-tdd`, `slops-api-hardening` |
-| Native iPhone screen | the native read gate (below), the approved Claude Design artifact, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-native-sim-drive`, `slops-native-ui-audit` |
+| Native iPhone screen | the native read gate (below), the approved design artifact, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-native-sim-drive`, `slops-native-ui-audit` |
 | Shared UI components or team theming | `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | `slops-ux-copy` for words |
 | Recommendations / scoring / football data | `Blueprints/specs/football-data/`, `Direction/football-data-and-schemes-research.md` | `slops-tdd` |
 | Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |
@@ -82,10 +82,10 @@ onboarding, provider-connection or mobile-release task:
 4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
 5. `Blueprints/specs/mobile/omen-native-agent-capabilities-canvas-v1.md`
 6. `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
-7. The approved Claude Design artifact for the screen or component ("Omen Build 12 Redesign", "Omen
-   Whole-App Canvas"; in the repo, `Blueprints/specs/design/omen-design-foundation-v1.md` and
-   `design/foundation-v1-canvas/`), and the API/state contract. Figma is retired (founder, 2026-10-26);
-   `design/figma-archive/` is history only.
+7. The approved design artifact for the screen or component, made with any of our tools (Claude Design,
+   Slides and Artifacts, ChatGPT, Codex, Gemini; today: "Omen Build 12 Redesign", "Omen Whole-App Canvas",
+   `Blueprints/specs/design/omen-design-foundation-v1.md`, `design/foundation-v1-canvas/`), and the
+   API/state contract. Figma is retired (founder, 2026-10-26); `design/figma-archive/` is history only.
 
 When one is missing or two conflict, **flag the gap and stop.** Do not start the feature code.
 

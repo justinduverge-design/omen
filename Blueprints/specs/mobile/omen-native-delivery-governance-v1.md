@@ -1,9 +1,5 @@
 # Omen Native Delivery Governance v1
 
-> **Figma is retired (founder, 2026-10-26).** Wherever this file says Figma (file, node, pages, `figma-*`
-> skills), read: the approved Claude Design artifact ("Omen Build 12 Redesign", "Omen Whole-App Canvas") and
-> `design/foundation-v1-canvas/`. `design/figma-archive/` is history. Gate: `Direction/map.md` → Native read gate.
-
 **Status:** Proposed active operating contract  
 **Date:** 2026-07-19  
 **Purpose:** Give future agents the tools, direction, oversight, guardrails, and security boundaries needed to build native Omen without product drift.
@@ -26,7 +22,7 @@ It does not authorize:
 Founder direction
   → Design House + screen contract
   → API/state/security contract
-  → Figma approval
+  → design approval (approved design artifact)
   → small native implementation PR
   → device + accessibility evidence
   → code/security/design review
@@ -46,7 +42,7 @@ No step may silently replace an earlier contract.
 | Current work selection | `Direction/agent_inbox.md` and `Direction/current_sprint.md` |
 | Backend route truth | `Blueprints/api-routes.md` and current route tests |
 | Security/provider constraints | `Direction/facts-of-record.md`, decision log, and security handoffs |
-| Visual screen anatomy | approved Figma component/screen library in [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3) |
+| Visual screen anatomy | the approved design artifacts (any of our tools) and `design/foundation-v1-canvas/` |
 | Agent authority and tool boundaries | `omen-native-agent-capabilities-canvas-v1.md` |
 
 If an artifact conflicts with a newer approved authority, stop and flag the conflict.
@@ -59,7 +55,7 @@ Every task must declare:
 - exact files/modules allowed;
 - states covered;
 - API/auth/provider dependency;
-- design reference/Figma node;
+- design reference (link to the approved design artifact);
 - tests and device evidence required;
 - security/privacy review need;
 - explicit do-not-touch boundaries.
@@ -107,7 +103,7 @@ No “make this screen better” task is actionable without those details.
 ## 6. Roles, without fake bureaucracy
 
 - **Founder:** chooses product scope, visual direction, provider and release decisions.
-- **Design steward:** protects the Design House, Figma library, tokens, component/screen contracts, and visual review quality.
+- **Design steward:** protects the Design House, the approved design artifacts, tokens, component/screen contracts, and visual review quality.
 - **iOS implementer:** builds SwiftUI with Apple-native behavior.
 - **Android implementer:** builds Compose with Android-native behavior.
 - **Backend/security implementer:** maintains stable APIs, auth, provider boundaries, and safe observability.
@@ -125,7 +121,7 @@ One agent may fill several roles on a small task, but the review questions do no
 6. Yahoo OAuth proof of connection.
 7. ESPN mobile feasibility/security/store policy decision.
 8. Demo/reviewer mode contract.
-9. First approved Figma component library and onboarding screens.
+9. First approved component library and onboarding screens.
 
 Only then:
 - scaffold SwiftUI and Compose projects;
@@ -136,7 +132,7 @@ Only then:
 
 Every closeout must write:
 - files changed;
-- contract/Figma references;
+- contract and design artifact references;
 - iOS and Android parity status;
 - device and accessibility evidence;
 - state matrix tested;
@@ -147,7 +143,7 @@ Every closeout must write:
 
 ## 9. Access enforcement
 
-The capability/canvas contract defines the least-privilege policy. Before agents receive access, the founder or administrator must match it with GitHub branch protection, protected deployment environments, Figma role-based sharing, isolated secrets, and founder-controlled store accounts. Policy alone is not technical access control.
+The capability/canvas contract defines the least-privilege policy. Before agents receive access, the founder or administrator must match it with GitHub branch protection, protected deployment environments, role-based sharing on the design tools, isolated secrets, and founder-controlled store accounts. Policy alone is not technical access control.
 
 ## 10. The protection principle
 
@@ -171,6 +167,8 @@ feature code, alongside an approved Figma screen. **Figma remains authoritative 
 **Why:** the founder is the approval bottleneck on every layout revision, and translating each
 revision into Figma bought nothing when Figma's real advantage here is vector authoring, which AI
 tooling does poorly and Figma does well.
+
+**Superseded 2026-10-26 (founder):** Figma is retired. The screen artifact of record is an approved design artifact (made with any of our tools: Claude Design, Slides and Artifacts, ChatGPT, Codex, Gemini; approved by the founder). Vector assets (logo, lockup, icons, team marks) are the approved files in `design/`; `design/figma-archive/` is history.
 
 **What does not change:** native feature code still follows an **approved** screen. This amendment
 changes which artifact can carry that approval; it does not remove the requirement, and it does not

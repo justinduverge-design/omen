@@ -1,12 +1,8 @@
 # Omen Native Mobile Design Delivery Workflow v1
 
-> **Figma is retired (founder, 2026-10-26).** Wherever this file says Figma (file, node, pages, `figma-*`
-> skills), read: the approved Claude Design artifact ("Omen Build 12 Redesign", "Omen Whole-App Canvas") and
-> `design/foundation-v1-canvas/`. `design/figma-archive/` is history. Gate: `Direction/map.md` → Native read gate.
-
 **Status:** Active workflow for M0 native design and every native screen thereafter  
 **Date:** 2026-07-19  
-**Applies to:** SwiftUI iPhone work, Kotlin/Jetpack Compose Android work, Figma, components, onboarding, provider connection, and visual QA.
+**Applies to:** SwiftUI iPhone work, Kotlin/Jetpack Compose Android work, design artifacts, components, onboarding, provider connection, and visual QA.
 
 ## Purpose
 
@@ -21,7 +17,7 @@ This is the repeatable route from product intent to a native, testable screen. I
 2. `omen-native-design-house-v1.md`
 3. `omen-mobile-onboarding-connection-contract-v1.md`
 4. `omen-native-agent-capabilities-canvas-v1.md`
-5. [Omen Native Design House](https://www.figma.com/design/mWjrAKPi4JSIP5lAmGAtB3)
+5. The approved design artifact for the screen (an approved design artifact (made with any of our tools: Claude Design, Slides and Artifacts, ChatGPT, Codex, Gemini; approved by the founder))
 6. this workflow
 
 ## The workflow
@@ -50,23 +46,11 @@ Use `slops-design-system-pack`, `slops-taste`, and `slops-ux-copy` as applicable
 - platform differences;
 - accessibility intent;
 - motion/material behavior;
-- Figma node links.
+- links to the approved design artifact.
 
-Start at `00 — Start Here` in the Figma file. Propose a new pattern on `03 — Components` before using it in an iOS or Android screen. Screen pages are `04 — iOS Screens` and `05 — Android Screens`.
+Make the design in whichever of our tools fits (Claude Design, Slides and Artifacts, ChatGPT, Codex, Gemini) and get the founder's approval on it. Figma is retired (founder, 2026-10-26); `design/figma-archive/` is history.
 
-**Reading Figma: an empty listing is not evidence of absence.** Figma pages load lazily, and the cheap reads lie before a page is loaded. On 2026-08-24, `get_metadata` with no `nodeId` returned **one** page for a file holding **seven**, and `page.children.length` returned **0** for pages holding **27** frames. Both would have supported a confident, wrong conclusion that approved contracts had never been drawn — and this repo has a documented history of contracts claimed but not written, which makes that conclusion *feel* plausible.
-
-Before concluding that a frame, page, or component does not exist:
-
-1. Probe the **specific node id** — `get_metadata` with that `nodeId`, or `getNodeByIdAsync` after `await setCurrentPageAsync(page)`.
-2. Treat a missing page in a listing, or a zero `children.length`, as **unknown**, never as absent.
-3. If you are about to report that prior work was never done, probe first. A cheap probe beats a plausible inference — the same rule the 2026-08-21 Yahoo `403`-without-a-body lesson produced.
-
-When the execution environment exposes them, use:
-- `figma-use` for controlled canvas changes;
-- `figma-swiftui` for iOS/SwiftUI ↔ Figma translation;
-- `figma-generate-library` before creating reusable Figma components;
-- `figma-generate-design` for full Figma screen composition.
+**An empty listing is not evidence of absence.** Design tools and file listings can load lazily or be incomplete (on 2026-08-24 a Figma listing showed one page of seven). Before reporting that a design or contract was never made, probe for the specific item; treat a missing listing as unknown.
 
 These tools support the workflow; they never override the product contracts.
 
@@ -74,7 +58,7 @@ These tools support the workflow; they never override the product contracts.
 
 Before code that touches auth, sessions, provider connection, personal data, telemetry, or recovery, use `security-privacy-evidence` and `rbac-risk-review`.
 
-No secrets, OAuth tokens, provider cookies, or real user data may appear in Figma, fixtures, logs, screenshots, analytics, PRs, or handoffs. ESPN stays feasibility-gated until a store-safe, real-device path is approved.
+No secrets, OAuth tokens, provider cookies, or real user data may appear in design artifacts, fixtures, logs, screenshots, analytics, PRs, or handoffs. ESPN stays feasibility-gated until a store-safe, real-device path is approved.
 
 ### 5. Build the smallest native slice
 
@@ -91,7 +75,7 @@ Attach:
 - light/dark or system appearance where relevant;
 - loading, empty, error, disconnected, recovery, and demo evidence;
 - VoiceOver/TalkBack, Dynamic Type/font scale, contrast, touch target, and reduce-motion result;
-- Figma node and contract links;
+- design artifact and contract links;
 - an honest deviations list.
 
 Use `mobile-first-qa-playbook` at the real-device/release gate.
@@ -113,7 +97,7 @@ Record the actual skills used, evidence paths, and gaps in `skill-usage-log.md` 
 
 ## Non-negotiables
 
-- No screen code before its state/API/Figma contract exists.
+- No screen code before its state/API contract and approved design artifact exist.
 - No direct `main` write, production mutation, secret/store-account access, or release without the authority stated in the capability contract.
 - No copied competitor screen or generic “glass everywhere” treatment.
 - iOS may use Liquid Glass at system-chrome/control boundaries; Android remains a Material 3-native expression.
@@ -121,4 +105,4 @@ Record the actual skills used, evidence paths, and gaps in `skill-usage-log.md` 
 
 ## Definition of done
 
-A native task is done when another agent can reproduce the result from the contract, Figma node, code, tests, screenshots, accessibility evidence, and documented limitations—without guessing or needing elevated access.
+A native task is done when another agent can reproduce the result from the contract, the approved design artifact, code, tests, screenshots, accessibility evidence, and documented limitations—without guessing or needing elevated access.
