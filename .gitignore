@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+!.claude/agents/
+!.claude/hooks/
 .agents/skills/*
 !.agents/skills/run-slops-saloon/
 

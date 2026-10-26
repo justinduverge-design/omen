@@ -13,7 +13,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
-const CLAUDE = path.join(ROOT, "CLAUDE.md");
+const CLAUDE = path.join(ROOT, "AGENTS.md");
 const KICKOFF = path.join(ROOT, "Blueprints/prompts/kickoff-l2.md");
 
 // A path token: something.md, or a directory reference we care about.
@@ -47,12 +47,12 @@ const a = paths(claudeBlock);
 const b = paths(kickoffBlock);
 
 const problems = [];
-if (!a) problems.push('CLAUDE.md: could not find the "Read in order before pulling a task" section.');
+if (!a) problems.push('AGENTS.md: could not find the "Read in order before pulling a task" section.');
 if (!b) problems.push('kickoff-l2.md: could not find the "ALWAYS-READ CORE" read order.');
 
 if (a && b) {
   if (a.length !== b.length) {
-    problems.push(`Read order length differs: CLAUDE.md has ${a.length}, kickoff-l2.md has ${b.length}.`);
+    problems.push(`Read order length differs: AGENTS.md has ${a.length}, kickoff-l2.md has ${b.length}.`);
   }
   const n = Math.max(a.length, b.length);
   for (let i = 0; i < n; i++) {
@@ -71,7 +71,7 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`Kickoff read order matches across CLAUDE.md and kickoff-l2.md (${a.length} entries).`);
+console.log(`Kickoff read order matches across AGENTS.md and kickoff-l2.md (${a.length} entries).`);
 console.log("\nWhat this does NOT check:");
 console.log("  · whether the listed files exist (see check-sprint-staleness.js for path rot)");
 console.log("  · whether the read order is the right one — that is a founder decision");
