@@ -2,23 +2,19 @@
 
 ## Status
 
-**Open. Build 12 implementation shipped 2026-10-20 through #762 and #763 reconciled the release record,
-but the release is not complete until the final iPhone walk below passes.**
-The source checklist in `Blueprints/handoffs/2026-10-19-build-12-codex-finish.md` is implemented. The open
-release gates are installing the final signed build on the founder's iPhone, completing the screen and
-unfiltered-accessibility walk, and uploading that proven archive to TestFlight. The one legacy ESPN row with
-no team id is explicitly carried into Build 13; it does not block first-time users or the Build 12 binary.
+**Shipped 2026-10-25. TestFlight 0.1.0 (12).** The final signed archive from `main` (after #779) was uploaded
+on 2026-10-25 (founder confirmed 2026-10-26). No tester feedback recorded yet. Open items moved to
+`build-13.md` (Carried from Build 12).
 
+- **In `main`:** the late Build 12 integration branch landed as squash-merged #752 (2026-10-19), and the
+  screen rebuild #770 merged 2026-10-23, followed by #771 to #780.
 - **Screen rebuild (2026-10-21 to 10-23, PR #770):** every iOS screen was rebuilt on the approved design
   foundation (`Blueprints/specs/design/omen-design-foundation-v1.md`, canvas `design/foundation-v1-canvas/`)
   and the old screens and components were deleted. Full local suite green on 2026-10-23: 613 unit tests and
-  every UI test with its accessibility audit. A fresh review's four P1s are fixed. Not yet merged, installed
-  on the founder's iPhone, or uploaded.
+  every UI test with its accessibility audit. A fresh review's four P1s are fixed.
 - Backend shipped to production in two waves: 2026-10-15 to 10-17 (#670 to #713), then the integration
   branch on 2026-10-19 (#752, deploy run 39241836554, green).
 - League activity for Yahoo and ESPN switched on in production 2026-10-19 (founder).
-- The app is not uploaded. The final source builds and signs; the founder's phone was away for the last
-  install, so the final connected-device walk below and TestFlight upload remain.
 - **Beta audience:** 7 of the 8 friends-beta leagues. Rhody's ESPN league has been connected since Build 1;
   a new ESPN account in this beta is the first real test of the fresh-login path.
 - Baseline before this build: Build 11 (2026-10-12, ESPN first-login repair).
@@ -331,7 +327,7 @@ current queue. Brief: `Blueprints/specs/design/omen-whole-app-canvas-v1.md`.
   the product better. Claude designs; the founder approves or rejects. Use references where unsure, and
   record each one as a principle, not a copied layout.
 
-### Build 12 release blockers
+### Build 12 release blockers (closed: uploaded 2026-10-25, TestFlight 0.1.0 (12))
 
 1. **Run the final physical-iPhone gate.** Install the final signed Release build, run the Build 12 screen
    and accessibility walk against the already-connected leagues, and record any honest degraded states.
