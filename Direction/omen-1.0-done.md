@@ -54,8 +54,12 @@ nothing else; anything not on it is 1.1.
 
 ### Still to flesh out
 16. Small-model background workers are a 1.0 must-have (founder): define which jobs, with shadow receipts.
-17. The founder's answer was "all and more": the must-have list above is not complete. Next planning pass
-    adds what is missing before any date is set.
+17. **Fast enough to feel finished.** Load time is not good enough today (founder, 2026-10-26). Set a budget
+    per screen for cold and warm loads (first league read, Desk, decision screens), measure it on a real
+    phone and the web, and meet it on all three providers.
+18. **No half-built app goes out** (founder, 2026-10-26). Every must-have above is required; "and a few other
+    things" the founder has noticed still need writing down. The next planning pass collects them with the
+    founder before a launch date is set.
 
 ## Not 1.0 (unless the founder moves it)
 Draft Assistant; Discord OAuth;
