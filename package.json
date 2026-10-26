@@ -1,7 +1,7 @@
 {
   "name": "omen",
   "version": "1.0.0",
-  "description": "Omen — Slops Saloon Fantasy Football Intelligence",
+  "description": "Omen \u2014 Slops Saloon Fantasy Football Intelligence",
   "main": "src/server.js",
   "scripts": {
     "native:retired-paths:check": "node scripts/check-retired-native-paths.mjs",
@@ -15,7 +15,10 @@
     "contracts:check": "node scripts/contracts.js check && node scripts/contract-recorded.js check",
     "contracts:lock": "node scripts/contracts.js lock",
     "prune:check": "node scripts/check-orphans.js",
-    "prune:mac": "bash scripts/mac-sweep.sh"
+    "prune:mac": "bash scripts/mac-sweep.sh",
+    "closeout": "bash scripts/closeout.sh",
+    "merge": "bash scripts/merge-pr.sh",
+    "check:pii": "node scripts/checks/no-pii-outbound.js"
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.1",

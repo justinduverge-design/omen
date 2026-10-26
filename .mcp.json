@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "recall": {
+      "command": "/usr/bin/ssh",
+      "args": ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10", "cc", "recall/bin/recall", "mcp"]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?read_only=true"
+    },
+    "posthog": {
+      "type": "http",
+      "url": "https://mcp.posthog.com/mcp"
+    },
+    "figma": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    }
+  }
+}

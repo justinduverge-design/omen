@@ -76,7 +76,7 @@ Read in order before acting:
    1. Direction/map.md
    2. Direction/agent_inbox.md
 
-  Codex also reads AGENT.md (its runtime extension of AGENTS.md).
+  AGENTS.md is the one shared file for every runtime; CLAUDE.md and GEMINI.md are thin adapters.
   Direction/decision_log.md, the ledgers and Direction/shipped.md are records,
   not briefings: search them, never load them whole. You still WRITE to the
   decision log at close-out. If you are about to re-decide something, go read it.

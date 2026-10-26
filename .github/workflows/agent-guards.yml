@@ -1,0 +1,50 @@
+# Guards for failures the Build 12 retro named (Direction/release/builds/build-12.md → Retro).
+# Runs on every PR, so they hold for every runtime, not just the ones with hooks.
+#
+# - no-pii-outbound: a test User-Agent once carried the founder's email to Wikipedia.
+# - build-package: the build record was written at the end instead of as PRs merged. Each PR now adds
+#   itself (`#<number>`) to the open build package before it can merge. Dependabot PRs and PRs labelled
+#   `no-package` are exempt.
+# - kickoff-drift: AGENTS.md and the kickoff prompt stay one contract.
+
+name: Agent guards
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: Agent guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: No personal data in outbound request code
+        run: node scripts/checks/no-pii-outbound.js
+
+      - name: Kickoff read order matches
+        run: node scripts/check-kickoff-drift.js
+
+      - name: PR is recorded in the open build package
+        if: github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'no-package')
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          pkg=$(grep -l '^\*\*Open' Direction/release/builds/build-*.md | sort -V | tail -1 || true)
+          if [ -z "$pkg" ]; then
+            echo "::error::No open build package (a build-N.md whose Status starts with **Open). Open one at build start."
+            exit 1
+          fi
+          if ! grep -q "#${PR}\b" "$pkg"; then
+            echo "::error::Add one line for #${PR} to $pkg (what changed, why), or label the PR no-package."
+            exit 1
+          fi
+          echo "#${PR} is recorded in $pkg"
