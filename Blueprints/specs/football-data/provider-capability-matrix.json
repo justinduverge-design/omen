@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "as_of": "2026-10-18",
+  "as_of": "2026-10-26",
   "note": "Canonical machine-readable provider capability matrix. test/providerCapabilityMatrix.test.js fails when the code drifts from it. The markdown view is generated: node scripts/generate-provider-matrix.js. Edit this file, never the view.",
   "capabilities": [
     "league_settings",
@@ -63,10 +63,26 @@
           "includes": [
             "fetchSleeperLeague"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
+        },
+        {
+          "file": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-08-30",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
     },
     {
       "provider": "sleeper",
@@ -86,10 +102,27 @@
           "includes": [
             "fetchSleeperLeague"
           ]
+        },
+        {
+          "file": "test/scoringSnapshotResolver.test.js"
+        },
+        {
+          "file": "src/services/scoringSnapshotResolver.js"
+        },
+        {
+          "file": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-08-30",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
     },
     {
       "provider": "sleeper",
@@ -110,10 +143,23 @@
             "injury_status",
             "practice_participation"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/services/roster.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
@@ -127,10 +173,27 @@
           "includes": [
             "roster_positions"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "sleeper",
@@ -144,10 +207,23 @@
           "includes": [
             "fetchSleeperMatchups"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League",
+        "Desk"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
@@ -161,10 +237,22 @@
           "includes": [
             "fetchSleeperStandings"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
@@ -184,10 +272,27 @@
           "includes": [
             "league_not_active"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "sleeper",
@@ -207,10 +312,26 @@
           "includes": [
             "availabilityConfirmed: pool != null,"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Blueprints/handoffs/2026-07-29-b2d-s3-sleeper-live-proof.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-07-29",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Blueprints/handoffs/2026-07-29-b2d-s3-sleeper-live-proof.md"
     },
     {
       "provider": "sleeper",
@@ -224,10 +345,26 @@
           "includes": [
             "function fromSleeper"
           ]
+        },
+        {
+          "file": "test/waiverSystem.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Blueprints/specs/league-aware-waiver-system-v1.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-09-05",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Blueprints/specs/league-aware-waiver-system-v1.md"
     },
     {
       "provider": "sleeper",
@@ -247,10 +384,22 @@
           "includes": [
             "provider_read: \"live\""
           ]
+        },
+        {
+          "file": "test/leagueTransactions.test.js"
+        },
+        {
+          "file": "src/services/leagueTransactions.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-18"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
@@ -264,44 +413,81 @@
           "includes": [
             "fetchSleeperProjections"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "sleeper",
       "capability": "injury_status",
       "status": "available",
       "reason": null,
-      "detail": "injury_status from the cached player list; freshness depends on that cache.",
+      "detail": "injury_status from the cached player list; freshness depends on that cache. Keep provider status; warehouse injury evidence is a fallback for missing status, not a silent replacement.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
           "includes": [
             "injury_status"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "src/services/sightDecision.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
       "capability": "draft_data",
       "status": "available",
       "reason": null,
-      "detail": "League drafts, draft state and picks.",
+      "detail": "League drafts, draft state and picks. Adapter and draft tests exist, but no sanitized live draft receipt was located; the draft feature is deferred to 2027.",
       "evidence": [
         {
           "file": "src/adapters/sleeper.js",
           "includes": [
             "fetchSleeperDraft"
           ]
+        },
+        {
+          "file": "test/sleeperDraftAdapter.test.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "sleeper",
@@ -315,10 +501,26 @@
           "includes": [
             "settings.playoff_teams"
           ]
+        },
+        {
+          "file": "test/providerPlayoffTeams.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
+        },
+        {
+          "file": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-08-29"
+      "last_verified": "2026-08-30",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
     },
     {
       "provider": "sleeper",
@@ -332,10 +534,20 @@
           "includes": [
             "settings.trade_deadline"
           ]
+        },
+        {
+          "file": "test/sleeperAdapter.test.js"
+        },
+        {
+          "file": "Direction/reviews/audit-2026-08-29/m11a-provider-proof.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-08-30",
+      "last_checked": "2026-10-26",
+      "class": "Available but unused",
+      "consumers": [],
+      "classification_reason": "Live field observed, but the deadline signal is deliberately omitted pending week-to-date conversion."
     },
     {
       "provider": "espn",
@@ -349,10 +561,22 @@
           "includes": [
             "buildLeagueContext"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -373,10 +597,23 @@
             "exact_espn_scoring_unavailable",
             "provider_restricted"
           ]
+        },
+        {
+          "file": "test/scoringSnapshotResolver.test.js"
+        },
+        {
+          "file": "src/services/scoringSnapshotResolver.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unavailable or restricted",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Preserve the documented provider restriction and the degraded fallback."
     },
     {
       "provider": "espn",
@@ -397,10 +634,23 @@
             "trade_locked",
             "lineup_locked"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/services/roster.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -415,10 +665,27 @@
             "rosterPositionsFromEspnSettings",
             "mSettings"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "espn",
@@ -432,10 +699,23 @@
           "includes": [
             "fetchEspnMatchup"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League",
+        "Desk"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -449,10 +729,22 @@
           "includes": [
             "standingsFromEspnData"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -472,10 +764,27 @@
           "includes": [
             "reauth_required"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "espn",
@@ -496,10 +805,26 @@
             "percentOwned",
             "percentChange"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "espn",
@@ -514,17 +839,33 @@
             "NOT_DETERMINED_PENDING_PROBE",
             "fromEspn"
           ]
+        },
+        {
+          "file": "test/waiverSystem.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "espn",
       "capability": "transactions",
-      "status": "not_read",
-      "reason": "probe_pending",
-      "detail": "fetchEspnTransactions reads mTransactions2 only with LEAGUE_TRANSACTIONS_ESPN=1 (off). Community-documented, not exercised live; an unrecognised shape is unavailable, not empty.",
+      "status": "available",
+      "reason": null,
+      "detail": "League activity consumes mTransactions2. Build 12 records LEAGUE_TRANSACTIONS_ESPN=1 enabled on 2026-10-19 and five of five leagues available across ESPN/Yahoo. This is the last recorded production state, not a fresh environment inspection. Unknown shapes remain unavailable, never empty. The receipt had ids without names; current source resolves names through Sleeper ESPN ids, leaving misses unnamed.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
@@ -537,10 +878,30 @@
           "includes": [
             "LEAGUE_TRANSACTIONS_ESPN"
           ]
+        },
+        {
+          "file": "test/leagueTransactions.test.js"
+        },
+        {
+          "file": "Direction/release/builds/build-12.md",
+          "includes": [
+            "LEAGUE_TRANSACTIONS_ESPN=1",
+            "5 of 5 leagues"
+          ]
+        },
+        {
+          "file": "src/services/leagueTransactions.js"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-18"
+      "verification": "live",
+      "last_verified": "2026-10-19",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/release/builds/build-12.md"
     },
     {
       "provider": "espn",
@@ -554,27 +915,61 @@
           "includes": [
             "statSourceId"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "espn",
       "capability": "injury_status",
       "status": "available",
       "reason": null,
-      "detail": "injuryStatus mapped through INJURY_STATUS_MAP on rosters and the free-agent pool.",
+      "detail": "injuryStatus mapped through INJURY_STATUS_MAP on rosters and the free-agent pool. Keep provider status; warehouse injury evidence is a fallback for missing status, not a silent replacement.",
       "evidence": [
         {
           "file": "src/adapters/espn.js",
           "includes": [
             "INJURY_STATUS_MAP"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
+        },
+        {
+          "file": "src/services/sightDecision.js"
+        },
+        {
+          "file": "Blueprints/specs/b2d-espn-e0-verdict-v1.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-07-27",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md"
     },
     {
       "provider": "espn",
@@ -588,10 +983,17 @@
           "excludes": [
             "mDraftDetail"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -605,10 +1007,22 @@
           "includes": [
             "playoffTeamCountFromEspnData"
           ]
+        },
+        {
+          "file": "test/providerPlayoffTeams.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "espn",
@@ -622,10 +1036,17 @@
           "includes": [
             "settings.trade_deadline"
           ]
+        },
+        {
+          "file": "test/espnAdapter.test.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -640,10 +1061,29 @@
             "getLeagueMetadata",
             "getLeagueSettings"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
+        },
+        {
+          "file": "Blueprints/handoffs/2026-10-11-yahoo-projections.md"
+        },
+        {
+          "file": "test/yahoo.test.js"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-09-06",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Blueprints/handoffs/2026-10-11-yahoo-projections.md"
     },
     {
       "provider": "yahoo",
@@ -657,10 +1097,27 @@
           "includes": [
             "deriveYahooRules"
           ]
+        },
+        {
+          "file": "test/scoringSnapshotResolver.test.js"
+        },
+        {
+          "file": "src/services/scoringSnapshotResolver.js"
+        },
+        {
+          "file": "Blueprints/handoffs/2026-10-11-yahoo-projections.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-09-06",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Blueprints/handoffs/2026-10-11-yahoo-projections.md"
     },
     {
       "provider": "yahoo",
@@ -680,10 +1137,23 @@
           "includes": [
             "is_editable"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/services/roster.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -697,10 +1167,27 @@
           "includes": [
             "rosterPositionsFromYahooSettings"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "yahoo",
@@ -714,10 +1201,27 @@
           "includes": [
             "getMatchup"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
+        },
+        {
+          "file": "test/yahoo.test.js"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-09-06",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League",
+        "Desk"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "test/yahoo.test.js"
     },
     {
       "provider": "yahoo",
@@ -731,10 +1235,22 @@
           "includes": [
             "getLeagueStandings"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -755,17 +1271,34 @@
           "includes": [
             "teams_unreadable"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-15"
+      "verification": "live",
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "yahoo",
       "capability": "waiver_pool",
       "status": "degraded",
       "reason": "requires_derived_projection",
-      "detail": "The available-player list is paged past Yahoo's 25-per-page cap (live: 50 players, 40 with a derived projection). Availability is still only confirmed where a derived projection exists. With YAHOO_POOL_STATUS_SPLIT=1 (off, not exercised live) free agents (FA) and waivers (W) are read separately with percent_owned; any failure falls back to the single status=A read.",
+      "detail": "The 2026-10-15 receipt proves only the older single status=A pool (50 players, 40 derived projections). Current Waivers defaults to separate FA/W reads with percent_owned, up to 100 per status; YAHOO_POOL_STATUS_SPLIT=0 opts out. A failed or partial split falls back to status=A. No sanitized live receipt proves the current split or ownership shape, so the current capability is Unproven. Availability still requires a derived projection. Production override value is not recorded.",
       "evidence": [
         {
           "file": "src/routes/waivers.js",
@@ -790,10 +1323,35 @@
           "includes": [
             "getAvailablePlayerPool"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
+        },
+        {
+          "file": "src/routes/waivers.js",
+          "includes": [
+            "process.env.YAHOO_POOL_STATUS_SPLIT !== \"0\"",
+            "const YAHOO_POOL_COUNT = 100;"
+          ]
+        },
+        {
+          "file": "test/yahooPoolStatusSplit.test.js"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -813,17 +1371,33 @@
           "includes": [
             "function fromYahoo"
           ]
+        },
+        {
+          "file": "test/waiverSystem.test.js"
+        },
+        {
+          "file": "src/routes/waivers.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
       "verification": "live",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-15",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "Waivers"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
     },
     {
       "provider": "yahoo",
       "capability": "transactions",
-      "status": "not_read",
-      "reason": "probe_pending",
-      "detail": "getTransactions reads /league/{key}/transactions only with LEAGUE_TRANSACTIONS_YAHOO=1 (off). Documented by Yahoo, not exercised live; an unrecognised shape is unavailable, not empty.",
+      "status": "available",
+      "reason": null,
+      "detail": "League activity consumes /league/{key}/transactions;types=add,drop,trade. Build 12 records LEAGUE_TRANSACTIONS_YAHOO=1 enabled on 2026-10-19 and five of five leagues available across ESPN/Yahoo. This is the last recorded production state, not a fresh environment inspection. Unknown shapes remain unavailable, never empty.",
       "evidence": [
         {
           "file": "src/services/yahoo.js",
@@ -836,17 +1410,37 @@
           "includes": [
             "LEAGUE_TRANSACTIONS_YAHOO"
           ]
+        },
+        {
+          "file": "test/leagueTransactions.test.js"
+        },
+        {
+          "file": "Direction/release/builds/build-12.md",
+          "includes": [
+            "LEAGUE_TRANSACTIONS_YAHOO=1",
+            "5 of 5 leagues"
+          ]
+        },
+        {
+          "file": "src/services/leagueTransactions.js"
         }
       ],
-      "verification": "code",
-      "last_verified": "2026-10-18"
+      "verification": "live",
+      "last_verified": "2026-10-19",
+      "last_checked": "2026-10-26",
+      "class": "Used now",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "Named consumer plus bounded historical live evidence cited below.",
+      "live_evidence": "Direction/release/builds/build-12.md"
     },
     {
       "provider": "yahoo",
       "capability": "player_projections",
       "status": "degraded",
       "reason": "derived_projection",
-      "detail": "Yahoo publishes no per-player projection. Omen builds one from Sleeper's public stat line, matched through the Yahoo id, scored with this league's own rules; a player with no unambiguous match, unreadable rules or a timeout stays null.",
+      "detail": "Yahoo publishes no per-player projection. Omen builds one from Sleeper's public stat line, matched through the Yahoo id, scored with this league's own rules; a player with no unambiguous match, unreadable rules or a timeout stays null. The restriction is Yahoo-native player projections; the derived fallback is consumed by Trade and Omen and was observed in the 2026-10-15 roster receipt.",
       "evidence": [
         {
           "file": "src/adapters/yahoo.js",
@@ -860,27 +1454,56 @@
             "enrichYahooPlayers",
             "sleeper_public_projections"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/services/omenTradeCandidate.js"
+        },
+        {
+          "file": "Direction/reviews/2026-10-15-build-12-live-provider-receipts.md"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unavailable or restricted",
+      "consumers": [
+        "Trade",
+        "Omen"
+      ],
+      "classification_reason": "Preserve the documented provider restriction and the degraded fallback."
     },
     {
       "provider": "yahoo",
       "capability": "injury_status",
       "status": "available",
       "reason": null,
-      "detail": "status and status_full on roster and pool rows.",
+      "detail": "status and status_full on roster and pool rows. Keep provider status; warehouse injury evidence is a fallback for missing status, not a silent replacement.",
       "evidence": [
         {
           "file": "src/services/roster.js",
           "includes": [
             "status_full"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
+        },
+        {
+          "file": "src/services/sightDecision.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "Start/Sit",
+        "Waivers"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -900,10 +1523,17 @@
           "includes": [
             "getDraftAnalysis"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -917,10 +1547,22 @@
           "includes": [
             "getPlayoffTeamCount"
           ]
+        },
+        {
+          "file": "test/providerPlayoffTeams.test.js"
+        },
+        {
+          "file": "src/routes/league.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [
+        "League"
+      ],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     },
     {
       "provider": "yahoo",
@@ -934,10 +1576,17 @@
           "includes": [
             "settings.trade_deadline"
           ]
+        },
+        {
+          "file": "test/yahooAdapter.test.js"
         }
       ],
       "verification": "code",
-      "last_verified": "2026-10-15"
+      "last_verified": "2026-10-26",
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "consumers": [],
+      "classification_reason": "No sanitized real-account receipt located for the full current shape; source/tests establish implementation only."
     }
   ],
   "surface_note": "Provider fields and endpoints that are observed or documented but that no code in src/ reads. 'observed' means a recorded live response in this repo showed the field; 'documented' means the provider's docs or community docs list it and nobody here has seen it live. The test fails when any of these starts being read, so move it into entries when that happens.",
@@ -947,11 +1596,21 @@
       "field": "eligibleSlots",
       "kind": "observed",
       "evidence": "Blueprints/specs/b2d-espn-e0-verdict-v1.md (live 2026-07-27)",
-      "opportunity": "Real positional eligibility (FLEX, SUPERFLEX, IDP, bench) per player. Also the missing slot list for league_roster_positions.",
+      "opportunity": "Per-player positional eligibility remains unused. League-wide slots already come from mSettings lineupSlotCounts; these are distinct fields.",
       "value": "high",
       "needs": "none; already arrives",
       "tokens": [
         "eligibleSlots"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Available but unused",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        }
       ]
     },
     {
@@ -965,6 +1624,16 @@
       "tokens": [
         "keeperValue",
         "draftAuctionValue"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Available but unused",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        }
       ]
     },
     {
@@ -974,9 +1643,22 @@
       "evidence": "community-documented kona_player_info; not seen live here",
       "opportunity": "Provider-side NFL schedule and bye per player.",
       "value": "low",
-      "needs": "a live probe; Omen already has nflSchedule.js",
+      "needs": "Retain nflSchedule.js and warehouse/nflverse as canonical schedule/bye sources; provider shape remains unprobed.",
       "tokens": [
         "proTeamSchedules"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Superseded",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        },
+        {
+          "file": "src/services/nflSchedule.js"
+        }
       ]
     },
     {
@@ -986,9 +1668,22 @@
       "evidence": "Sleeper players list (already downloaded, about 5 MB, cached)",
       "opportunity": "Depth-chart role per player on a list Omen already fetches.",
       "value": "medium",
-      "needs": "none technically; check it against the warehouse depth data first",
+      "needs": "Compare against warehouse weekly-roster depth_position before choosing authority; no sanitized Sleeper depth receipt found.",
       "tokens": [
         "depth_chart_order"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        },
+        {
+          "file": "src/services/footballWarehouse/weeklyRosterSource.js"
+        }
       ]
     },
     {
@@ -1001,6 +1696,16 @@
       "needs": "a live probe",
       "tokens": [
         "traded_picks"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        }
       ]
     },
     {
@@ -1014,6 +1719,16 @@
       "tokens": [
         "winners_bracket",
         "losers_bracket"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Unproven",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        }
       ]
     },
     {
@@ -1023,9 +1738,22 @@
       "evidence": "Yahoo Fantasy API player field",
       "opportunity": "Provider-side bye per player.",
       "value": "low",
-      "needs": "a live probe",
+      "needs": "Retain nflSchedule.js and warehouse/nflverse as canonical schedule/bye sources; provider shape remains unprobed.",
       "tokens": [
         "bye_weeks"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Superseded",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        },
+        {
+          "file": "src/services/nflSchedule.js"
+        }
       ]
     },
     {
@@ -1035,11 +1763,30 @@
       "evidence": "Yahoo Fantasy API player field",
       "opportunity": "Flags a news item on a player; a prompt to look, not content.",
       "value": "low",
-      "needs": "a live probe; news rights are undecided",
+      "needs": "News rights and the value of the flag remain unresolved; do not claim usable news content.",
       "tokens": [
         "has_recent_player_notes"
+      ],
+      "last_checked": "2026-10-26",
+      "class": "Unavailable or restricted",
+      "review_evidence": [
+        {
+          "file": "test/providerCapabilityMatrix.test.js"
+        },
+        {
+          "file": "Blueprints/specs/football-data/omen-provider-capability-matrix-v1.md"
+        }
       ]
     }
   ],
-  "founder_vocabulary": "Build 12 plan (PR 670, Provider direction correction) names four states that must never masquerade as one another. In this file: not implemented = status not_read; not yet proven = verification code (shape never seen live) on any entry; temporarily failed = a runtime outcome, never a matrix row (see runtime_reasons); provider unavailable = status unavailable, which no entry uses today because every capability above is either read or simply not read."
+  "founder_vocabulary": "Build 13 class is separate from implementation status and verification. not_read means not implemented/consumed; Unproven means the live shape lacks a sanitized receipt; runtime failures are temporary outcomes, not matrix classes. Restricted native data may still have a degraded fallback. Historical live receipts do not certify a new account, current production configuration or phone behavior.",
+  "classes": {
+    "Used now": "Read by Omen and consumed by a named feature or receipt.",
+    "Available but unused": "Offered by the provider but not consumed by Omen.",
+    "Superseded": "Technically available, but intentionally not used because the warehouse or another canonical source is more complete, stable or rights-safe.",
+    "Unavailable or restricted": "Cannot be used honestly; preserve the reason and degraded state.",
+    "Unproven": "Code or documentation suggests support, but a sanitized real-account read has not proved the live shape."
+  },
+  "classification_note": "Exactly one class per capability or surface row. Restrictions and intentional supersession take precedence; otherwise a missing sanitized live-shape receipt is Unproven, even when code consumes the data. Used now describes the cited, bounded proof, not all accounts or optional subfields. Consumers on Unproven rows identify intended code paths, not live certification.",
+  "date_note": "last_checked is the repository-only review date for every row. last_verified retains the date and kind of the cited evidence: code dates may advance after source/test review; live dates advance only from dated repository receipts, never from this review. No live provider calls were made."
 }
