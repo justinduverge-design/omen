@@ -104,6 +104,7 @@ function variantRoster(withProjections) {
 function generateBriefVariantBodies() {
   const omen = require("../src/services/omen");
   const { buildHold } = require("../src/services/omenHold");
+  const { unavailableMessage } = require("../src/services/omenTradeCandidate");
   const out = {};
   for (const name of Object.keys(BRIEF_VARIANTS)) {
     const withProjections = name === "empty_hold";
@@ -119,7 +120,7 @@ function generateBriefVariantBodies() {
           status: "unavailable",
           reason: "projections_unavailable",
           teams_checked: 0,
-          message: "Yahoo does not give Omen weekly projections, so a trade cannot be weighed.",
+          message: unavailableMessage("projections_unavailable", "Yahoo"),
         };
     const hold = buildHold({
       roster,
