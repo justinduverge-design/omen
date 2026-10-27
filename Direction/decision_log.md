@@ -4841,3 +4841,5 @@ deleted in the same change, and each passes the progress-file gate. Commit and p
   Omen's own numbers (`Direction/release/builds/build-13.md`).
 - *Nothing ships unreviewed (2026-10-23):* the founder rejected an archive containing changes he had not
   accepted. Build 12's binary is cut only from main after his walk.
+
+2026-10-26 — B13-EVIDENCE-DATES: provider matrix separates repository re-check dates from historical live proof; every capability/surface has exactly one Build 13 class. Restriction/supersession precedes proof status; code/test support alone is Unproven. Build 12 records transaction flags enabled 2026-10-19; Yahoo FA/W split is now source-default-on but lacks a live-shape receipt. Evidence: Blueprints/specs/football-data/provider-capability-matrix.json. No live provider calls or production changes.

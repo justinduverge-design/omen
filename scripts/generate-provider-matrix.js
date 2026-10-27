@@ -38,6 +38,25 @@ function render(matrix) {
   lines.push("");
   lines.push(matrix.founder_vocabulary);
   lines.push("");
+  lines.push(matrix.date_note, "", matrix.classification_note, "");
+  lines.push("## Build 13 classification", "");
+  for (const [name, definition] of Object.entries(matrix.classes)) {
+    lines.push(`### ${name}`, "", definition, "");
+    lines.push(
+      "| Provider | Capability / field | Consumers | Re-checked | Evidence date / kind | Detail and evidence |",
+      "|---|---|---|---|---|---|",
+    );
+    for (const item of [...entries, ...matrix.unused_surface].filter((item) => item.class === name)) {
+      const anchors = Array.isArray(item.evidence) ? item.evidence : item.review_evidence;
+      const evidence = anchors.map((anchor) => `[${anchor.file}](../../../${anchor.file})`).join("; ");
+      const historical = item.last_verified ? `${item.last_verified} (${item.verification})` : item.evidence;
+      const detail = item.detail || `${item.opportunity} ${item.needs}`;
+      lines.push(
+        `| ${item.provider} | ${item.capability || item.field} | ${(item.consumers || []).join(", ") || "—"} | ${item.last_checked} | ${historical} | ${detail} ${evidence} |`,
+      );
+    }
+    lines.push("");
+  }
   lines.push("## Status");
   lines.push("");
   lines.push(`| ${["Capability", ...PROVIDERS].join(" | ")} |`);

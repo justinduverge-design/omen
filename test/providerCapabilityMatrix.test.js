@@ -193,3 +193,27 @@ test("behavior: a missing Yahoo or ESPN credential reads as reauth_required, not
     assert.equal(result.reason, "reauth_required", platform);
   }
 });
+
+const BUILD_13_CLASSES = ["Used now", "Available but unused", "Superseded", "Unavailable or restricted", "Unproven"];
+test("Build 13 classifies every capability and unused surface exactly once with dated evidence", () => {
+  assert.deepEqual(Object.keys(matrix.classes), BUILD_13_CLASSES);
+  for (const item of [...matrix.entries, ...matrix.unused_surface]) {
+    const key = `${item.provider}/${item.capability || item.field}`;
+    assert.ok(BUILD_13_CLASSES.includes(item.class), `${key}: exactly one recognized class required`);
+    assert.match(item.last_checked, DATE, key);
+    assert.equal(item.last_checked, matrix.as_of, `${key}: review date must match this reconciliation`);
+    const anchors = Array.isArray(item.evidence) ? item.evidence : item.review_evidence;
+    assert.ok(anchors.length > 0, `${key}: repository evidence required`);
+    for (const anchor of anchors)
+      assert.ok(fs.existsSync(path.join(ROOT, anchor.file)), `${key}: missing ${anchor.file}`);
+    if (item.class === "Used now") {
+      assert.ok(item.consumers.length > 0, `${key}: name a feature consumer`);
+      assert.equal(item.verification, "live", `${key}: code alone cannot establish live shape`);
+      assert.ok(
+        anchors.some((anchor) => anchor.file === item.live_evidence),
+        `${key}: cite the historical receipt`,
+      );
+    }
+    if (item.last_verified) assert.ok(item.last_verified <= item.last_checked, key);
+  }
+});
