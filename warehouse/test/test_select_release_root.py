@@ -4,10 +4,10 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import os
-from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SELECTOR = REPO / "infra/warehouse/select_release_root.py"

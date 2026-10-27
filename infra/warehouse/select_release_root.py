@@ -6,10 +6,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path
 import secrets
 import stat
 import sys
+from pathlib import Path
 
 CONTRACT = "omen-football-warehouse-selection.v1"
 PRODUCTION_ROOT = Path("/opt/omen/warehouse")
@@ -61,9 +61,14 @@ def parse_manifest(release: Path, approved_manifest: str) -> dict[str, str]:
             fail("manifest_invalid")
         digest, relative = line[:64], line[66:]
         parts = relative.split("/")
-        if (len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest)
-                or relative in entries or relative in {"MANIFEST-SHA256", "SHA256SUMS"} or relative.startswith("/")
-                or any(part in ("", ".", "..") for part in parts)):
+        if (
+            len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+            or relative in entries
+            or relative in {"MANIFEST-SHA256", "SHA256SUMS"}
+            or relative.startswith("/")
+            or any(part in ("", ".", "..") for part in parts)
+        ):
             fail("manifest_invalid")
         entries[relative] = digest
     if not entries or set(("COMMIT", "RELEASE-CONTRACT")) - set(entries):
@@ -72,9 +77,12 @@ def parse_manifest(release: Path, approved_manifest: str) -> dict[str, str]:
 
 
 def validate_release(root: Path, commit: str, approved_manifest: str, require_root: bool) -> Path:
-    if (len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit)
-            or len(approved_manifest) != 64
-            or any(character not in "0123456789abcdef" for character in approved_manifest)):
+    if (
+        len(commit) != 40
+        or any(character not in "0123456789abcdef" for character in commit)
+        or len(approved_manifest) != 64
+        or any(character not in "0123456789abcdef" for character in approved_manifest)
+    ):
         fail("arguments_invalid")
     safe_directory(root, require_root)
     releases = root / "releases"
@@ -120,8 +128,9 @@ def validate_release(root: Path, commit: str, approved_manifest: str, require_ro
     return release
 
 
-def select_release(commit: str, approved_manifest: str, root: Path = PRODUCTION_ROOT,
-                   require_root: bool = True) -> dict[str, str]:
+def select_release(
+    commit: str, approved_manifest: str, root: Path = PRODUCTION_ROOT, require_root: bool = True
+) -> dict[str, str]:
     if require_root and os.geteuid() != 0:
         fail("root_required")
     if require_root and root != PRODUCTION_ROOT:
@@ -144,20 +153,34 @@ def select_release(commit: str, approved_manifest: str, root: Path = PRODUCTION_
     finally:
         if temporary.is_symlink():
             temporary.unlink()
-    return {"contract_version": CONTRACT, "state": "selected", "commit": commit,
-            "manifest_sha256": approved_manifest, "release": str(release), "current": str(current)}
+    return {
+        "contract_version": CONTRACT,
+        "state": "selected",
+        "commit": commit,
+        "manifest_sha256": approved_manifest,
+        "release": str(release),
+        "current": str(current),
+    }
 
 
 def main(arguments: list[str]) -> int:
     try:
-        if len(arguments) != 5 or arguments[0] != "select" or arguments[1] != "--commit" or arguments[3] != "--approved-manifest-sha256":
+        if (
+            len(arguments) != 5
+            or arguments[0] != "select"
+            or arguments[1] != "--commit"
+            or arguments[3] != "--approved-manifest-sha256"
+        ):
             fail("usage")
         os.umask(0o077)
         result = select_release(arguments[2], arguments[4])
         status = 0
     except Exception as error:
-        result = {"contract_version": CONTRACT, "state": "failed",
-                  "code": str(error) if isinstance(error, SelectionError) else "selector_failed"}
+        result = {
+            "contract_version": CONTRACT,
+            "state": "failed",
+            "code": str(error) if isinstance(error, SelectionError) else "selector_failed",
+        }
         status = 1
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return status

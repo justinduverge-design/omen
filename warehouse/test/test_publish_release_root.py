@@ -4,13 +4,13 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import unittest
+from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 PUBLISHER = REPO / "infra/warehouse/publish_release_root.py"
@@ -18,6 +18,7 @@ SPEC = importlib.util.spec_from_file_location("warehouse_publisher", PUBLISHER)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(MODULE)
+
 
 def _builder_paths():
     # The files the release builder ships, read from the builder itself so this fixture cannot drift.
@@ -45,19 +46,29 @@ class PublisherTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "fixture"], cwd=self.temporary, check=True)
         self.commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.temporary, text=True).strip()
         self.release = self.temporary / "release"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, self.release, WORKER_IMAGE], cwd=self.temporary, check=True)
+        subprocess.run(
+            [self.temporary / "infra/warehouse/build-release.sh", self.commit, self.release, WORKER_IMAGE],
+            cwd=self.temporary,
+            check=True,
+        )
         self.bundle = Path(f"{self.release}.tar")
         self.bundle_hash = Path(f"{self.bundle}.sha256").read_text().strip()
 
     def publish(self, bundle=None, approved_hash=None, destination=None):
         return MODULE.publish_release(
-            Path(bundle or self.bundle).absolute(), approved_hash or self.bundle_hash,
-            (destination or (self.temporary / "destination")).resolve(), require_root=False,
+            Path(bundle or self.bundle).absolute(),
+            approved_hash or self.bundle_hash,
+            (destination or (self.temporary / "destination")).resolve(),
+            require_root=False,
         )
 
     def test_bundle_is_deterministic_and_excludes_publisher(self):
         second = self.temporary / "second"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", self.commit, second, WORKER_IMAGE], cwd=self.temporary, check=True)
+        subprocess.run(
+            [self.temporary / "infra/warehouse/build-release.sh", self.commit, second, WORKER_IMAGE],
+            cwd=self.temporary,
+            check=True,
+        )
         self.assertEqual(self.bundle.read_bytes(), Path(f"{second}.tar").read_bytes())
         with tarfile.open(self.bundle, "r:") as archive:
             self.assertNotIn("infra/warehouse/publish_release_root.py", archive.getnames())
@@ -71,7 +82,11 @@ class PublisherTest(unittest.TestCase):
         subprocess.run(["git", "commit", "-qm", "payload"], cwd=self.temporary, check=True)
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=self.temporary, text=True).strip()
         release = self.temporary / "payload-release"
-        subprocess.run([self.temporary / "infra/warehouse/build-release.sh", commit, release, WORKER_IMAGE], cwd=self.temporary, check=True)
+        subprocess.run(
+            [self.temporary / "infra/warehouse/build-release.sh", commit, release, WORKER_IMAGE],
+            cwd=self.temporary,
+            check=True,
+        )
         bundle = Path(f"{release}.tar")
         approved = Path(f"{bundle}.sha256").read_text().strip()
         result = self.publish(bundle, approved)
@@ -110,7 +125,9 @@ class PublisherTest(unittest.TestCase):
     def test_cli_has_fixed_destination_and_sanitized_failure(self):
         result = subprocess.run(
             [sys.executable, "-I", PUBLISHER, "publish", "--bundle", "/missing", "--approved-bundle-sha256", "0" * 64],
-            text=True, capture_output=True, check=False,
+            text=True,
+            capture_output=True,
+            check=False,
         )
         self.assertEqual(result.returncode, 1)
         self.assertEqual(set(__import__("json").loads(result.stdout)), {"code", "contract_version", "state"})

@@ -11,14 +11,14 @@ import hashlib
 import io
 import json
 import os
-from pathlib import Path
 import re
 import shutil
 import stat
 import sys
 import tarfile
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
 
 CONTRACT = "omen-football-warehouse-publication.v1"
 RELEASE_CONTRACT = "omen-football-warehouse-release.v1"
@@ -165,12 +165,20 @@ def validate_tree(entries: dict[str, tuple[bytes | None, int]]) -> tuple[str, st
         commit_text = commit_bytes.decode("ascii")
     except UnicodeDecodeError:
         fail("commit_invalid")
-    if len(commit_text) != 41 or not commit_text.endswith("\n") or any(character not in "0123456789abcdef" for character in commit_text[:-1]):
+    if (
+        len(commit_text) != 41
+        or not commit_text.endswith("\n")
+        or any(character not in "0123456789abcdef" for character in commit_text[:-1])
+    ):
         fail("commit_invalid")
     commit = commit_text.strip()
     actual_contract = files["RELEASE-CONTRACT"]
     assert actual_contract is not None
-    match = re.search(rb"^worker_image=(ghcr\.io/justinduverge-design/omen-warehouse-ingest@sha256:[0-9a-f]{64})$", actual_contract, re.MULTILINE)
+    match = re.search(
+        rb"^worker_image=(ghcr\.io/justinduverge-design/omen-warehouse-ingest@sha256:[0-9a-f]{64})$",
+        actual_contract,
+        re.MULTILINE,
+    )
     if match is None:
         fail("release_contract_invalid")
     worker_image = match.group(1).decode("ascii")
@@ -185,21 +193,27 @@ def validate_tree(entries: dict[str, tuple[bytes | None, int]]) -> tuple[str, st
     manifest_hash = sha256(manifest)
     if files["MANIFEST-SHA256"] != f"{manifest_hash}\n".encode():
         fail("inner_manifest_invalid")
-    expected_hashed = ["COMMIT", "RELEASE-CONTRACT", *[
-        name for name in FILE_MODES if name not in {"COMMIT", "MANIFEST-SHA256", "RELEASE-CONTRACT", "SHA256SUMS"}
-    ]]
+    expected_hashed = [
+        "COMMIT",
+        "RELEASE-CONTRACT",
+        *[name for name in FILE_MODES if name not in {"COMMIT", "MANIFEST-SHA256", "RELEASE-CONTRACT", "SHA256SUMS"}],
+    ]
     try:
         lines = manifest.decode("ascii", errors="strict").splitlines()
     except UnicodeDecodeError:
         fail("inner_manifest_invalid")
     if len(lines) != len(expected_hashed):
         fail("inner_manifest_invalid")
-    for line, expected_name in zip(lines, expected_hashed):
+    for line, expected_name in zip(lines, expected_hashed, strict=False):
         if len(line) != 66 + len(expected_name) or line[64:66] != "  " or line[66:] != expected_name:
             fail("inner_manifest_invalid")
         digest = line[:64]
         content = files.get(expected_name)
-        if content is None or any(character not in "0123456789abcdef" for character in digest) or sha256(content) != digest:
+        if (
+            content is None
+            or any(character not in "0123456789abcdef" for character in digest)
+            or sha256(content) != digest
+        ):
             fail("inner_manifest_invalid")
     return commit, manifest_hash
 
@@ -269,12 +283,18 @@ def tree_matches(target: Path, entries: dict[str, tuple[bytes | None, int]], req
         return False
 
 
-def publish_release(bundle: Path, approved_hash: str, destination_root: Path = PRODUCTION_ROOT, require_root: bool = True) -> dict[str, str]:
+def publish_release(
+    bundle: Path, approved_hash: str, destination_root: Path = PRODUCTION_ROOT, require_root: bool = True
+) -> dict[str, str]:
     if require_root and os.geteuid() != 0:
         fail("root_required")
     if require_root and destination_root != PRODUCTION_ROOT:
         fail("destination_invalid")
-    if not bundle.is_absolute() or len(approved_hash) != 64 or any(character not in "0123456789abcdef" for character in approved_hash):
+    if (
+        not bundle.is_absolute()
+        or len(approved_hash) != 64
+        or any(character not in "0123456789abcdef" for character in approved_hash)
+    ):
         fail("arguments_invalid")
     ensure_root(destination_root, require_root)
     releases = destination_root / "releases"
@@ -291,10 +311,16 @@ def publish_release(bundle: Path, approved_hash: str, destination_root: Path = P
         entries = parse_bundle(private_bundle.read_bytes())
         commit, manifest_hash = validate_tree(entries)
         target = releases / commit
-        observed = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-        base = {"contract_version": CONTRACT, "state": "published", "commit": commit,
-                "bundle_sha256": approved_hash, "manifest_sha256": manifest_hash,
-                "publisher_sha256": sha256(Path(__file__).read_bytes()), "destination": str(target)}
+        observed = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        base = {
+            "contract_version": CONTRACT,
+            "state": "published",
+            "commit": commit,
+            "bundle_sha256": approved_hash,
+            "manifest_sha256": manifest_hash,
+            "publisher_sha256": sha256(Path(__file__).read_bytes()),
+            "destination": str(target),
+        }
         if target.exists() or target.is_symlink():
             if not tree_matches(target, entries, require_root):
                 fail("existing_release_mismatch")
@@ -326,14 +352,22 @@ def publish_release(bundle: Path, approved_hash: str, destination_root: Path = P
 
 def main(arguments: list[str]) -> int:
     try:
-        if len(arguments) != 5 or arguments[0] != "publish" or arguments[1] != "--bundle" or arguments[3] != "--approved-bundle-sha256":
+        if (
+            len(arguments) != 5
+            or arguments[0] != "publish"
+            or arguments[1] != "--bundle"
+            or arguments[3] != "--approved-bundle-sha256"
+        ):
             fail("usage")
         os.umask(0o077)
         result = publish_release(Path(arguments[2]), arguments[4])
         status = 0
     except Exception as error:
-        result = {"contract_version": CONTRACT, "state": "failed",
-                  "code": str(error) if isinstance(error, PublishError) else "publisher_failed"}
+        result = {
+            "contract_version": CONTRACT,
+            "state": "failed",
+            "code": str(error) if isinstance(error, PublishError) else "publisher_failed",
+        }
         status = 1
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
     return status
