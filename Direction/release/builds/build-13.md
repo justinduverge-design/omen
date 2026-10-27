@@ -22,6 +22,7 @@ Add each PR here as it merges (number, area, title).
 | #792 | Config | Figma retired: design artifacts from any of our tools; config and the native read gate |
 | #793 | Records | Build 12 shipped, Build 13 opened, Build 13 work list, 1.0 done checklist |
 | #794 | Contracts | B13-YAHOO-FIXTURE: the fixture generator uses the server's Yahoo trade copy, so `contracts:check` passes |
+| #795 | Dependencies | `@opentelemetry/core` override 2.8 → 3.0 to match `sdk-trace` 3 (#791 broke 3 tracing tests); the witness keeps `timezone.utc` so it runs on python 3.9 (#790's ruff rewrite needed 3.11) |
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
