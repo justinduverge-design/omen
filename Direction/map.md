@@ -58,7 +58,7 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Database, migrations, RLS, erase/export | `Blueprints/rebuild/omen-database-redo-v1.md`, `sql/2026-10-01-redo/`, latest `Blueprints/handoffs/2026-10-0*` | `slops-api-hardening`, `security-privacy-evidence`, `rbac-risk-review`; request `@codex review` |
 | ESPN / Yahoo / Sleeper connection or sync | `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`, `Blueprints/specs/espn-connect-guide-v1.md` | `slops-provider-resilience` |
 | API routes, server code | `Blueprints/api-routes.md`, `test/` | `slops-tdd`, `slops-api-hardening` |
-| Native iPhone screen | the seven-file native gate in `CLAUDE.md`, approved Figma node, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-figma-to-native`, `slops-native-sim-drive`, `slops-native-ui-audit` |
+| Native iPhone screen | the native read gate (below), the approved design artifact, `Blueprints/specs/mobile/omen-native-visual-lock-v2.md` | `slops-native-screen-design`, `slops-native-sim-drive`, `slops-native-ui-audit` |
 | Shared UI components or team theming | `Blueprints/specs/design/component-lock-v1.md`, `team-theme-contract-v1.md` | `slops-ux-copy` for words |
 | Recommendations / scoring / football data | `Blueprints/specs/football-data/`, `Direction/football-data-and-schemes-research.md` | `slops-tdd` |
 | Public copy, analytics, demo mode, type | `Direction/facts-of-record.md` facts 16-21, `Brand/brand-system.md` | `slops-ux-copy` |
@@ -70,6 +70,24 @@ and the risky-PR list: `Blueprints/prompts/HOW-TO-RUN-THE-LOOP.md` § Review. Cl
 | Where a new file belongs | `RESOLVER.md` | — |
 | Why something was decided | `Direction/decision_log.md` (search, do not read whole) | — |
 | What a code area touches or depends on | Run `graphify update .` (about a minute, no API cost; the graph is generated and not in git), then `graphify explain "X"`, `graphify path "A" "B"` or `graphify query "question"`. Covers code only; scope in `.graphifyignore` | `slops-graphify` |
+
+## Native read gate
+
+Read these before planning or writing code for any native iPhone, Android, mobile design-system,
+onboarding, provider-connection or mobile-release task:
+
+1. `Blueprints/specs/mobile/omen-native-mobile-foundation-v1.md`
+2. `Blueprints/specs/mobile/omen-native-design-house-v1.md`
+3. `Blueprints/specs/mobile/omen-native-delivery-governance-v1.md`
+4. `Blueprints/specs/mobile/omen-mobile-onboarding-connection-contract-v1.md`
+5. `Blueprints/specs/mobile/omen-native-agent-capabilities-canvas-v1.md`
+6. `Blueprints/playbooks/native-mobile-design-delivery-workflow-v1.md`
+7. The approved design artifact for the screen or component, made with any of our tools (Claude Design,
+   Slides and Artifacts, ChatGPT, Codex, Gemini; today: "Omen Build 12 Redesign", "Omen Whole-App Canvas",
+   `Blueprints/specs/design/omen-design-foundation-v1.md`, `design/foundation-v1-canvas/`), and the
+   API/state contract. Figma is retired (founder, 2026-10-26); `design/figma-archive/` is history only.
+
+When one is missing or two conflict, **flag the gap and stop.** Do not start the feature code.
 
 ## Never read, only write to or run
 

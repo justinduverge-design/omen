@@ -28,7 +28,7 @@ asking the founder anything a past session may have answered.
    `Direction/current_sprint.md`. Record a `Claim:` on it. Start a fresh session for the next task.
 2. **Plan and wait.** Report task, files to touch and how you will prove it. Wait for the founder.
 3. **Build** in your own worktree. Native screen work first passes the seven-file native read gate
-   (`Direction/map.md`, "Native iPhone screen"); a missing or conflicting source means stop and say so.
+   (`Direction/map.md` → Native read gate); a missing or conflicting source means stop and say so.
 4. **Self-check, then a fresh-agent review of the diff** before the PR. Fix what it finds. Ask Codex
    (`@codex review`) only for database/migrations, user-data deletion or exposure, auth, billing.
 5. **PR.** Merging is the founder's call and goes through `scripts/merge-pr.sh` only.

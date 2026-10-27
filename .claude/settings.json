@@ -82,7 +82,6 @@
   "enabledMcpjsonServers": [
     "recall",
     "supabase",
-    "posthog",
-    "figma"
+    "posthog"
   ]
 }
