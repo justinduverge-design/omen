@@ -69,8 +69,9 @@ Sight forecasts the stat line and every decision screen shows it next to the lea
   `espn_team_id` is repaired or retired (founder approves any production row change).
 
 ### B13-EVIDENCE-DATES — refresh provider-capability evidence
-- **Status:** IN_PROGRESS
+- **Status:** VERIFIED
 - **Claim:** 2026-10-26 Codex — repository-only evidence reconciliation
+- **Evidence:** PR #796; `Blueprints/specs/football-data/provider-capability-matrix.json`, `scripts/generate-provider-matrix.js`, `test/providerCapabilityMatrix.test.js`
 - **Blocked by:** None
 - **Priority:** P2
 - **Note:** good cloud task

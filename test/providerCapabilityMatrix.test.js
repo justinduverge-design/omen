@@ -204,11 +204,15 @@ test("Build 13 classifies every capability and unused surface exactly once with 
     assert.equal(item.last_checked, matrix.as_of, `${key}: review date must match this reconciliation`);
     const anchors = Array.isArray(item.evidence) ? item.evidence : item.review_evidence;
     assert.ok(anchors.length > 0, `${key}: repository evidence required`);
-    for (const anchor of anchors) assert.ok(fs.existsSync(path.join(ROOT, anchor.file)), `${key}: missing ${anchor.file}`);
+    for (const anchor of anchors)
+      assert.ok(fs.existsSync(path.join(ROOT, anchor.file)), `${key}: missing ${anchor.file}`);
     if (item.class === "Used now") {
       assert.ok(item.consumers.length > 0, `${key}: name a feature consumer`);
       assert.equal(item.verification, "live", `${key}: code alone cannot establish live shape`);
-      assert.ok(anchors.some((anchor) => anchor.file === item.live_evidence), `${key}: cite the historical receipt`);
+      assert.ok(
+        anchors.some((anchor) => anchor.file === item.live_evidence),
+        `${key}: cite the historical receipt`,
+      );
     }
     if (item.last_verified) assert.ok(item.last_verified <= item.last_checked, key);
   }
