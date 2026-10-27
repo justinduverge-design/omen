@@ -47,7 +47,7 @@
   },
   "overrides": {
     "adm-zip": "0.6.0",
-    "@opentelemetry/core": "2.8.0",
+    "@opentelemetry/core": "3.0.0",
     "@opentelemetry/resources": "3.0.0",
     "@opentelemetry/sdk-trace-base": "2.8.0"
   }

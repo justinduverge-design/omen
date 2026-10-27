@@ -11,10 +11,12 @@ import io
 import json
 import os
 import tempfile
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+UTC = timezone.utc  # noqa: UP017 - the witness runs on any stock python3, including 3.9
 
 PRODUCTION_ROOT = Path("/var/lib/omen-football-witness")
 PHASE3_ACCEPTANCE_SHA256 = "5c4cbc0568ce85a94512b7722144a7cddcb83fe74bd088f04d90f7a628a00bea"
