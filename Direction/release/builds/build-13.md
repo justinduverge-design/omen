@@ -1,12 +1,52 @@
-# Build 13 — liability and idea inventory
+# Build 13
 
 ## Status
 
-**Planning inventory only.** This file prevents known work from leaking backward into Build 12. It is not a
-scope commitment or a reason to hold a Build 12 candidate that passes its final iPhone walk and TestFlight
-gate.
+**Open (since Build 12 shipped 2026-10-25).** Not uploaded. Baseline: Build 12, TestFlight 0.1.0 (12).
+The work list is `Direction/current_sprint.md`; this package records what merges. The sections from
+"Backlog" down are the inventory it draws from, not a scope commitment.
 
-## Forecast liability (founder, 2026-10-25)
+## Goal
+
+Sight forecasts the stat line, not just points, scored by each league's own rules, and every decision screen
+shows it honestly next to the provider's projection (founder, 2026-10-25).
+
+## PRs in this build
+
+Add each PR here as it merges (number, area, title).
+
+| PR | Area | Title |
+|---|---|---|
+| #790 | Python | Lint: clear the ruff errors on `main` |
+| #778, #791 | Dependencies | Production bumps; #778 broke `npm ci` (OpenTelemetry exporter needs `sdk-trace` 3), #791 moved `sdk-trace` to 3 |
+| #792 | Config | Figma retired: design artifacts from any of our tools; config and the native read gate |
+| #793 | Records | Build 12 shipped, Build 13 opened, Build 13 work list, 1.0 done checklist |
+| #794 | Contracts | B13-YAHOO-FIXTURE: the fixture generator uses the server's Yahoo trade copy, so `contracts:check` passes |
+
+1.0 yardstick: `Direction/omen-1.0-done.md`.
+
+## Carried from Build 12
+
+From `build-12.md` (Known issues / next); each is detailed in the backlog below or in that file.
+
+- Fresh ESPN-account proof and the legacy row with no `espn_team_id`.
+- Provider capability reconciliation (used / unused / superseded / restricted / unproven).
+- Support/report delivery end to end, and the "I made the move / Not this week" write route.
+- Review P2s from #770: the Desk's Ledger line vanishes silently when the Ledger can't load; the Desk has no
+  "Report a problem" entry of its own.
+- Not drawn because the server doesn't send it (foundation spec § 9): League roster rank, Ledger points per
+  call and "confidence then", Notifications settings, Export your data, standings ties, the swing matchup
+  and win probability.
+- Performance and model depth: parallelise cold reads, Yahoo player-index coverage, Sunday injury freshness,
+  K stays low-confidence, Sight v3.
+- Narration model: production stays on `gemma3:4b`; `qwen3:1.7b` and small-model workers are evaluated only.
+- Ops outside the binary: Cloudflare 522 experiment, off-host backup expiry (`Direction/known_issues.md`).
+- Python lint on `main` (#790) and the stale `empty_hold_noproj` Yahoo fixture that fails `contracts:check`
+  in the cloud.
+
+## Backlog (inventory)
+
+### Forecast liability (founder, 2026-10-25)
 
 **Sight forecasts points only.** Today Sight predicts one number per player, next week's PPR points, plus a
 0-100 grade. Omen's whole point is to forecast fantasy football, so Build 13 makes Sight forecast the stat
@@ -25,7 +65,7 @@ line, for each of the coming weeks:
 
 
 
-### ESPN first-time path
+#### ESPN first-time path
 
 - Prove the current iPhone connection screen with a genuinely new ESPN account. Confirm the consent copy,
   browser handoff, return path, recovery states and last-resort League ID path are understandable.
@@ -36,7 +76,7 @@ line, for each of the coming weeks:
   fresh-login failure unless the new-account proof reproduces it.
 - Keep ESPN's cookie-backed and unofficial-provider risk visible. Never treat “working” as provider approval.
 
-### Provider capability reconciliation
+#### Provider capability reconciliation
 
 The machine-readable authority is
 `Blueprints/specs/football-data/provider-capability-matrix.json`; its generated view is
@@ -56,7 +96,7 @@ matchups, standings, waiver pools and systems, transactions, projections, injuri
 settings and trade deadlines across Sleeper, ESPN and Yahoo. Build 13 must map each used capability to Desk,
 Omen, Start/Sit, Waivers, Trade, League or Ledger rather than merely saying an adapter reads it.
 
-### Known unused or unresolved candidates
+#### Known unused or unresolved candidates
 
 Validate this list against current source before implementation:
 
@@ -72,7 +112,7 @@ Validate this list against current source before implementation:
 - Provider-side schedules, byes, depth and injury fields that duplicate warehouse facts: explicitly mark keep,
   fallback, cross-check or retire. Do not silently collect duplicate truth.
 
-## Small-model work
+### Small-model work
 
 - Keep production on the currently proven model until a separate activation decision.
 - Evaluate `qwen3:1.7b`, already proven through Omen's native Ollama chat path with thinking disabled, on
@@ -83,15 +123,14 @@ Validate this list against current source before implementation:
 - Define a shadow receipt for every experiment: input class, output, latency, resource use, agreement with the
   deterministic system, failure reason and whether a human acted on it.
 
-## Other carried work
+### Other carried work
 
 - Make the in-app report/support path deliver a real, privacy-safe support item and prove the owner can receive
   and close it. Build 12 only moved and clarified the control; delivery remains deferred.
 - Add the move follow-through write route for “I made the move” / “Not this week”.
-- Turn this inventory into a prioritized Build 13 plan only after Build 12 ships and first-user feedback is
-  observed. Preserve separate states for idea, source-built, test-passed, deployed and phone-proven.
+- Preserve separate states for idea, source-built, test-passed, deployed and phone-proven.
 
-## Device-walk product follow-ups from Build 12
+### Device-walk product follow-ups from Build 12
 
 - Re-audit every primary destination by information type, not by shared container count. Keep semantic
   continuity, but choose cards, tables, dividers, pills, lists and plain sections according to the content.
