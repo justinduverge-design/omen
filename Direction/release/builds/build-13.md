@@ -24,7 +24,7 @@ Add each PR here as it merges (number, area, title).
 | #794 | Contracts | B13-YAHOO-FIXTURE: the fixture generator uses the server's Yahoo trade copy, so `contracts:check` passes |
 | #795 | Dependencies | `@opentelemetry/core` override 2.8 → 3.0 to match `sdk-trace` 3 (#791 broke 3 tracing tests); the witness keeps `timezone.utc` so it runs on python 3.9 (#790's ruff rewrite needed 3.11) |
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
-| _this PR_ | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
+| #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
