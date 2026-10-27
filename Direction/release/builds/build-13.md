@@ -17,7 +17,11 @@ Add each PR here as it merges (number, area, title).
 
 | PR | Area | Title |
 |---|---|---|
-| #790 | Python | Lint: clear the ruff errors on `main` (open) |
+| #790 | Python | Lint: clear the ruff errors on `main` |
+| #778, #791 | Dependencies | Production bumps; #778 broke `npm ci` (OpenTelemetry exporter needs `sdk-trace` 3), #791 moved `sdk-trace` to 3 |
+| #792 | Config | Figma retired: design artifacts from any of our tools; config and the native read gate |
+| #793 | Records | Build 12 shipped, Build 13 opened, Build 13 work list, 1.0 done checklist |
+| #794 | Contracts | B13-YAHOO-FIXTURE: the fixture generator uses the server's Yahoo trade copy, so `contracts:check` passes |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
