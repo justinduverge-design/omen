@@ -3,8 +3,9 @@
 #
 # - no-pii-outbound: a test User-Agent once carried the founder's email to Wikipedia.
 # - build-package: the build record was written at the end instead of as PRs merged. Each PR now adds
-#   itself (`#<number>`) to the open build package before it can merge. Dependabot PRs and PRs labelled
-#   `no-package` are exempt.
+#   itself to the open build package before it can merge: `#<number>`, or its branch name in backticks
+#   on the first push (no agent knows its number before opening the PR; scripts/merge-pr.sh swaps in
+#   `#<number>` before it merges). Dependabot PRs and PRs labelled `no-package` are exempt.
 # - kickoff-drift: AGENTS.md and the kickoff prompt stay one contract.
 
 name: Agent guards
@@ -37,14 +38,18 @@ jobs:
         if: github.actor != 'dependabot[bot]' && !contains(github.event.pull_request.labels.*.name, 'no-package')
         env:
           PR: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
         run: |
           pkg=$(grep -l '^\*\*Open' Direction/release/builds/build-*.md | sort -V | tail -1 || true)
           if [ -z "$pkg" ]; then
             echo "::error::No open build package (a build-N.md whose Status starts with **Open). Open one at build start."
             exit 1
           fi
-          if ! grep -q "#${PR}\b" "$pkg"; then
-            echo "::error::Add one line for #${PR} to $pkg (what changed, why), or label the PR no-package."
+          if grep -q "#${PR}\b" "$pkg"; then
+            echo "#${PR} is recorded in $pkg"
+          elif grep -qF "\`${BRANCH}\`" "$pkg"; then
+            echo "\`${BRANCH}\` is recorded in $pkg; scripts/merge-pr.sh fills in #${PR} before merging"
+          else
+            echo "::error::Add one line for #${PR} (or \`${BRANCH}\`) to $pkg (what changed, why), or label the PR no-package."
             exit 1
           fi
-          echo "#${PR} is recorded in $pkg"

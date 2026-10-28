@@ -27,11 +27,14 @@ asking the founder anything a past session may have answered.
 1. **One task per session.** A pin in `Direction/agent_inbox.md` wins; otherwise take a lane from
    `Direction/current_sprint.md`. Record a `Claim:` on it. Start a fresh session for the next task.
 2. **Plan and wait.** Report task, files to touch and how you will prove it. Wait for the founder.
+   **A dispatched cloud run (Jules, Codex cloud, Claude Code web) does not wait:** the task card is the
+   approval. Don't ask; open the PR. When unsure, take the documented default and say so in the PR.
 3. **Build** in your own worktree. Native screen work first passes the seven-file native read gate
    (`Direction/map.md` → Native read gate); a missing or conflicting source means stop and say so.
 4. **Self-check, then a fresh-agent review of the diff** before the PR. Fix what it finds. Ask Codex
    (`@codex review`) only for database/migrations, user-data deletion or exposure, auth, billing.
-5. **PR.** Merging is the founder's call and goes through `scripts/merge-pr.sh` only.
+5. **PR.** Add one row to the open `Direction/release/builds/build-N.md`; before you know the PR number,
+   write the branch name in backticks. Merging is the founder's call and goes through `scripts/merge-pr.sh` only.
 6. **Close out:** `Status: VERIFIED` + `Evidence:` on the item, decisions in `Direction/decision_log.md`,
    then `npm run closeout`. A P0 blocks close-out. An unrun check is not a passing check.
 

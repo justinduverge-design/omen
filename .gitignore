@@ -83,6 +83,13 @@ local.properties*
 *Local.xcconfig
 !Local.xcconfig.example
 
+# Signing keys. The Android upload keystore lives in the password manager (Vaultwarden once it's
+# up), never in a repo; these rules make an accidental copy into the tree impossible to commit.
+*.jks
+*.keystore
+*.p12
+key.properties
+
 # Local capture output from scripts/capture-screen-batch.sh — batch screenshots and the
 # throwaway DerivedData its --build flag uses. Evidence PNGs that are meant to be KEPT belong
 # with the artifact that cites them (a handoff, a review), committed deliberately and by path,
