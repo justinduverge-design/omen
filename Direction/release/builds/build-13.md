@@ -88,6 +88,11 @@ Validate this list against current source before implementation:
 - Make the in-app report/support path deliver a real, privacy-safe support item and prove the owner can receive
   and close it. Build 12 only moved and clarified the control; delivery remains deferred.
 - Add the move follow-through write route for “I made the move” / “Not this week”.
+- Restore error tracking (founder, 2026-10-25). GlitchTip, the OTel collector and Vector on comand-center
+  have been down since 2026-10-20, so Omen's errors and traces currently reach no one. Decide first between
+  restarting the stack as it was and the audit's P1 redesign (keep GlitchTip, Kuma and Beszel; replace the OTel
+  collector and Vector with OpenObserve). Nothing is restarted before that decision. Evidence:
+  Valor-Core `inventory/REPORT.md` and `inventory/plan.json` (P1).
 - Turn this inventory into a prioritized Build 13 plan only after Build 12 ships and first-user feedback is
   observed. Preserve separate states for idea, source-built, test-passed, deployed and phone-proven.
 
