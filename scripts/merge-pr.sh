@@ -13,6 +13,26 @@ finish_timeout=${FINISH_TIMEOUT:-3600}
 state=$(gh pr view "$pr" --json state,isDraft -q '.state + " " + (.isDraft|tostring)')
 [[ $state == "OPEN false" ]] || { echo "PR $pr is not an open, ready PR ($state)"; exit 1; }
 
+# 0. A build-package row may name the PR's branch instead of its number (an agent's first push can't
+#    know the number; Agent guards accepts either). Swap in #<PR> on the branch now, then let the
+#    checks below re-run on that commit.
+#    Fork PRs are skipped: their branch isn't on origin, so they must carry #<PR> themselves.
+read -r branch cross < <(gh pr view "$pr" --json headRefName,isCrossRepository -q '.headRefName + " " + (.isCrossRepository|tostring)')
+if [[ $cross == false ]]; then
+git fetch -q origin "$branch"
+tmp=$(mktemp -d)
+trap 'git worktree remove --force "$tmp" 2>/dev/null || true' EXIT
+git worktree add -q --detach "$tmp" FETCH_HEAD
+pkg=$(cd "$tmp" && grep -l '^\*\*Open' Direction/release/builds/build-*.md | sort -V | tail -1 || true)
+if [[ -n $pkg ]] && ! grep -q "#$pr\b" "$tmp/$pkg" && grep -qF "\`$branch\`" "$tmp/$pkg"; then
+  B="$branch" N="#$pr" perl -pi -e 's/\Q`$ENV{B}`\E/$ENV{N}/g' "$tmp/$pkg"
+  git -C "$tmp" commit -q -am "Build package: #$pr in place of its branch name"
+  git -C "$tmp" push -q origin "HEAD:refs/heads/$branch"
+  echo "#$pr filled in on $pkg; waiting for checks on the new commit"
+  sleep 15
+fi
+fi
+
 # 1. Checks must exist. A PR with zero checks is never mergeable here.
 waited=0
 until [[ $(gh pr checks "$pr" --json name -q 'length' 2>/dev/null || echo 0) -gt 0 ]]; do
@@ -38,4 +58,5 @@ failed=$(gh pr checks "$pr" --json name,bucket -q '[.[] | select(.bucket=="fail"
 
 total=$(gh pr checks "$pr" --json name -q 'length')
 echo "#$pr: all $total checks passed; merging ($mode)"
-gh pr merge "$pr" "$mode" --delete-branch
+head=$(gh pr view "$pr" --json headRefOid -q .headRefOid)   # merge only the commit whose checks passed
+gh pr merge "$pr" "$mode" --delete-branch --match-head-commit "$head"

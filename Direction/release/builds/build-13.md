@@ -25,6 +25,7 @@ Add each PR here as it merges (number, area, title).
 | #795 | Dependencies | `@opentelemetry/core` override 2.8 → 3.0 to match `sdk-trace` 3 (#791 broke 3 tracing tests); the witness keeps `timezone.utc` so it runs on python 3.9 (#790's ruff rewrite needed 3.11) |
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
+| #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 

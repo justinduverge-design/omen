@@ -4843,3 +4843,6 @@ deleted in the same change, and each passes the progress-file gate. Commit and p
   accepted. Build 12's binary is cut only from main after his walk.
 
 2026-10-26 — B13-EVIDENCE-DATES: provider matrix separates repository re-check dates from historical live proof; every capability/surface has exactly one Build 13 class. Restriction/supersession precedes proof status; code/test support alone is Unproven. Build 12 records transaction flags enabled 2026-10-19; Yahoo FA/W split is now source-default-on but lacks a live-shape receipt. Evidence: Blueprints/specs/football-data/provider-capability-matrix.json. No live provider calls or production changes.
+
+2026-10-27 — Folder layout and Android lead (founder). One Omen checkout, nested at `~/Documents/GitHub/Valor-Core/Slops-OS/slops-saloon/omen`: "same soul, three different bodies". Valor-Core, Slops-OS and Omen stay separate repos but are tied by a family manifest (Valor-Core brief to come). Gemini / Antigravity lead the Android build, to use their unused subscription. Evidence: `Blueprints/handoffs/2026-10-27-environments-closeout.md`.
+2026-10-27 — Item 1b: a dispatched cloud run doesn't wait for a yes; its task card is the approval. A build-package row may name the branch until `scripts/merge-pr.sh` fills in the number. Evidence: same handoff.
