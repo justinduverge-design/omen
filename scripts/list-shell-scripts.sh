@@ -13,7 +13,7 @@ esac
 cd "$(git -C "${1:-.}" rev-parse --show-toplevel)"
 git ls-files -z | while IFS= read -r -d '' f; do
   [[ -f $f && $f != mobile/android/gradlew ]] || continue
-  if [[ $f == *.sh ]] || head -n1 -- "$f" 2>/dev/null | grep -Eq '^#!.*\b(ba|da)?sh\b'; then
+  if [[ $f == *.sh ]] || head -n1 -- "$f" 2>/dev/null | grep -Eq '^#!.*\b(bash|dash|sh)\b'; then
     printf '%s\0' "$f"
   fi
 done
