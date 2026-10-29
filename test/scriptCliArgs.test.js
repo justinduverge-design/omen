@@ -18,7 +18,7 @@ const fixture = require("../scripts/build-football-intelligence-fixture");
 const backtest = require("../scripts/omen-projections-backtest");
 
 test("cli-args refuses repeats, empty values and unknown flags with the argument named", () => {
-  const options = { a: { type: "string" } };
+  const options = { a: { type: "string" }, f: { type: "boolean" } };
   assert.deepEqual(parseCliArgs(["--a", "1"], options).values, { a: "1" });
   for (const [argv, reason, argument] of [
     [["--a", "1", "--a", "2"], "duplicate", "--a"],
@@ -26,6 +26,7 @@ test("cli-args refuses repeats, empty values and unknown flags with the argument
     [["--b", "1"], "unknown", "--b"],
     [["--a"], "missing-value", "--a"],
     [["x"], "positional", "x"],
+    [["--f=1"], "unexpected-value", "--f"],
   ]) {
     assert.throws(
       () => parseCliArgs(argv, options),
@@ -140,6 +141,8 @@ test("omen-projections-backtest: defaults, --sleeper boolean, validation", () =>
   assert.equal(full.urlFile, "/u");
   assert.throws(() => backtest.parseArgs(["--seasons", "2024", "--out-dir", "/x", "--bogus", "1"]), /unknown flag/);
   assert.throws(() => backtest.parseArgs(["--out-dir", "/x"]), /--seasons is required/);
+  assert.throws(() => backtest.parseArgs(["--sleeper=1"]), /--sleeper takes no value/);
+  assert.throws(() => backtest.parseArgs(["--sleeper", "--sleeper"]), /--sleeper given more than once/);
   assert.throws(() => backtest.parseArgs(["--seasons", "2024", "--out-dir", "rel"]), /absolute/);
   assert.throws(() => backtest.parseArgs(["--seasons", "2024", "--out-dir", "/x", "--warmup", "11"]), /--warmup/);
   assert.throws(() => backtest.parseArgs(["--seasons", "2024", "--out-dir", "/x", "--positions", "K"]), /K/);

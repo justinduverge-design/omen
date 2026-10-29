@@ -13,7 +13,7 @@ class CliArgsError extends Error {
   constructor(reason, argument) {
     super(`${reason}: ${argument}`);
     this.name = "CliArgsError";
-    this.reason = reason; // "unknown" | "missing-value" | "duplicate" | "empty-value" | "positional"
+    this.reason = reason; // "unknown" | "missing-value" | "unexpected-value" | "duplicate" | "empty-value" | "positional"
     this.argument = argument;
   }
 }
@@ -29,8 +29,9 @@ function parseCliArgs(args, options, { allowPositionals = false } = {}) {
   try {
     parsed = util.parseArgs({ args, options, strict: true, allowPositionals, tokens: true });
   } catch (error) {
-    const reason = REASONS[error.code];
+    let reason = REASONS[error.code];
     if (!reason) throw error;
+    if (/does not take an argument/.test(error.message)) reason = "unexpected-value";
     // Node names the argument in single quotes, e.g. "Unknown option '--x'".
     const argument = /'([^' ]+)/.exec(error.message)?.[1] || "(missing)";
     throw new CliArgsError(reason, argument);

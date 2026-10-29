@@ -29,6 +29,8 @@ function parseArgs(argv) {
     if (error.reason === "unknown" || error.reason === "positional") {
       throw new TypeError(`unknown flag ${error.argument}`);
     }
+    if (error.reason === "duplicate") throw new TypeError(`${error.argument} given more than once`);
+    if (error.reason === "unexpected-value") throw new TypeError(`${error.argument} takes no value`);
     throw new TypeError(`${error.argument} needs one value`);
   }
   const out = {
