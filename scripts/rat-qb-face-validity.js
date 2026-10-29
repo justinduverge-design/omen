@@ -11,20 +11,32 @@
 // FOOTBALL_WAREHOUSE_DATABASE_URL_FILE (absolute path to a 0600 URL file).
 
 const { Pool } = require("pg");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 const { connectionStringFromFile } = require("../src/services/footballWarehouse/runtimeConfig");
 const { METRIC_NAME, FORMULA_VERSION } = require("../src/services/footballWarehouse/ratQbMetric");
 
 function parseArgs(argv) {
-  const out = { season: null, week: null, socket: null, limit: 10 };
-  for (let i = 0; i < argv.length; i += 2) {
-    const flag = argv[i];
-    const value = argv[i + 1];
-    if (flag === "--season") out.season = Number(value);
-    else if (flag === "--week") out.week = Number(value);
-    else if (flag === "--socket") out.socket = value;
-    else if (flag === "--limit") out.limit = Number(value);
-    else throw new TypeError(`unknown flag ${flag}`);
+  let values;
+  try {
+    ({ values } = parseCliArgs(argv, {
+      season: { type: "string" },
+      week: { type: "string" },
+      socket: { type: "string" },
+      limit: { type: "string" },
+    }));
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "unknown" || error.reason === "positional") {
+      throw new TypeError(`unknown flag ${error.argument}`);
+    }
+    throw new TypeError(`${error.argument} needs one value`);
   }
+  const out = {
+    season: Number(values.season),
+    week: values.week === undefined ? null : Number(values.week),
+    socket: values.socket ?? null,
+    limit: values.limit === undefined ? 10 : Number(values.limit),
+  };
   if (!Number.isInteger(out.season)) throw new TypeError("--season is required");
   if (out.week !== null && !Number.isInteger(out.week)) throw new TypeError("--week must be an integer");
   if (!Number.isInteger(out.limit) || out.limit < 1 || out.limit > 50) throw new TypeError("--limit must be 1-50");
@@ -92,7 +104,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error.message);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { parseArgs };

@@ -4,6 +4,7 @@
 const fs = require("node:fs/promises");
 const crypto = require("node:crypto");
 const path = require("node:path");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 const {
   recoverPrimaryEvidence,
   runFailureInjectionMatrix,
@@ -19,21 +20,33 @@ This is a local, non-production staging-shadow operator. It requires explicit,
 disjoint role roots and never publishes, promotes, deploys, schedules, or writes
 to a database. The drill command uses labeled synthetic failure injection.`;
 
+// Every option any subcommand takes; main() narrows them per subcommand.
+const OPTIONS = Object.fromEntries(
+  [
+    "acceptance",
+    "receipt",
+    "primary-root",
+    "witness-root",
+    "backup-root",
+    "hash",
+    "recovery-root",
+    "witness-observation",
+  ].map((name) => [name, { type: "string" }]),
+);
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   if (!command || command === "--help" || command === "-h") return { command: "help" };
-  const options = { command };
-  for (let index = 0; index < rest.length; index += 1) {
-    const key = rest[index];
-    if (!key.startsWith("--") || !rest[index + 1] || rest[index + 1].startsWith("--")) {
-      throw new Error(`invalid argument near ${key}`);
-    }
-    const name = key.slice(2);
-    if (Object.hasOwn(options, name)) throw new Error(`duplicate option --${name}`);
-    options[name] = rest[index + 1];
-    index += 1;
+  try {
+    const { values, positionals } = parseCliArgs(rest, OPTIONS);
+    if (positionals.length) throw new CliArgsError("positional", positionals[0]);
+    return { command, ...values };
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "duplicate") throw new Error(`duplicate option ${error.argument}`);
+    if (error.reason === "unknown") throw new Error(`unsupported option ${error.argument}`);
+    throw new Error(`invalid argument near ${error.argument}`);
   }
-  return options;
 }
 
 function requireOnly(options, required, allowed) {

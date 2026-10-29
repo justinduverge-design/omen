@@ -19,6 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 
 function parseSeasons(text) {
   const match = /^(\d{4})(?:-(\d{4}))?$/.exec(String(text || ""));
@@ -30,35 +31,39 @@ function parseSeasons(text) {
 }
 
 function parseArgs(argv) {
-  const out = {
-    seasons: null,
-    warmup: 2,
-    positions: ["QB", "RB", "WR", "TE"],
-    sleeper: false,
-    socket: null,
-    urlFile: null,
-    outDir: null,
-  };
-  for (let i = 0; i < argv.length; i += 1) {
-    const flag = argv[i];
-    if (flag === "--sleeper") {
-      out.sleeper = true;
-      continue;
+  let values;
+  try {
+    ({ values } = parseCliArgs(argv, {
+      seasons: { type: "string" },
+      warmup: { type: "string" },
+      positions: { type: "string" },
+      sleeper: { type: "boolean" },
+      socket: { type: "string" },
+      "url-file": { type: "string" },
+      "out-dir": { type: "string" },
+    }));
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "unknown" || error.reason === "positional") {
+      throw new TypeError(`unknown flag ${error.argument}`);
     }
-    const value = argv[i + 1];
-    i += 1;
-    if (flag === "--seasons") out.seasons = parseSeasons(value);
-    else if (flag === "--warmup") out.warmup = Number(value);
-    else if (flag === "--positions")
-      out.positions = String(value)
-        .split(",")
-        .map((p) => p.trim().toUpperCase())
-        .filter(Boolean);
-    else if (flag === "--socket") out.socket = value;
-    else if (flag === "--url-file") out.urlFile = value;
-    else if (flag === "--out-dir") out.outDir = value;
-    else throw new TypeError(`unknown flag ${flag}`);
+    throw new TypeError(`${error.argument} needs one value`);
   }
+  const out = {
+    seasons: values.seasons === undefined ? null : parseSeasons(values.seasons),
+    warmup: values.warmup === undefined ? 2 : Number(values.warmup),
+    positions:
+      values.positions === undefined
+        ? ["QB", "RB", "WR", "TE"]
+        : values.positions
+            .split(",")
+            .map((p) => p.trim().toUpperCase())
+            .filter(Boolean),
+    sleeper: values.sleeper === true,
+    socket: values.socket ?? null,
+    urlFile: values["url-file"] ?? null,
+    outDir: values["out-dir"] ?? null,
+  };
   if (!out.seasons) throw new TypeError("--seasons is required");
   if (!out.outDir || !path.isAbsolute(out.outDir)) throw new TypeError("--out-dir must be an absolute path");
   if (!Number.isInteger(out.warmup) || out.warmup < 0 || out.warmup > 10) throw new RangeError("--warmup must be 0-10");
