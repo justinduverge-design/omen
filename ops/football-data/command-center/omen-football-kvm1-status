@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-kvm1-status (Pi command center, called by omen-football-witness-monitor)
+Fetches KVM1's football status JSON over the read-only SSH channel into
+/var/lib/omen-football-witness/remote. No arguments. Exit 0 on success, non-zero if the fetch fails.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 root=/var/lib/omen-football-witness
 temporary="$(mktemp "$root/remote/.kvm1-status.XXXXXX")"

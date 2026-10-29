@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+football-backup-freshness.sh (Steward Pi, by its timer)
+Checks the freshness of KVM1's weekly football-data backup and writes
+/var/lib/steward/state/football-backup-freshness.status. No arguments.
+Exit 0 HEALTHY, 1 WARNING, 2 CRITICAL, 3 DOWN (including a crash).
+USAGE
+    exit 0 ;;
+esac
 # Freshness of the weekly omen-football-data backup on KVM1, read through the same forced-command
 # status channel as backup-freshness.sh. Weekly timer (Tue 07:45 ET) => thresholds are in days.
 set -Eeuo pipefail

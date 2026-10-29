@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-record-job-failure [UNIT] (KVM1, systemd OnFailure= hook)
+Records a job_failure in the football status files, naming UNIT (an omen-football-*.service).
+Does nothing if a job_failure is already recorded. Exit 0 when recorded.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 umask 027
 root=/var/lib/omen-football-data

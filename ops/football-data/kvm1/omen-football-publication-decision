@@ -1,4 +1,15 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-publication-decision (KVM1, by its timer)
+Publishes football data only when /var/lib/omen-football-data/control/publication-enabled says
+"enabled" and the witness observation exists. No arguments.
+Exit 0 when the control file is absent (publication off) or publication is done; 65 when the control
+file says anything but "enabled" (including "disabled"); 1 when the observation is absent.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 
 root=/var/lib/omen-football-data

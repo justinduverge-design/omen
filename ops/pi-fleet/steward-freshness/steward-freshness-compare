@@ -1,4 +1,14 @@
 #!/bin/bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+steward-freshness-compare KIND (Steward Pi, by steward-freshness-shadow@.timer)
+Compares the Rust shadow result with the bash check's result for KIND and logs MATCH or MISMATCH.
+  KIND  supabase-backup | football-backup | restic-check
+Exit 0 after logging, 64 for an unknown KIND.
+USAGE
+    exit 0 ;;
+esac
 # Compare the Rust shadow result with the bash check's latest result for one kind; log MATCH or MISMATCH to the journal.
 # Shadow week: a week of MATCH lines is the proof to swap the bash checks for the binary (plan Phase 4).
 set -u
