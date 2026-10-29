@@ -32,7 +32,9 @@ test("pr-quality.yml triggers on every top-level path the tests read", () => {
   const tests = git("ls-files", "test").filter((f) => /\.m?js$/.test(f));
   const triggers = triggerPaths();
   const covered = (top) =>
-    triggers.some((t) => t === top || t === `${top}/**` || (t.endsWith("*") && !t.includes("/") && top.startsWith(t.slice(0, -1))));
+    triggers.some(
+      (t) => t === top || t === `${top}/**` || (t.endsWith("*") && !t.includes("/") && top.startsWith(t.slice(0, -1))),
+    );
   const missing = [];
   for (const top of tops) {
     if (EXEMPT[top] || covered(top)) continue;
