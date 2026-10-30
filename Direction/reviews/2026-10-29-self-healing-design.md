@@ -79,3 +79,23 @@ Self-healing does not fix everything. It fixes the easy things, and makes the ha
 
 `B13-HEAL-CONSTITUTION` → `B13-HEAL-PLAYBOOKS` + `B13-HEAL-SIGNING` → `B13-HEAL-REMEDIATOR-SHADOW` → `B13-HEAL-LIVE`.
 `B13-ALERT-OWNERS` comes first, because escalations need owners and runbook anchors.
+
+## When the founder is not there (added 2026-10-29, founder-approved direction)
+
+Found: Command Center (Pi 4) has no `BOOT_ORDER` set, so the Pi 4 default `0xf41` applies: **SD card first**, then USB.
+With the old SD card back in the slot, any reboot boots the stale SD system (its own root, old boot line without
+`cgroup_enable=memory`, so GlitchTip dies again). It must be `0xf14` (USB first, SD as the fallback) before the card
+can be a safety net. No reboot timer exists on Command Center today.
+
+| Layer | What it covers | Cost |
+|---|---|---|
+| Hardware watchdog (`RuntimeWatchdogSec=15s`) on all three Pis | OS hang | free |
+| `BOOT_ORDER=0xf14` + weekly SSD→SD system sync + "booted from SD" alert | SSD death | free |
+| Pi tryboot for any boot/kernel change | a bad boot change reverts itself | free |
+| Local-only smart plug per Pi; each Pi can power-cycle the others (30–60s off, max 2/day, then page) | full freeze, wedged SSD | ~$15–25 per Pi |
+| `uhubctl` USB power reset | SSD wedged, Pi alive | free |
+| Under-voltage watch (`vcgencmd get_throttled`) | power supply about to fail | free |
+| Outside heartbeat (Kuma push from an external free monitor) | whole house down | free |
+| Hardware-replacement alert with a pre-researched parts list (Amazon overnight, Best Buy, Staples, Walmart, Target) | anything that needs a part | free; the founder buys |
+
+Alerts stay on Discord.

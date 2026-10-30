@@ -221,6 +221,42 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Priority:** P2
 - **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
 
+### B13-HEAL-BOOT-ORDER — SSD first, SD card as the fallback (urgent: the card is in the slot now)
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL given 2026-10-29; needs a Pi write (EEPROM `BOOT_ORDER=0xf14`)
+- **Priority:** P0
+- **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
+
+### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
+- **Status:** READY
+- **Blocked by:** B13-HEAL-BOOT-ORDER
+- **Priority:** P1
+- **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
+
+### B13-HEAL-WATCHDOG — hardware watchdog on all three Pis, plus under-voltage watch
+- **Status:** READY
+- **Blocked by:** None (deploy is a Pi write)
+- **Priority:** P1
+- **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
+
+### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
+- **Status:** READY
+- **Blocked by:** FOUNDER — buy 3 local-API plugs (Shelly or Tasmota); then a signed playbook
+- **Priority:** P2
+- **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
+
+### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Done when:** unplugging the router produces a Discord alert from outside the house.
+
+### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
+
 ## Open PRs
 
 - #790 ruff (ours). Dependency bumps, founder merges via `scripts/merge-pr.sh`: #791 opentelemetry
