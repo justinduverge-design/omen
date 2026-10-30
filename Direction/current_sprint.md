@@ -122,6 +122,70 @@ Sight forecasts the stat line and every decision screen shows it next to the lea
 - **Priority:** P2
 - **Done when:** a held-out eval and one shadow-receipt worker are recorded.
 
+## Lane 4: alert maintenance loop (proposed 2026-10-29; findings `Direction/reviews/2026-10-29-pi-alert-repeats.md`)
+
+The dispatcher stays notification-only (fleet spec, Constitution item 1). Every item below changes what it *says*
+or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
+
+### B13-ALERT-GLITCHTIP-DOWN — bring the GlitchTip/OTel/Vector stack back on Command Center
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — a Pi action (restart or rebuild the `Exited (127)` containers); pairs with `B13-ERROR-TRACKING`
+- **Priority:** P1
+- **Owner:** founder executes; an agent writes the runbook step (why exit 127, the exact restart, how to prove it)
+- **Done when:** the five containers are up, Kuma `GlitchTip` reads 1, and the line leaves the alert with one RECOVERY.
+
+### B13-ALERT-OWNERS — every alert line names an owner and a runbook step
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** a checked-in map (check name → owner, runbook anchor, severity) covers every check the dispatcher
+  can emit (14 Steward/Sentinel checks, each Kuma monitor, Pi-hole, GlitchTip, football codes, A4, stale payload).
+  Each Discord line ends with `owner=… fix=<runbook#anchor>`. A test fails when a check has no entry.
+  A runbook page holds one fix step per check.
+
+### B13-ALERT-SIGNATURE-STABLE — the signature is the check's identity, not its reason text
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** the signature keys on `check` + `result` only, with reason, hours or other values shown in the body
+  but not compared. The stale line no longer re-alerts hourly. A fixture test replays today's posture reason
+  changes and gets one alert, not several.
+
+### B13-ALERT-SEVERITY — WARNING is not sent as CRITICAL
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** the header names the highest severity present. WARNING-only changes go out without the CRITICAL
+  header, and appear only in the daily digest unless new.
+
+### B13-ALERT-ACK — ack/snooze file the founder edits; quiet until expiry, then loud again
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** `/etc/slops-alerting/acks` (check, expiry, note) mutes a line from alerts and reminders until the
+  expiry. Expired acks re-alert. The daily reminder lists acked items in one short "acknowledged" footer so nothing
+  vanishes. The dispatcher only reads the file. A test covers mute, expiry, and the footer.
+
+### B13-ALERT-RECALL-SLEEP — the Mac's recall monitors stop paging every night
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — choose: Kuma maintenance window for the Mac's sleep hours, or drop recall from the dispatcher's Kuma read (Kuma still shows it)
+- **Priority:** P2
+- **Done when:** a night of Mac sleep produces no CRITICAL/RECOVERY pair, and a recall outage while the Mac is awake still alerts.
+
+### B13-ALERT-POSTURE-DRIFT — accept or fix KVM1/KVM2 posture drift
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — whether the drifted units, containers and listeners become the new baseline
+- **Priority:** P2
+- **Done when:** the drift is either fixed or written into the posture baseline, and both posture checks read HEALTHY.
+
+### B13-ALERT-WEEKLY-REVIEW — a 10-minute weekly alert review in the closeout
+- **Status:** READY
+- **Blocked by:** B13-ALERT-OWNERS
+- **Priority:** P2
+- **Done when:** a standing weekly step lists every line active over 7 days with its owner. Each one is fixed,
+  acked with an expiry, or filed as an item. The A4 signature is added to the daily reminder, as its comment
+  already claims.
+
 ## Open PRs
 
 - #790 ruff (ours). Dependency bumps, founder merges via `scripts/merge-pr.sh`: #791 opentelemetry
