@@ -26,7 +26,7 @@ Add each PR here as it merges (number, area, title).
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
 | #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
-| `claude/b13-shellcheck-shebang` | CI | STANDARDS card A: ShellCheck lints every tracked shell script found by its #! line, adding 24 extensionless scripts (the ops/ backup, restore and run jobs among them); three warnings get directives so deployed scripts keep their behavior |
+| #800 | CI | STANDARDS card A: ShellCheck lints every tracked shell script found by its #! line, adding 24 extensionless scripts (the ops/ backup, restore and run jobs among them); three warnings get directives so deployed scripts keep their behavior |
 | #799 | Guards | STANDARDS card G: the Bash guard hook fails closed when it can't read the command, and blocks merges through the REST merge endpoint (gh api, curl) and the GraphQL mutation, with a test |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
