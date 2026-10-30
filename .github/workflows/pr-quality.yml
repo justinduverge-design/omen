@@ -23,7 +23,25 @@ on:
       - "frontend/package.json"
       - "frontend/package-lock.json"
       - "frontend/src/**"
-      - ".github/workflows/pr-quality.yml"
+      # STANDARDS card J: tests in test/ also read these, and a PR touching only them used to run
+      # nothing until deploy.yml after merge. test/prQualityPaths.test.js keeps this list complete.
+      - "scripts/**"
+      - "ops/**"
+      - "infra/**"
+      - "sql/**"
+      - "warehouse/**"
+      - "deploy/**"
+      - "extension/**"
+      - "mobile/**"
+      - "Direction/**"
+      - "Blueprints/**"
+      - ".githooks/**"
+      - ".claude/hooks/**"
+      - ".github/workflows/**"
+      - "Dockerfile*"
+      - "docker-compose.yml"
+      - ".env.example"
+      - "probo.yaml"
 
 concurrency:
   group: pr-quality-${{ github.ref }}
