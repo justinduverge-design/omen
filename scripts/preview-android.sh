@@ -11,8 +11,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-JAVA_HOME_DIR="${JAVA_HOME:-C:/Program Files/Android/Android Studio/jbr}"
-SDK_DIR="${ANDROID_SDK_ROOT:-C:/Users/JDuve/AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/Android/Sdk}"
+JAVA_HOME_DIR="${JAVA_HOME:?set JAVA_HOME (Android Studio jbr); machine paths stay out of scripts, STANDARDS rule 3}"
+SDK_DIR="${ANDROID_SDK_ROOT:?set ANDROID_SDK_ROOT to your Android SDK}"
 AVD_NAME="${OMEN_AVD:-Medium_Phone}"
 PACKAGE="com.slopssaloon.omen"
 ACTIVITY="$PACKAGE/.MainActivity"
