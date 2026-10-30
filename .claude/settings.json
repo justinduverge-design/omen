@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/check-workspace-solo.js\" 2>&1 | tail -3 || true"
+            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/check-workspace-solo.js\""
           }
         ]
       }
