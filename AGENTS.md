@@ -1,6 +1,6 @@
 # Omen: shared agent context
 
-Every runtime (Claude Code, Codex, Antigravity, Jules) reads this file. Runtime files (`CLAUDE.md`,
+Every runtime (Claude Code, Codex, Antigravity) reads this file. Runtime files (`CLAUDE.md`,
 `GEMINI.md`) only add what that runtime needs. How Valor builds, with the evidence for each rule, is the
 OUR-WAY page in the Valor-Core repo.
 Valor's fundamentals (seven, each with its stories and its check) are `company/valor.html` in Valor-Core,
@@ -29,7 +29,7 @@ asking the founder anything a past session may have answered.
 1. **One task per session.** A pin in `Direction/agent_inbox.md` wins; otherwise take a lane from
    `Direction/current_sprint.md`. Record a `Claim:` on it. Start a fresh session for the next task.
 2. **Plan and wait.** Report task, files to touch and how you will prove it. Wait for the founder.
-   **A dispatched cloud run (Jules, Codex cloud, Claude Code web) does not wait:** the task card is the
+   **A dispatched cloud run (Codex cloud, Claude Code web) does not wait:** the task card is the
    approval. Don't ask; open the PR. When unsure, take the documented default and say so in the PR.
 3. **Build** in your own worktree. Native screen work first passes the seven-file native read gate
    (`Direction/map.md` → Native read gate); a missing or conflicting source means stop and say so.
