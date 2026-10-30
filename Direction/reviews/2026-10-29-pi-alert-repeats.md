@@ -44,3 +44,13 @@ The fix stays notification-only: the dispatcher learns to name a fix and to stay
 It never performs the fix (Constitution item 1).
 
 Proposed items: `Direction/current_sprint.md` → Lane 4.
+
+## Addendum: why GlitchTip is down (found 2026-10-29, same read-only access)
+
+`docker inspect` on each stopped container: `runc create failed … memory.swap.max: no such file or directory`.
+The `linux-image-rpi-v8 6.18.50` kernel was installed 2026-09-29 and first booted 2026-10-20. It boots with
+`cgroup_disable=memory`, so every container with a `mem_limit` (GlitchTip ×3, OTel, Vector) cannot start.
+Pi-hole and Kuma have no limit, which is why they came back. Fix (founder runs it; the edit is to the boot line and needs a reboot):
+`cgroup_enable=memory` appended to the single line of `/boot/firmware/cmdline.txt` (back it up first), then reboot,
+then `docker ps` should show all five up. Runbook entry for `B13-ALERT-GLITCHTIP-DOWN`; any future kernel update
+needs a post-reboot "all containers up" check, which is what a Kuma docker monitor per container would catch.
