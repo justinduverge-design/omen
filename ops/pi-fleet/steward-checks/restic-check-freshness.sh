@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+restic-check-freshness.sh (Steward Pi, by its timer)
+Checks the age and outcome of KVM1's weekly Restic integrity check and writes
+/var/lib/steward/state/restic-check-freshness.status. No arguments.
+Exit 0 HEALTHY, 1 WARNING, 2 CRITICAL, 3 DOWN (including a crash).
+USAGE
+    exit 0 ;;
+esac
 # Freshness AND outcome of the weekly Restic repository integrity check on KVM1 (repository lives on KVM2).
 # A FAILED check is CRITICAL immediately; a missing/old one degrades WARNING -> CRITICAL -> DOWN.
 set -Eeuo pipefail

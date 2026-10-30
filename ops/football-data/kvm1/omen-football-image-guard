@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-image-guard (KVM1, before each football run)
+Checks that the pinned capture image exists; if it doesn't, rebuilds it from the newest deployed
+source tree and re-pins it. No arguments. Exit 0 when the image is present or rebuilt, 64-72 when it is missing and cannot be rebuilt or re-pinned.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 # Preflight guard for the Omen football capture chain.
 #

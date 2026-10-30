@@ -1,5 +1,16 @@
 #!/bin/sh
 # shellcheck disable=SC3043  # the Pi's /bin/sh (dash) supports local; keep the deployed shebang
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-alert-dispatcher [--test] (Pi command center, as root, by its timer)
+Reads Steward, Sentinel, Kuma, football and A4 state and sends changed alerts to Discord,
+re-sending anything still active once a day.
+  --test   send one test message to Discord and exit
+Exit 0 on success, non-zero if a source or the send fails.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 key=/home/darthslops/.ssh/slops-alerting_ed25519
 state=/var/lib/slops-alerting/last-signature

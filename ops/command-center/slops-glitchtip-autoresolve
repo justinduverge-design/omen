@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-glitchtip-autoresolve (Pi command center, as root, by its timer)
+Resolves GlitchTip issues with no new events for a set number of days, because GlitchTip has
+no auto-resolve. No arguments. Exit 0 when done or when there is nothing to do.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 # Auto-resolve GlitchTip issues that have stopped happening.
 #

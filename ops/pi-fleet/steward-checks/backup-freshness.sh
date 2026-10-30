@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+backup-freshness.sh (Steward Pi, by its timer)
+Checks the freshness of KVM1's 6-hourly Supabase backup through the read-only status channel
+and writes /var/lib/steward/state/backup-freshness.status. No arguments.
+Exit 0 HEALTHY, 1 WARNING, 2 CRITICAL, 3 DOWN (including a crash).
+USAGE
+    exit 0 ;;
+esac
 set -Eeuo pipefail
 umask 027
 

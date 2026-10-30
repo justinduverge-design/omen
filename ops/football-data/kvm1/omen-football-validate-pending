@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-validate-pending (KVM1, by its timer)
+Validates every football batch that has no validation yet, through omen-football-run.
+No arguments. Exit 0 when all pass or none are pending, non-zero on the first failure.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 root=/var/lib/omen-football-data
 found=false
