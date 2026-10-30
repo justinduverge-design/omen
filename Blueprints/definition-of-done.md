@@ -106,17 +106,9 @@ Run `node scripts/check-sprint-staleness.js`. It compares the direction files ag
 
 **Read the coverage block, not just the verdict.** It prints what it did *not* inspect on every run, and reports "DID NOT RUN" rather than passing when GitHub is unreachable — a clean result is only meaningful against a stated scope. Index of the checkers and how to add one: `scripts/checks/README.md`; all scripts: `scripts/README.md`.
 
-Then run the cross-layer documentation gate from the **L0 root**, which sees L0, L1 and L2 together
-and catches what a repo-local checker cannot — a dead header on a live file, a cited path that
-resolves nowhere, a skill or agent on disk that no index knows about:
-
-```bash
-node Blueprints/tools/truth-gate/truth-gate.mjs --quiet
-```
-
-A **P0** means an agent reading current docs would act on false information. Clear it or record why
-it stands before closing. In a standalone Omen clone the L0 tree is unavailable — say the gate did
-not run rather than reporting a pass; an unrun check is not a passing check.
+The cross-layer truth-gate was retired on 2026-10-29 (STANDARDS card D): it lived in the Slops-OS tree being
+archived, and its ~270 stale findings were filtered instead of fixed. `npm run closeout` runs Valor-Core's
+`ops/valor-brain` validator instead, and says NOT RUN when Valor-Core isn't found (set `VALOR_CORE`).
 
 ## Citing paths in the append-only records — forward rule, 2026-09-12
 

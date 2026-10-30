@@ -154,12 +154,9 @@ Then run, in order:
    - Write a dated handoff in Blueprints/handoffs/YYYY-MM-DD-<task>.md only
      when the work continues in another session.
    - Run the gates. A P0 BLOCKS YOUR OWN CLOSE-OUT. An unrun check is not a
-     passing check; in a standalone clone without L0, say the gate did not run.
-       node scripts/check-sprint-staleness.js
-       node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet
-       node ../../Blueprints/tools/valor-brain/validate.mjs
-       node scripts/check-kickoff-drift.js
-       node scripts/harness-cost.js
+     passing check; without Valor-Core around this repo (or VALOR_CORE set),
+     the valor-brain gate says NOT RUN: report it that way.
+       npm run closeout
 
 	Begin now: run STEP 0, then STEP 0.1, then read the files above, then run
 	PULL TASK immediately unless the founder's message already names the task.
