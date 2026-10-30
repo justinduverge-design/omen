@@ -14,7 +14,6 @@ HEALTHY_MAX_SECONDS="${HEALTHY_MAX_SECONDS:-691200}"    # 8 days
 CRITICAL_MAX_SECONDS="${CRITICAL_MAX_SECONDS:-777600}"  # 9 days
 DOWN_MAX_SECONDS="${DOWN_MAX_SECONDS:-1209600}"         # 14 days
 CHECKED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; NOW_EPOCH="${NOW_EPOCH:-$(date -u +%s)}"
-TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 RESULT=""; REASON=""; COMPLETED=""; AGE_SECONDS="-1"; AGE_DAYS="-1"; SNAPSHOT_ID=""
 write_state() {
   local t; t="$(mktemp "$STATE_DIR/.football-backup-freshness.XXXXXX")"
@@ -23,7 +22,10 @@ write_state() {
   chmod 0640 "$t"; mv -f "$t" "$STATE_FILE"
 }
 finish() { write_state; echo "RESULT=$RESULT"; echo "REASON=$REASON"; echo "AGE_DAYS=$AGE_DAYS"; exit "$1"; }
-down() { REASON="$1"; RESULT="DOWN"; finish 3; }
+down() { trap - ERR; REASON="$1"; RESULT="DOWN"; finish 3; }
+trap 'down check_crashed' ERR   # a crashing check must say so: silence would read as health
+# The temp file comes after the ERR trap and its functions, so even mktemp failing writes DOWN (card C).
+TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 get() { awk -F= -v w="$1" '$1==w{sub(/^[^=]*=/,""); print; exit}' "$TMP"; }
 [[ "$(cat /etc/machine-id)" == "a459056448eb4cafadb2e4480abea91a" ]] || down "wrong_local_host"
 [[ -r "$KEY" ]] || down "ssh_key_unreadable"

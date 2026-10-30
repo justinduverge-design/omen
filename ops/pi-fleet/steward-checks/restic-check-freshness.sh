@@ -10,7 +10,6 @@ WARN_SECONDS="${WARN_SECONDS:-777600}"      # 9 days  (weekly check)
 CRIT_SECONDS="${CRIT_SECONDS:-1209600}"     # 14 days
 DOWN_SECONDS="${DOWN_SECONDS:-1814400}"     # 21 days
 CHECKED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; NOW_EPOCH="${NOW_EPOCH:-$(date -u +%s)}"
-TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 RESULT=""; REASON=""; COMPLETED=""; AGE_SECONDS="-1"; AGE_DAYS="-1"; SNAPSHOTS=""; CHECK=""
 write_state() {
   local t; t="$(mktemp "$STATE_DIR/.restic-check-freshness.XXXXXX")"
@@ -21,6 +20,8 @@ write_state() {
 finish() { write_state; echo "RESULT=$RESULT"; echo "REASON=$REASON"; exit "$1"; }
 down() { trap - ERR; REASON="$1"; RESULT="DOWN"; finish 3; }
 trap 'down check_crashed' ERR   # a crashing check must say so: silence would read as health
+# The temp file comes after the ERR trap and its functions, so even mktemp failing writes DOWN (card C).
+TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 get() { awk -F= -v w="$1" '$1==w{sub(/^[^=]*=/,""); print; exit}' "$TMP"; }
 retry_status() { local i; for i in 1 2 3 4; do "$@" && return 0; [ "$i" -lt 4 ] && sleep 20; done; return 1; }
 [[ "$(cat /etc/machine-id)" == "a459056448eb4cafadb2e4480abea91a" ]] || down "wrong_local_host"
