@@ -128,7 +128,8 @@ The dispatcher stays notification-only (fleet spec, Constitution item 1). Every 
 or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-GLITCHTIP-DOWN — bring the GlitchTip/OTel/Vector stack back on Command Center
-- **Status:** READY
+- **Status:** VERIFIED
+- **Evidence:** 2026-10-29: founder added `cgroup_enable=memory` to the boot line and rebooted; all five containers up; the dispatcher signature dropped `GlitchTip: status=0`; GlitchTip now surfaces issue #2 (ESPN API 404), which is a new, separate item
 - **Blocked by:** FOUNDER_APPROVAL — a Pi action (restart or rebuild the `Exited (127)` containers); pairs with `B13-ERROR-TRACKING`
 - **Priority:** P1
 - **Owner:** founder executes; an agent writes the runbook step (why exit 127, the exact restart, how to prove it)
