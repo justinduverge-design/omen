@@ -3,26 +3,22 @@
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 
 const { validateAcceptanceArtifact } = require("../src/services/footballData/acceptanceValidator");
 
 function parseArgs(argv) {
-  const options = {};
-  for (let index = 0; index < argv.length; index += 2) {
-    const key = argv[index];
-    const value = argv[index + 1];
-    if (!key?.startsWith("--") || !value || value.startsWith("--")) {
-      throw new Error(`invalid argument near ${key || "(missing)"}`);
-    }
-    const name = key.slice(2);
-    if (Object.hasOwn(options, name)) throw new Error(`duplicate option --${name}`);
-    options[name] = value;
+  let options;
+  try {
+    options = parseCliArgs(argv, { acceptance: { type: "string" }, receipt: { type: "string" } }).values;
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "duplicate") throw new Error(`duplicate option ${error.argument}`);
+    if (error.reason === "unknown") throw new Error(`unsupported option ${error.argument}`);
+    throw new Error(`invalid argument near ${error.argument}`);
   }
   for (const required of ["acceptance", "receipt"]) {
     if (!options[required]) throw new Error(`missing required option --${required}`);
-  }
-  for (const name of Object.keys(options)) {
-    if (!["acceptance", "receipt"].includes(name)) throw new Error(`unsupported option --${name}`);
   }
   return options;
 }

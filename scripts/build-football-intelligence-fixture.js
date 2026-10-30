@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 
 const DERIVATION_VERSION = "football-intelligence-fixture-derivation.v1";
 const SNAPSHOT_WITNESSED_AT = "2026-09-24T23:23:51Z";
@@ -512,15 +513,19 @@ function csvCell(value) {
 }
 
 function parseArgs(argv) {
-  const result = {};
-  for (let index = 0; index < argv.length; index += 1) {
-    const argument = argv[index];
-    if (!["--source-dir", "--output-dir"].includes(argument)) throw new Error(`unknown argument: ${argument}`);
-    const value = argv[index + 1];
-    if (!value || value.startsWith("--")) throw new Error(`${argument} requires a path`);
-    result[argument === "--source-dir" ? "sourceDir" : "outputDir"] = path.resolve(value);
-    index += 1;
+  let values;
+  try {
+    ({ values } = parseCliArgs(argv, { "source-dir": { type: "string" }, "output-dir": { type: "string" } }));
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "unknown" || error.reason === "positional") {
+      throw new Error(`unknown argument: ${error.argument}`);
+    }
+    throw new Error(`${error.argument} requires a path`);
   }
+  const result = {};
+  if (values["source-dir"] !== undefined) result.sourceDir = path.resolve(values["source-dir"]);
+  if (values["output-dir"] !== undefined) result.outputDir = path.resolve(values["output-dir"]);
   return result;
 }
 
@@ -562,4 +567,5 @@ module.exports = {
   SOURCES,
   buildFixture,
   compareOutputRows,
+  parseArgs,
 };

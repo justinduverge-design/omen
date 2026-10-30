@@ -2,6 +2,7 @@
 "use strict";
 
 const path = require("node:path");
+const { CliArgsError, parseCliArgs } = require("./lib/cli-args");
 const { captureSnapshot, replaySnapshot } = require("../src/services/footballData/rawVault");
 const { runScoringAcceptance } = require("../src/services/footballData/scoringAcceptance");
 
@@ -14,21 +15,34 @@ The collector and Phase 2 acceptance replay are local and non-production only.
 They have no scheduler, credentials, database, publication, production-root, or
 "latest" replay mode.`;
 
+// Every option any subcommand takes; main() narrows them per subcommand.
+const OPTIONS = Object.fromEntries(
+  [
+    "dataset",
+    "season",
+    "root",
+    "manifest",
+    "out",
+    "player-manifest",
+    "team-manifest",
+    "schedule-manifest",
+    "weeks",
+  ].map((name) => [name, { type: "string" }]),
+);
+
 function parseArgs(argv) {
   const [command, ...rest] = argv;
   if (!command || command === "--help" || command === "-h") return { command: "help" };
-  const options = { command };
-  for (let index = 0; index < rest.length; index += 1) {
-    const key = rest[index];
-    if (!key.startsWith("--") || !rest[index + 1] || rest[index + 1].startsWith("--")) {
-      throw new Error(`invalid argument near ${key}`);
-    }
-    const name = key.slice(2);
-    if (Object.hasOwn(options, name)) throw new Error(`duplicate option --${name}`);
-    options[name] = rest[index + 1];
-    index += 1;
+  try {
+    const { values, positionals } = parseCliArgs(rest, OPTIONS);
+    if (positionals.length) throw new CliArgsError("positional", positionals[0]);
+    return { command, ...values };
+  } catch (error) {
+    if (!(error instanceof CliArgsError)) throw error;
+    if (error.reason === "duplicate") throw new Error(`duplicate option ${error.argument}`);
+    if (error.reason === "unknown") throw new Error(`unsupported option ${error.argument}`);
+    throw new Error(`invalid argument near ${error.argument}`);
   }
-  return options;
 }
 
 function requireOnly(options, required, allowed) {
