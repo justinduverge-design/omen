@@ -8,13 +8,22 @@ set -eu
 #   20 min -> reboot, at most once per 6h (so it can never reboot-loop)
 # Every step lands in /var/lib/slops-alerting/wifi-events, which the dispatcher
 # reports to Discord once the network is back. This script holds no secrets.
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-wifi-watchdog (Command Center, as root, by its 1-minute timer)
+Pings the router; when it is unreachable, reconnects wlan0 at 3 min, restarts
+NetworkManager at 10 min, reboots at 20 min (at most once per 6h). Steps are
+logged to /var/lib/slops-alerting/wifi-events for the dispatcher to report.
+Exit 0 on success.
+USAGE
+    exit 0 ;;
+esac
 state=/var/lib/slops-wifi-watchdog
 events=/var/lib/slops-alerting/wifi-events
 mkdir -p "$state" /var/lib/slops-alerting
 now=$(date +%s)
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "$1" >> "$events"; }
-
-if [ "${1:-}" = --help ]; then sed -n 3,10p "$0"; exit 0; fi
 
 gw="$(ip -4 route show default dev wlan0 2>/dev/null | awk '{print $3; exit}')"
 if [ -n "$gw" ] && ping -c 2 -W 3 "$gw" >/dev/null 2>&1; then
