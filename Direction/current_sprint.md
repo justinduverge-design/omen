@@ -122,6 +122,150 @@ Sight forecasts the stat line and every decision screen shows it next to the lea
 - **Priority:** P2
 - **Done when:** a held-out eval and one shadow-receipt worker are recorded.
 
+## Lane 4: alert maintenance loop (proposed 2026-10-29; findings `Direction/reviews/2026-10-29-pi-alert-repeats.md`)
+
+The dispatcher stays notification-only (fleet spec, Constitution item 1). Every item below changes what it *says*
+or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
+
+### B13-ALERT-GLITCHTIP-DOWN — bring the GlitchTip/OTel/Vector stack back on Command Center
+- **Status:** VERIFIED
+- **Evidence:** 2026-10-29: founder added `cgroup_enable=memory` to the boot line and rebooted; all five containers up; the dispatcher signature dropped `GlitchTip: status=0`; GlitchTip now surfaces issue #2 (ESPN API 404), which is a new, separate item
+- **Blocked by:** FOUNDER_APPROVAL — a Pi action (restart or rebuild the `Exited (127)` containers); pairs with `B13-ERROR-TRACKING`
+- **Priority:** P1
+- **Owner:** founder executes; an agent writes the runbook step (why exit 127, the exact restart, how to prove it)
+- **Done when:** the five containers are up, Kuma `GlitchTip` reads 1, and the line leaves the alert with one RECOVERY.
+
+### B13-ALERT-OWNERS — every alert line names an owner and a runbook step
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** a checked-in map (check name → owner, runbook anchor, severity) covers every check the dispatcher
+  can emit (14 Steward/Sentinel checks, each Kuma monitor, Pi-hole, GlitchTip, football codes, A4, stale payload).
+  Each Discord line ends with `owner=… fix=<runbook#anchor>`. A test fails when a check has no entry.
+  A runbook page holds one fix step per check.
+
+### B13-ALERT-SIGNATURE-STABLE — the signature is the check's identity, not its reason text
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** the signature keys on each line's identity only (`check` + `result` for Steward/Sentinel, monitor
+  name + status for Kuma, issue short_id for GlitchTip, a fixed key for stale), with reason, hours or other values shown in the body
+  but not compared. The stale line no longer re-alerts hourly. A fixture test replays today's posture reason
+  changes and gets one alert, not several.
+
+### B13-ALERT-SEVERITY — WARNING is not sent as CRITICAL
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** the header names the highest severity present. WARNING-only changes go out without the CRITICAL
+  header, and appear only in the daily digest unless new.
+
+### B13-ALERT-ACK — ack/snooze file the founder edits; quiet until expiry, then loud again
+- **Status:** READY
+- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Priority:** P1
+- **Done when:** `/etc/slops-alerting/acks` (check, expiry, note) mutes a line from alerts and reminders until the
+  expiry. Expired acks re-alert. The daily reminder lists acked items in one short "acknowledged" footer so nothing
+  vanishes. The dispatcher only reads the file. A test covers mute, expiry, and the footer.
+
+### B13-ALERT-RECALL-SLEEP — the Mac's recall monitors stop paging every night
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — choose: Kuma maintenance window for the Mac's sleep hours, or drop recall from the dispatcher's Kuma read (Kuma still shows it)
+- **Priority:** P2
+- **Done when:** a night of Mac sleep produces no CRITICAL/RECOVERY pair, and a recall outage while the Mac is awake still alerts.
+
+### B13-ALERT-POSTURE-DRIFT — accept or fix KVM1/KVM2 posture drift
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — whether the drifted units, containers and listeners become the new baseline
+- **Priority:** P2
+- **Done when:** the drift is either fixed or written into the posture baseline, and both posture checks read HEALTHY.
+
+### B13-ALERT-WEEKLY-REVIEW — a 10-minute weekly alert review in the closeout
+- **Status:** READY
+- **Blocked by:** B13-ALERT-OWNERS
+- **Priority:** P2
+- **Done when:** a standing weekly step lists every line active over 7 days with its owner. Each one is fixed,
+  acked with an expiry, or filed as an item. The A4 signature is added to the daily reminder, as its comment
+  already claims.
+
+## Lane 5: self-healing behind a trust chain (proposed 2026-10-29; design `Direction/reviews/2026-10-29-self-healing-design.md`)
+
+### B13-HEAL-CONSTITUTION — amend fleet Constitution item 1 to allow signed, pre-approved playbooks
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the amendment wording in the design note
+- **Priority:** P1
+- **Done when:** item 1 reads as amended, and `decision_log.md` records the decision. The dispatcher stays notification-only.
+
+### B13-HEAL-PLAYBOOKS — playbook schema + v1 action vocabulary in the repo
+- **Status:** READY
+- **Blocked by:** B13-HEAL-CONSTITUTION, B13-ALERT-OWNERS
+- **Priority:** P1
+- **Done when:** `ops/remediation/playbooks/` has a schema with a test that rejects unknown actions, shell fields and
+  missing caps or verify checks. There is one playbook for the GlitchTip stack.
+
+### B13-HEAL-SIGNING — CI signs the playbook bundle; the Pi holds only the public key
+- **Status:** READY
+- **Blocked by:** B13-HEAL-PLAYBOOKS; FOUNDER_APPROVAL for the CI signing secret
+- **Priority:** P1
+- **Done when:** a merge to main produces a signed bundle. A tampered bundle fails verification in a test.
+
+### B13-HEAL-REMEDIATOR-SHADOW — `slops-remediator` runs for a week reporting "would have run"
+- **Status:** READY
+- **Blocked by:** B13-HEAL-SIGNING; deploy is FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
+
+### B13-HEAL-LIVE — turn on actions for the v1 vocabulary
+- **Status:** READY
+- **Blocked by:** B13-HEAL-REMEDIATOR-SHADOW; FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
+
+### B13-HEAL-BOOT-ORDER — SSD first, SD card as the fallback (urgent: the card is in the slot now)
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL given 2026-10-29; needs a Pi write (EEPROM `BOOT_ORDER=0xf14`)
+- **Priority:** P0
+- **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
+
+### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
+- **Status:** READY
+- **Blocked by:** B13-HEAL-BOOT-ORDER
+- **Priority:** P1
+- **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
+
+### B13-HEAL-WATCHDOG — hardware watchdog on all three Pis, plus under-voltage watch
+- **Status:** READY
+- **Blocked by:** None (deploy is a Pi write)
+- **Priority:** P1
+- **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
+
+### B13-HEAL-WIFI — Command Center stays on Wi-Fi and repairs its own link
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-29 Claude Code (alert-repeats session)
+- **Blocked by:** FOUNDER — deploy `ops/command-center/slops-wifi-watchdog` (+ `.service`, `.timer`) and the dispatcher update; founder chose Wi-Fi only
+- **Priority:** P1
+- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; dispatcher sha256 `96cdf6c0…`, mode 0700). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf` (founder ran it 2026-10-29; applies on next reboot)
+- **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
+
+### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
+- **Status:** READY
+- **Blocked by:** FOUNDER — buy 3 local-API plugs (Shelly or Tasmota); then a signed playbook
+- **Priority:** P1
+- **Note:** 2026-10-29: two reboots of Command Center went dark until the founder cut power. The boot journal shows the Pi actually booted fine from the SSD (sshd and docker up, Wi-Fi associated at 192.168.5.30, Tailscale DERP connected), then stopped answering on Wi-Fi (Mac ARP for .30 incomplete). So the suspect is the Wi-Fi link, not the SSD or hub. See B13-HEAL-WIRED first; the plugs remain the backstop
+- **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
+
+### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Done when:** unplugging the router produces a Discord alert from outside the house.
+
+### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
+- **Status:** READY
+- **Blocked by:** None
+- **Priority:** P2
+- **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
+
 ## Open PRs
 
 - #790 ruff (ours). Dependency bumps, founder merges via `scripts/merge-pr.sh`: #791 opentelemetry

@@ -1,0 +1,58 @@
+#!/bin/sh
+set -eu
+# Command Center is Wi-Fi only. On 2026-10-29 it booted cleanly twice, joined Wi-Fi,
+# then went silent until someone pulled the power. This climbs a short ladder when
+# the router stops answering, and touches nothing but this Pi's own network:
+#   3 min  -> reconnect wlan0
+#   10 min -> restart NetworkManager
+#   20 min -> reboot, at most once per 6h (so it can never reboot-loop)
+# Every step lands in /var/lib/slops-alerting/wifi-events, which the dispatcher
+# reports to Discord once the network is back. This script holds no secrets.
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-wifi-watchdog (Command Center, as root, by its 1-minute timer)
+Pings the router; when it is unreachable, reconnects wlan0 at 3 min, restarts
+NetworkManager at 10 min, reboots at 20 min (at most once per 6h). Steps are
+logged to /var/lib/slops-alerting/wifi-events for the dispatcher to report.
+Exit 0 on success.
+USAGE
+    exit 0 ;;
+esac
+state=/var/lib/slops-wifi-watchdog
+events=/var/lib/slops-alerting/wifi-events
+mkdir -p "$state" /var/lib/slops-alerting
+now=$(date +%s)
+log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%MZ)" "$1" >> "$events"; }
+
+gw="$(ip -4 route show default dev wlan0 2>/dev/null | awk '{print $3; exit}')"
+if [ -n "$gw" ] && ping -c 2 -W 3 "$gw" >/dev/null 2>&1; then
+  if [ -e "$state/down-since" ]; then
+    log "recovered after $(( (now - $(cat "$state/down-since")) / 60 )) min without the router"
+    rm -f "$state/down-since" "$state/step"
+  fi
+  exit 0
+fi
+
+[ -e "$state/down-since" ] || echo "$now" > "$state/down-since"
+down=$(( now - $(cat "$state/down-since") ))
+step="$(cat "$state/step" 2>/dev/null || echo 0)"
+
+if [ "$down" -ge 1200 ] && [ "$step" -lt 3 ]; then
+  last="$(cat "$state/last-reboot" 2>/dev/null || echo 0)"
+  if [ $(( now - last )) -ge 21600 ]; then
+    echo 3 > "$state/step"; echo "$now" > "$state/last-reboot"
+    log "router unreachable 20 min: rebooting"
+    sync; systemctl reboot
+  else
+    echo 3 > "$state/step"
+    log "router unreachable 20 min: reboot skipped, already rebooted within 6h; needs a person"
+  fi
+elif [ "$down" -ge 600 ] && [ "$step" -lt 2 ]; then
+  echo 2 > "$state/step"; log "router unreachable 10 min: restarting NetworkManager"
+  systemctl restart NetworkManager
+elif [ "$down" -ge 180 ] && [ "$step" -lt 1 ]; then
+  echo 1 > "$state/step"; log "router unreachable 3 min: reconnecting wlan0"
+  nmcli device disconnect wlan0 >/dev/null 2>&1 || true
+  nmcli device connect wlan0 >/dev/null 2>&1 || true
+fi

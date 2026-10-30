@@ -9,7 +9,8 @@ same way `O1b`'s GlitchTip stack was.
 
 | File | Deployed path | Owner/mode | Task |
 |---|---|---|---|
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9` (re-synced from the Pi 2026-10-18, sha256 `a19e6a15…`) |
+| `slops-wifi-watchdog` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-wifi-watchdog`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-WIFI` (deployed 2026-10-29) |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11) |
 
 ## slops-alert-dispatcher
 
@@ -30,3 +31,11 @@ the `O9` pass — check the mode after any deploy.
 
 Backup of the pre-`O9` version is on the Pi at
 `/usr/local/sbin/slops-alert-dispatcher.bak-20260821-o9-before-glitchtip`.
+
+## slops-wifi-watchdog
+
+Command Center is Wi-Fi only (founder decision 2026-10-29). Deployed path `/usr/local/sbin/slops-wifi-watchdog`
+(`root:root` `0755`; it holds no secret), with `slops-wifi-watchdog.service` and `.timer` in `/etc/systemd/system/`.
+Every minute it pings the router. When the router is unreachable it reconnects Wi-Fi at 3 min, restarts
+NetworkManager at 10 min, and reboots at 20 min, at most once per 6h. It only touches this Pi's own network.
+Events go to `/var/lib/slops-alerting/wifi-events`, and the dispatcher posts them once the network is back.
