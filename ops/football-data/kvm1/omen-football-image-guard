@@ -63,6 +63,7 @@ esac
 # footballData sources it COPYs. Ordering by mtime matches how the trees are
 # laid down at deploy time.
 selected=
+# shellcheck disable=SC2045  # a glob can't sort by mtime; deploy-made tree names have no spaces
 for dir in $(ls -1dt "$source_root"/*/ 2>/dev/null); do
   if [ -f "${dir}${dockerfile_rel}" ] && [ -d "${dir}src/services/footballData" ]; then
     selected="$dir"

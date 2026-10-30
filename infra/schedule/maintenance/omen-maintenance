@@ -5,6 +5,7 @@
 set -eu
 conf=/etc/omen-maintenance.conf
 BUSY_UNITS=""
+# shellcheck source=/dev/null  # host config, not in the repo
 [ -r "$conf" ] && . "$conf"
 log() { logger -t omen-maintenance -- "$*"; echo "$*"; }
 
