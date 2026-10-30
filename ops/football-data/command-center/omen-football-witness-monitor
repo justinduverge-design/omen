@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-witness-monitor (Pi command center, by its timer)
+Fetches KVM1's football status and compares it with the witness; raises witness_outage when the
+fetch fails. No arguments. Exit 0 unless the comparison itself errors.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 root=/var/lib/omen-football-witness
 if ! /usr/local/libexec/omen-football-kvm1-status; then

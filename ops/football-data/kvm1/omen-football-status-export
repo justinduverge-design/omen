@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-status-export (KVM1, forced command on the read-only status SSH key)
+Prints one state file, chosen by SSH_ORIGINAL_COMMAND: "status" (default, football status) or
+"a4-gates" (A4 gate state). Exit 0 on success, 64 for any other command.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 # Two read-only subcommands over one restricted channel. A4 gate state reuses this key,
 # user and known-hosts entry rather than provisioning a second SSH identity for one small

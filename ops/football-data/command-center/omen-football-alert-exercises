@@ -1,4 +1,14 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-alert-exercises (Pi command center, as root, by hand, once)
+Raises and clears each football alert code through the witness and the dispatcher, and writes a
+receipt to /var/lib/omen-football-witness/evidence. Sends real Discord alerts. Refuses to run twice.
+No arguments. Exit 0 on success, 77 when not root, non-zero on any failed exercise.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 
 [ "$(id -u)" -eq 0 ] || {

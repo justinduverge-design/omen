@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-a4-gates-pull (Pi command center, as root, by its timer)
+Pulls Omen A4 gate state from KVM1 over the read-only forced-command SSH channel into
+/var/lib/omen-a4-gates. Takes no arguments. Exit 0 on success, non-zero if the pull fails.
+USAGE
+    exit 0 ;;
+esac
 # Pull Omen A4 gate state from KVM1 over the existing read-only forced-command channel.
 # Mirrors omen-football-kvm1-status exactly, including the atomic temp-then-move.
 set -eu

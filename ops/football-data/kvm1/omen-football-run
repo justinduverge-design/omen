@@ -1,4 +1,14 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-run COMMAND [ARGS] (KVM1, by the football timers)
+Runs one football-data command in the pinned capture image, in a locked-down container.
+  COMMAND  capture-set | validate-batch | status | import-phase3 | recover-phase3 | publish
+Exit: the command's own code; 64 for an unknown command or an image not pinned by digest.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 
 image_file=/etc/omen-football/image-digest

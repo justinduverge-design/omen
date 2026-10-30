@@ -1,4 +1,13 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-retry-source (KVM1, by its timer)
+Re-runs the capture when the football status shows source_loss; otherwise does nothing.
+No arguments. Exit 0 when nothing is needed, otherwise the capture's exit code.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 status=/var/lib/omen-football-data/exports/status.json
 [ -f "$status" ] || exit 0

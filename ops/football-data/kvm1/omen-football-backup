@@ -1,4 +1,14 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-backup (KVM1 srv1737978, as root, weekly timer)
+Backs up the football-data state to the commissioned Restic repository and records the result
+in /var/lib/omen-football-backup-status. No arguments.
+Exit 0 on success; 64-78 (sysexits) when a precondition fails; 1 when the backup fails.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 umask 077
 
