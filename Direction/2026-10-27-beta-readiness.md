@@ -41,7 +41,7 @@ foundation inspection; Beta 3 remains hopeful and rolls forward from Beta 2 evid
 | 6 | Challenger row ("provider says X, Omen says Y") in the decision-drivers model | DEFERRED until 3 | `Blueprints/specs/football-data/omen-decision-drivers-v1.md` |
 | 7 | Kickoff times into the freshness policy (before December) | DEFERRED | `src/services/injuryFreshness.js` |
 | 8 | SSH: one `omen` user on both VPSes | DEFERRED, week after the release | `infra/schedule/ACCESS.md` |
-| 9 | Housekeeping: truth-gate P0 cleanup, sprint staleness | OPEN | `node ../../Blueprints/tools/truth-gate/truth-gate.mjs`, `scripts/check-sprint-staleness.js` |
+| 9 | Housekeeping: sprint staleness (truth-gate retired 2026-10-29, STANDARDS card D) | OPEN | `scripts/check-sprint-staleness.js`, via `npm run closeout` |
 
 ## 4. Rules for this cycle
 - **Freeze:** each release freezes Monday afternoon; no code merges Monday evening through Tuesday

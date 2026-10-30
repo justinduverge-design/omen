@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC3043  # the Pi's /bin/sh (dash) supports local; keep the deployed shebang
 # --help prints this and exits before anything runs (STANDARDS card E, rule 7).
 case "${1:-}" in
   -h|--help) cat <<'USAGE'
