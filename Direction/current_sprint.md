@@ -242,7 +242,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
 - **Status:** READY
 - **Blocked by:** FOUNDER — buy 3 local-API plugs (Shelly or Tasmota); then a signed playbook
-- **Priority:** P2
+- **Priority:** P1
+- **Note:** 2026-10-29: two warm reboots of Command Center in a row did not come back, and both needed the founder to cut power (Pi + USB SSD). The watchdog alone cannot recover this Pi; a power cut can
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
 
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
