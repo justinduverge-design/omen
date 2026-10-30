@@ -244,7 +244,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Claim:** 2026-10-29 Claude Code (alert-repeats session)
 - **Blocked by:** FOUNDER — deploy `ops/command-center/slops-wifi-watchdog` (+ `.service`, `.timer`) and the dispatcher update; founder chose Wi-Fi only
 - **Priority:** P1
-- **Evidence so far:** Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf` (founder ran it 2026-10-29; applies on next reboot)
+- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; dispatcher sha256 `96cdf6c0…`, mode 0700). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf` (founder ran it 2026-10-29; applies on next reboot)
 - **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
 
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
