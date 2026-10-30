@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: round 3 build, adds play-by-play scheme and coverage matchup features (PREREGISTRATION_3.md).
 import numpy as np, pandas as pd, warnings
 warnings.filterwarnings("ignore")
 NORM = {"LAR":"LA","OAK":"LV","SD":"LAC","STL":"LA","JAC":"JAX","WSH":"WAS"}

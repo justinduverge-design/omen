@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * A7B staging shadow: stages an accepted scoring artifact into disjoint primary, witness
+ * and backup roots, recovers from a backup, or runs the labeled failure-injection drill.
+ * Local and non-production only; it proves recovery before production depends on it.
+ */
 "use strict";
 
 const fs = require("node:fs/promises");

@@ -7,6 +7,7 @@
 #   on the first push (no agent knows its number before opening the PR; scripts/merge-pr.sh swaps in
 #   `#<number>` before it merges). Dependabot PRs and PRs labelled `no-package` are exempt.
 # - kickoff-drift: AGENTS.md and the kickoff prompt stay one contract.
+# - script-headers: every script opens with what it does and why (STANDARDS rule 1, card F).
 
 name: Agent guards
 
@@ -30,6 +31,9 @@ jobs:
 
       - name: No personal data in outbound request code
         run: node scripts/checks/no-pii-outbound.js
+
+      - name: Every script has a header
+        run: node scripts/checks/script-headers.js
 
       - name: Kickoff read order matches
         run: node scripts/check-kickoff-drift.js

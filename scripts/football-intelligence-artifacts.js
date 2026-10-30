@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Local football-intelligence artifact registry: register, index, verify and replay
+ * content-addressed artifacts under an explicit root. Exists so every derived artifact
+ * can be traced back to its exact inputs.
+ */
 "use strict";
 
 const fs = require("node:fs/promises");

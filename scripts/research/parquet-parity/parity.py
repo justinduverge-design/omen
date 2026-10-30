@@ -1,3 +1,5 @@
+# Phase 3 (#731): checks nflverse play-by-play Parquet against the CSV, value by value,
+# before the warehouse switched to Parquet. See README.md here.
 import sys, math, polars as pl
 from decimal import Decimal, ROUND_HALF_UP
 d = sys.argv[1]

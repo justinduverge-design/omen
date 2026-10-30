@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * Production football-data runner: capture-set, validate-batch, status, import-phase3,
+ * recover-phase3 and publish, always against the fixed container state root. It is the
+ * command the KVM1 timers run (ops/football-data/kvm1/omen-football-run), kept thin so
+ * the logic lives in src/services/footballData/productionRunner.js.
+ */
 "use strict";
 
 const fs = require("node:fs/promises");

@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * Validates a football scoring acceptance artifact against its receipt and prints the
+ * result as JSON, so an artifact is checked before staging or publishing rather than trusted.
+ */
 "use strict";
 
 const fs = require("node:fs/promises");

@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * A7B local raw vault: captures nflverse datasets, replays a captured snapshot, and runs
+ * Phase 2 scoring acceptance. Local and non-production only, so the scoring path can be
+ * proven on recorded data before anything reaches production.
+ */
 "use strict";
 
 const path = require("node:path");

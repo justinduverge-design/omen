@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * Checks the native spacing tokens (iOS and Android) and the design canvases against
+ * Blueprints/specs/design/canvas-contract-requirements-v1.json: spacing steps, rhythm
+ * aliases, canvas spacing literals and the type ramp. Exists so the canvas foundation
+ * gate stays closed once passed instead of drifting back.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

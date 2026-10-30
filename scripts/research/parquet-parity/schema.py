@@ -1,3 +1,5 @@
+# Phase 3 (#731): prints the Parquet schemas (play-by-play, games) the parity check compares.
+# See README.md here.
 import sys, polars as pl
 d = sys.argv[1]
 for f in ["play_by_play_2025.parquet", "games.parquet"]:

@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: tests family F (is variance predictable?) and family G (waiver / rest of season).
 import numpy as np, pandas as pd, warnings
 warnings.filterwarnings("ignore"); np.random.seed(77)
 D = pd.read_pickle("data/dataset3.pkl").sort_values(["gsis","season","week"]).reset_index(drop=True)

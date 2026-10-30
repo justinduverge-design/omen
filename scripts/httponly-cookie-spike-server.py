@@ -1,3 +1,6 @@
+# Spike server for in-app ESPN connect (W1-A): serves one page that sets an HttpOnly and a
+# normal cookie holding a sentinel value (never a real cookie), on 127.0.0.1:8770, to
+# prove the native web view can read HttpOnly cookies. Kept as the evidence that unblocked it.
 from http.server import BaseHTTPRequestHandler, HTTPServer
 class H(BaseHTTPRequestHandler):
     def do_GET(self):

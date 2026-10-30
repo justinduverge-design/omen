@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: builds the player-week dataset and the first context features (dataset.pkl).
 import json, glob, os, numpy as np, pandas as pd
 np.random.seed(7)
 # ---------- load ----------

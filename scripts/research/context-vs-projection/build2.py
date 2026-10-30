@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: Sleeper-to-nflverse player-ID crosswalk and merge into dataset2.pkl (checks itself).
 import json, re, unicodedata, numpy as np, pandas as pd
 D = pd.read_pickle("data/dataset.pkl")
 # ---------- crosswalk Sleeper id -> gsis (own match: name + birth date, fallback name + position) ----------

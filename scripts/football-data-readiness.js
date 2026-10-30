@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Assesses football-data production readiness from a sanitized evidence file and prints
+ * the verdict as JSON. Fail-closed: anything missing or unproven reads as not ready, so
+ * the go-live call rests on evidence rather than on a feeling.
+ */
 "use strict";
 
 const fs = require("node:fs/promises");

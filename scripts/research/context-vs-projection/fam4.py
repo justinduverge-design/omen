@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: round 3, scheme and coverage matchups (PREREGISTRATION_3.md).
 import numpy as np, pandas as pd, warnings
 from sklearn.ensemble import HistGradientBoostingRegressor
 warnings.filterwarnings("ignore"); np.random.seed(909)
