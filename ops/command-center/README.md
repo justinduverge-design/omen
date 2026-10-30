@@ -30,3 +30,11 @@ the `O9` pass — check the mode after any deploy.
 
 Backup of the pre-`O9` version is on the Pi at
 `/usr/local/sbin/slops-alert-dispatcher.bak-20260821-o9-before-glitchtip`.
+
+## slops-wifi-watchdog
+
+Command Center is Wi-Fi only (founder decision 2026-10-29). Deployed path `/usr/local/sbin/slops-wifi-watchdog`
+(`root:root` `0755`; it holds no secret), with `slops-wifi-watchdog.service` and `.timer` in `/etc/systemd/system/`.
+Every minute it pings the router. When the router is unreachable it reconnects Wi-Fi at 3 min, restarts
+NetworkManager at 10 min, and reboots at 20 min, at most once per 6h. It only touches this Pi's own network.
+Events go to `/var/lib/slops-alerting/wifi-events`, and the dispatcher posts them once the network is back.

@@ -239,11 +239,13 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Priority:** P1
 - **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
 
-### B13-HEAL-WIRED — Command Center on Ethernet, Wi-Fi power save off
-- **Status:** READY
-- **Blocked by:** FOUNDER — run an Ethernet cable (eth0 has no link today); the power-save change is a Pi write
+### B13-HEAL-WIFI — Command Center stays on Wi-Fi and repairs its own link
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-29 Claude Code (alert-repeats session)
+- **Blocked by:** FOUNDER — deploy `ops/command-center/slops-wifi-watchdog` (+ `.service`, `.timer`) and the dispatcher update; founder chose Wi-Fi only
 - **Priority:** P1
-- **Done when:** `eth0` is the default route, Wi-Fi power save is off as a backup, and three reboots in a row come back with no one touching the Pi.
+- **Evidence so far:** Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf` (founder ran it 2026-10-29; applies on next reboot)
+- **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
 
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
 - **Status:** READY

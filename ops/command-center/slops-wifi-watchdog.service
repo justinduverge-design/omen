@@ -1,0 +1,6 @@
+[Unit]
+Description=Command Center Wi-Fi self-repair (own network only)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/slops-wifi-watchdog

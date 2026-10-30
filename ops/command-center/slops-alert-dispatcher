@@ -122,6 +122,13 @@ $a4"
   fi
   printf '%s\n' "$a4" > "$a4_state"
 fi
+# Wi-Fi self-repair events (slops-wifi-watchdog). Reported once, after the network is
+# back, then cleared; an unsent batch stays on disk and goes out next run.
+wifi_events=/var/lib/slops-alerting/wifi-events
+if [ -s "$wifi_events" ]; then
+  send "SLOPS SELF-REPAIR: Command Center Wi-Fi
+$(tail -n 20 "$wifi_events")" && : > "$wifi_events"
+fi
 sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" | sed '/^$/d' | LC_ALL=C sort)"
 old="$(cat "$state" 2>/dev/null || true)"
 today="$(date -u +%Y-%m-%d)"
