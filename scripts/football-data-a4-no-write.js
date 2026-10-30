@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+/**
+ * A4 no-write rehearsal: runs the Tuesday cron's pending-move read and dry-run archive
+ * against production Supabase through a proxy that refuses every write, pinned to one
+ * accepted scoring artifact. Proves the football-data path can read production safely
+ * before it is ever allowed to write.
+ */
 "use strict";
 
 const crypto = require("node:crypto");

@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: downloads ESPN's public default-league weekly projections for espn_test.py.
 import json, os, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 os.makedirs("data/espn", exist_ok=True)

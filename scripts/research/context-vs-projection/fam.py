@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: tests families A-E as preregistered in PREREGISTRATION.md.
 import numpy as np, pandas as pd, warnings, sys
 warnings.filterwarnings("ignore")
 np.random.seed(2026)

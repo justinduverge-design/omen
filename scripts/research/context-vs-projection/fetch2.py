@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: downloads nflverse injuries, snap counts, team stats and player stats.
 import os, urllib.request, time
 os.makedirs("data/nfl", exist_ok=True)
 def dl(url, fn):

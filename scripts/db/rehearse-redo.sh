@@ -21,12 +21,11 @@ sqldir="$root/sql/2026-10-01-redo"
 out="${REHEARSAL_OUT:-$(mktemp -d)}"
 mkdir -p "$out"
 db="${REHEARSAL_DB:-omen_redo_rehearsal}"
-# 10 before 09, as in production: step 10's rollback refuses while 09 is applied (Codex review, #534).
-steps=(01_identity_link 02_connection_credentials 03_leagues_memberships 04_players_crosswalk 05_ledger 06_projections_shadow 07_close_client_writes 08_retire_unscoped_moves 10_account_erasure 09_beta_reports 11_league_scoring_rules 12_saved_trades 13_football_intelligence_signals 14_nflverse_weekly_stats 15_nflverse_full_lines 16_projection_fk_indexes 17_connection_invalidate 18_decision_horizon_grades)
+# shellcheck source=scripts/db/redo-steps.sh
+. "$here/redo-steps.sh"
 
-case "${PGHOST:-}" in
-  *supabase.co*|*pooler*) echo "refusing: PGHOST looks like a Supabase host" >&2; exit 2 ;;
-esac
+# shellcheck source=scripts/db/scratch-guard.sh
+. "$here/scratch-guard.sh"
 
 psql_db() { psql -X -q -v ON_ERROR_STOP=1 -d "$db" "$@"; }
 fingerprint() {

@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Validates Valor Brain v1 frontmatter on Omen's markdown (profile valor-brain/v1).
+ * Added when Omen adopted the metadata (#349). Card D (#804) moves closeout to Valor-Core's
+ * ops/valor-brain; this copy remains until that follow-up retires it.
+ */
 
 import { readFile, readdir } from "node:fs/promises";
 import { resolve, join, relative } from "node:path";

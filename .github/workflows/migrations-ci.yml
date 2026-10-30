@@ -8,6 +8,7 @@ on:
   pull_request:
     paths:
       - 'sql/2026-10-01-redo/**'
+      - 'sql/pending/**'
       - 'scripts/db/**'
       - 'package.json'
       - 'package-lock.json'
@@ -62,3 +63,12 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: password
         run: scripts/db/concurrency-check.sh
+
+      # STANDARDS card K: pending SQL is rehearsed on today's production schema before the founder is asked.
+      - name: Rehearse sql/pending (applies on today's production, safe to re-run)
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: password
+        run: scripts/db/rehearse-pending.sh
