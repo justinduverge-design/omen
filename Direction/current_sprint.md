@@ -147,7 +147,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** READY
 - **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
 - **Priority:** P1
-- **Done when:** the signature keys on `check` + `result` only, with reason, hours or other values shown in the body
+- **Done when:** the signature keys on each line's identity only (`check` + `result` for Steward/Sentinel, monitor
+  name + status for Kuma, issue short_id for GlitchTip, a fixed key for stale), with reason, hours or other values shown in the body
   but not compared. The stale line no longer re-alerts hourly. A fixture test replays today's posture reason
   changes and gets one alert, not several.
 
