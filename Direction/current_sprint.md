@@ -239,11 +239,17 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Priority:** P1
 - **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
 
+### B13-HEAL-WIRED — Command Center on Ethernet, Wi-Fi power save off
+- **Status:** READY
+- **Blocked by:** FOUNDER — run an Ethernet cable (eth0 has no link today); the power-save change is a Pi write
+- **Priority:** P1
+- **Done when:** `eth0` is the default route, Wi-Fi power save is off as a backup, and three reboots in a row come back with no one touching the Pi.
+
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
 - **Status:** READY
 - **Blocked by:** FOUNDER — buy 3 local-API plugs (Shelly or Tasmota); then a signed playbook
 - **Priority:** P1
-- **Note:** 2026-10-29: two warm reboots of Command Center in a row did not come back, and both needed the founder to cut power (Pi + USB SSD). The watchdog alone cannot recover this Pi; a power cut can
+- **Note:** 2026-10-29: two reboots of Command Center went dark until the founder cut power. The boot journal shows the Pi actually booted fine from the SSD (sshd and docker up, Wi-Fi associated at 192.168.5.30, Tailscale DERP connected), then stopped answering on Wi-Fi (Mac ARP for .30 incomplete). So the suspect is the Wi-Fi link, not the SSD or hub. See B13-HEAL-WIRED first; the plugs remain the backstop
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
 
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
