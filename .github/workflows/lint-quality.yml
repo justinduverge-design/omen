@@ -19,8 +19,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: shellcheck (preinstalled on ubuntu-latest)
-        run: git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning --format=gcc
+      - name: shellcheck (preinstalled on ubuntu-latest), every script found by its #! line
+        shell: bash # -eo pipefail, so a lister failure fails the step
+        run: scripts/list-shell-scripts.sh | xargs -0 shellcheck --severity=warning --format=gcc
 
   typos:
     runs-on: ubuntu-latest
