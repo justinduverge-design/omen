@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+football-backup-freshness.sh (Steward Pi, by its timer)
+Checks the freshness of KVM1's weekly football-data backup and writes
+/var/lib/steward/state/football-backup-freshness.status. No arguments.
+Exit 0 HEALTHY, 1 WARNING, 2 CRITICAL, 3 DOWN (including a crash).
+USAGE
+    exit 0 ;;
+esac
 # Freshness of the weekly omen-football-data backup on KVM1, read through the same forced-command
 # status channel as backup-freshness.sh. Weekly timer (Tue 07:45 ET) => thresholds are in days.
 set -Eeuo pipefail
@@ -14,7 +24,6 @@ HEALTHY_MAX_SECONDS="${HEALTHY_MAX_SECONDS:-691200}"    # 8 days
 CRITICAL_MAX_SECONDS="${CRITICAL_MAX_SECONDS:-777600}"  # 9 days
 DOWN_MAX_SECONDS="${DOWN_MAX_SECONDS:-1209600}"         # 14 days
 CHECKED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"; NOW_EPOCH="${NOW_EPOCH:-$(date -u +%s)}"
-TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 RESULT=""; REASON=""; COMPLETED=""; AGE_SECONDS="-1"; AGE_DAYS="-1"; SNAPSHOT_ID=""
 write_state() {
   local t; t="$(mktemp "$STATE_DIR/.football-backup-freshness.XXXXXX")"
@@ -23,7 +32,10 @@ write_state() {
   chmod 0640 "$t"; mv -f "$t" "$STATE_FILE"
 }
 finish() { write_state; echo "RESULT=$RESULT"; echo "REASON=$REASON"; echo "AGE_DAYS=$AGE_DAYS"; exit "$1"; }
-down() { REASON="$1"; RESULT="DOWN"; finish 3; }
+down() { trap - ERR; REASON="$1"; RESULT="DOWN"; finish 3; }
+trap 'down check_crashed' ERR   # a crashing check must say so: silence would read as health
+# The temp file comes after the ERR trap and its functions, so even mktemp failing writes DOWN (card C).
+TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
 get() { awk -F= -v w="$1" '$1==w{sub(/^[^=]*=/,""); print; exit}' "$TMP"; }
 [[ "$(cat /etc/machine-id)" == "a459056448eb4cafadb2e4480abea91a" ]] || down "wrong_local_host"
 [[ -r "$KEY" ]] || down "ssh_key_unreadable"

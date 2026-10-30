@@ -1,4 +1,15 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-football-restore SNAPSHOT_ID (KVM1 srv1737978, as root, by hand)
+Restores football-data state from the Restic snapshot SNAPSHOT_ID (64 hex characters) into
+/var/lib/omen-football-restore-source. Does not touch the live state.
+Exit 0 on success; 64 for a missing or invalid snapshot ID; 65 also when the restored
+data fails its acceptance hash; 65-78 when a precondition fails.
+USAGE
+    exit 0 ;;
+esac
 set -eu
 umask 077
 

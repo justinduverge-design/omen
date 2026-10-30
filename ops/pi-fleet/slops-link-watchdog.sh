@@ -1,4 +1,13 @@
 #!/bin/bash
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-link-watchdog.sh (Steward Pi, as root, every minute by slops-link-watchdog.timer)
+Watches the default gateway; reconnects Wi-Fi after 10 minutes down and reboots after 30, with
+backoff and at most 3 reboots per outage. No arguments. Exit 0.
+USAGE
+    exit 0 ;;
+esac
 # Slops Pi link watchdog (2026-10-18). Runs every minute from slops-link-watchdog.timer, as root.
 #
 # Why: on 2026-10-16 Steward's Wi-Fi roamed between eero nodes, authentication timed out and the link
@@ -11,6 +20,8 @@
 #           hours therefore costs at most 3 reboots, not one every half hour.
 # Timing uses /proc/uptime (monotonic), never the wall clock: the Pi has no RTC and NTP can jump it.
 # Local only: nothing is sent anywhere except pings and ARP to the gateway.
+# No set -e on purpose (STANDARDS rule 6): a watchdog that stops at its first failed command stops
+# recovering the link. Each step that can fail is checked where it runs.
 set -u
 
 run_dir=/run/slops-link-watchdog          # per boot (tmpfs)

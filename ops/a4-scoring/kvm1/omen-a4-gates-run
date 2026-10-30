@@ -1,4 +1,14 @@
 #!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-a4-gates-run (KVM1, as root, by its timer)
+Evaluates A4's Tuesday-scoring enablement gates inside omen_api and writes
+/var/lib/omen-a4-gates/state.json for the alert dispatcher. Only reports unless
+/etc/omen-a4/auto-enable contains "enabled" (the founder's switch). No arguments. Exit 0 when the state is written.
+USAGE
+    exit 0 ;;
+esac
 # Evaluate A4's Tuesday-scoring enablement gates and publish the result.
 #
 # Runs the repo's checker inside omen_api, where the Supabase credentials and the scoring
