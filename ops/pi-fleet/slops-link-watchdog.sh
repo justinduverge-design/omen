@@ -11,6 +11,8 @@
 #           hours therefore costs at most 3 reboots, not one every half hour.
 # Timing uses /proc/uptime (monotonic), never the wall clock: the Pi has no RTC and NTP can jump it.
 # Local only: nothing is sent anywhere except pings and ARP to the gateway.
+# No set -e on purpose (STANDARDS rule 6): a watchdog that stops at its first failed command stops
+# recovering the link. Each step that can fail is checked where it runs.
 set -u
 
 run_dir=/run/slops-link-watchdog          # per boot (tmpfs)
