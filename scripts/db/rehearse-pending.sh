@@ -8,8 +8,8 @@
 # twice: both must succeed, and the second must leave schema and data unchanged (safe to re-run).
 # A file that changes nothing at all is flagged: production already has it.
 # Compared: public tables, columns, constraints, indexes, policies, ACLs, and the data in production's
-# tables (catalog.js). Not compared: sequences, types, extensions, comments, other schemas, and rows in
-# tables the file itself creates. Read the file for those.
+# snapshot tables (catalog.js). Not compared: sequences, types, extensions, comments, other schemas, and
+# rows in tables the redo steps or the file itself created (players, ledger, ...). Read the file for those.
 # Exits 0 when every file passes or there is nothing to rehearse, 1 on a failure, 2 on a refused host.
 set -euo pipefail
 
@@ -55,9 +55,13 @@ psql_db -f "$sqldir/00b_production_schema_snapshot.sql"
 psql_db -f "$sqldir/00d_production_acls.sql"
 PGDATABASE="$db" node "$here/catalog.js" compare-production
 psql_db -f "$sqldir/00c_scratch_seed.sql"
-for step in "${steps[@]}"; do psql_db -f "$sqldir/$step.up.sql"; done
+applied=0
+for step in "${steps[@]}"; do
+  [[ " ${retired_for_production[*]} " == *" $step "* ]] && continue   # Codex review: step 15 never reached production
+  psql_db -f "$sqldir/$step.up.sql"; applied=$((applied + 1))
+done
 fingerprint production_today
-echo "scratch database matches production today (snapshot + ${#steps[@]} redo steps)"
+echo "scratch database matches production today (snapshot + $applied redo steps; skipped as retired: ${retired_for_production[*]})"
 
 failed=0
 for f in "${files[@]}"; do
