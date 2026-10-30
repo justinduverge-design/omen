@@ -15,6 +15,7 @@ const EXEMPT = {
   design: "only as Blueprints/specs/design",
   memory: "a string in a test, not a repo path",
   ".github": "tests read only .github/workflows, which is listed",
+  ".claude": "tests read only .claude/hooks, which is listed",
   "README.md": "only as nested paths such as infra/warehouse/backup/README.md",
 };
 
