@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Fails when the native Connect sources still name the retired desktop-helper ESPN
+ * fallback (identifiers and phrases below). Added in Build 12 (#670) when in-app ESPN
+ * connect replaced it, so the old path can't creep back into a shipping app.
+ */
 
 import fs from "node:fs";
 import path from "node:path";

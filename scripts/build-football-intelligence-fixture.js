@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Builds the committed football-intelligence test fixture (CSV + manifest) from
+ * pinned nflverse source files, so the intelligence tests run on real, reproducible
+ * play data without a network call. Added with the football intelligence foundation.
+ */
 "use strict";
 
 const crypto = require("node:crypto");

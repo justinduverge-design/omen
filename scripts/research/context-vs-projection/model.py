@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: first pass, context groups E1-E5 only.
 import numpy as np, pandas as pd, itertools
 np.random.seed(11)
 D = pd.read_pickle("data/dataset.pkl")

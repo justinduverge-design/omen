@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * STUB monthly skill-freshness check: prints the core skills it would re-test against
+ * their last_verified date. It checks nothing yet; it marks where the real job goes
+ * (added with the agent harness rewrite).
+ */
 const fs = require("fs");
 
 const coreSkills = [

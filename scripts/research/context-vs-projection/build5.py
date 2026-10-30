@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: round 4 build, everything in nflverse, as-of joined; prints a presence check (PREREGISTRATION_4.md).
 import numpy as np, pandas as pd, urllib.request, os, warnings
 warnings.filterwarnings("ignore")
 B = "https://github.com/nflverse/nflverse-data/releases/download"

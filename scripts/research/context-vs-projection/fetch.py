@@ -1,3 +1,5 @@
+# First factor experiment (#500, 2026-09-30): does football context beat a provider's projection? See README.md here.
+# Step: downloads Sleeper projections and actual PPR points (2018-2025) and nflverse games.
 import json, os, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 OUT = "data"; os.makedirs(OUT, exist_ok=True)
