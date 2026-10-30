@@ -188,6 +188,39 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
   acked with an expiry, or filed as an item. The A4 signature is added to the daily reminder, as its comment
   already claims.
 
+## Lane 5: self-healing behind a trust chain (proposed 2026-10-29; design `Direction/reviews/2026-10-29-self-healing-design.md`)
+
+### B13-HEAL-CONSTITUTION — amend fleet Constitution item 1 to allow signed, pre-approved playbooks
+- **Status:** READY
+- **Blocked by:** FOUNDER_APPROVAL — the amendment wording in the design note
+- **Priority:** P1
+- **Done when:** item 1 reads as amended, and `decision_log.md` records the decision. The dispatcher stays notification-only.
+
+### B13-HEAL-PLAYBOOKS — playbook schema + v1 action vocabulary in the repo
+- **Status:** READY
+- **Blocked by:** B13-HEAL-CONSTITUTION, B13-ALERT-OWNERS
+- **Priority:** P1
+- **Done when:** `ops/remediation/playbooks/` has a schema with a test that rejects unknown actions, shell fields and
+  missing caps or verify checks. There is one playbook for the GlitchTip stack.
+
+### B13-HEAL-SIGNING — CI signs the playbook bundle; the Pi holds only the public key
+- **Status:** READY
+- **Blocked by:** B13-HEAL-PLAYBOOKS; FOUNDER_APPROVAL for the CI signing secret
+- **Priority:** P1
+- **Done when:** a merge to main produces a signed bundle. A tampered bundle fails verification in a test.
+
+### B13-HEAL-REMEDIATOR-SHADOW — `slops-remediator` runs for a week reporting "would have run"
+- **Status:** READY
+- **Blocked by:** B13-HEAL-SIGNING; deploy is FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
+
+### B13-HEAL-LIVE — turn on actions for the v1 vocabulary
+- **Status:** READY
+- **Blocked by:** B13-HEAL-REMEDIATOR-SHADOW; FOUNDER_APPROVAL
+- **Priority:** P2
+- **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
+
 ## Open PRs
 
 - #790 ruff (ours). Dependency bumps, founder merges via `scripts/merge-pr.sh`: #791 opentelemetry
