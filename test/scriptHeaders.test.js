@@ -13,6 +13,7 @@ test("a leading comment after shebang, strict mode, set and imports is a header"
   assert.ok(hasHeader('#!/usr/bin/env node\n"use strict";\n\n/**\n * Does a thing.\n */\n'));
   assert.ok(hasHeader("#!/usr/bin/env bash\nset -Eeuo pipefail\n# Does a thing.\n"));
   assert.ok(hasHeader('import json\nfrom pathlib import Path\n"""Does a thing."""\n'));
+  assert.ok(hasHeader('import fs from "node:fs";\nconst x = require("y");\n// Does a thing.\n'));
   assert.ok(hasHeader('#!/bin/sh\n# --help prints this and exits.\ncase "$1" in\n'));
 });
 
@@ -20,6 +21,9 @@ test("code before any comment is not a header", () => {
   assert.ok(!hasHeader("#!/usr/bin/env bash\nset -eu\nHOST=x\n# late comment\n"));
   assert.ok(!hasHeader('"use strict";\nconst fs = require("fs");\nfunction main() {}\n'));
   assert.ok(!hasHeader(""));
+  assert.ok(!hasHeader('const x = require("a"); main();\n// late\n'));
+  assert.ok(!hasHeader("set -e; rm -rf build\n# late\n"));
+  assert.ok(!hasHeader("import os; os.system('x')\n# late\n"));
 });
 
 test("scripts are known extensions or extensionless files with a shebang", () => {

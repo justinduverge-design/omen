@@ -18,7 +18,9 @@ const path = require("node:path");
 const ROOT = path.resolve(__dirname, "../..");
 const DIRS = ["scripts", "ops"];
 const SCRIPT_EXT = /\.(js|mjs|cjs|py|sh)$/;
-const PREAMBLE = /^(#!|\s*$|["']use strict["'];?$|set -|umask |import |from \S+ import |const .*require\()/;
+// Each form must fill its line, so code after a ";" never passes as preamble.
+const PREAMBLE =
+  /^(#!.*|\s*|["']use strict["'];?|set -\w+(?: \w+)?|umask \d+|import [^;]*;?|from \S+ import [^;]*|const [^;]*= require\([^)]*\);?)$/;
 const COMMENT = /^\s*(#|\/\/|\/\*|"""|''')/;
 
 function hasHeader(text) {
