@@ -35,8 +35,6 @@ CRITICAL_MAX_SECONDS="${CRITICAL_MAX_SECONDS:-86400}"    # 24 hours
 CHECKED_AT="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 NOW_EPOCH="${NOW_EPOCH:-$(date -u +%s)}"
 
-TMP="$(mktemp)"
-trap 'rm -f "$TMP"' EXIT
 
 RESULT=""
 REASON=""
@@ -103,10 +101,17 @@ finish() {
 }
 
 down() {
+    trap - ERR
     REASON="$1"
     RESULT="DOWN"
     finish 3
 }
+
+# A crashing check must say so: silence would read as health (STANDARDS card C, as restic-check-freshness.sh).
+trap 'down check_crashed' ERR
+# The temp file comes after the ERR trap and its functions, so even mktemp failing writes DOWN (card C).
+TMP="$(mktemp)"
+trap 'rm -f "$TMP"' EXIT
 
 get_field() {
     local key="$1"

@@ -82,10 +82,8 @@ HARD CONSTRAINTS
   · Do not push to main. Do not merge.
 
 CLOSE-OUT
-  Per Blueprints/definition-of-done.md, plus the four gates from the repo root.
-  truth-gate must run from the L0 root with omen nested at slops-saloon/omen —
-  from a standalone clone it returns ~117 false P0s that are purely a layout
-  artifact.
+  Per Blueprints/definition-of-done.md, plus `npm run closeout` from the repo root.
+  (truth-gate was retired 2026-10-29; a standalone clone reports valor-brain NOT RUN.)
 ```
 
 ---

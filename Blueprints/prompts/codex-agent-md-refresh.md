@@ -32,11 +32,9 @@ STEP 2 — fix what is stale in AGENT.md
   b. Every remaining section is yours: Role, Backend lean, What you don't own,
      Backend Priority Order, Handoff Rule, Safety Rules, Infrastructure Boundary,
      End Of Task Report. Check each against current truth and correct it.
-  c. Close-out changed. It now runs four gates, and a P0 BLOCKS close-out:
-       node scripts/check-sprint-staleness.js
-       node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet
-       node ../../Blueprints/tools/valor-brain/validate.mjs
-       node scripts/check-kickoff-drift.js
+  c. Close-out changed. One command runs every gate, and a P0 BLOCKS close-out
+     (truth-gate was retired 2026-10-29; valor-brain runs from Valor-Core):
+       npm run closeout
      An unrun check is not a passing check. In a standalone clone without the L0
      tree, say the gate did not run rather than reporting a pass.
      Make sure your End Of Task Report shape carries the gate result.
@@ -81,7 +79,7 @@ DONE WHEN
   - AGENT.md still points at CLAUDE.md for the read order and restates none of it.
   - Your End Of Task Report shape includes the gate results.
   - node scripts/check-kickoff-drift.js passes.
-  - node ../../Blueprints/tools/truth-gate/truth-gate.mjs --quiet reports 0 P0.
+  - npm run closeout reports no failing gate (NOT RUN is reported as such, never as a pass).
   - The AGENTS.md title finding is reported, not fixed.
   - A row is appended to Blueprints/playbooks/skill-usage-ledger.md.
 ```
