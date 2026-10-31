@@ -44,8 +44,19 @@ jobs:
           fi
           umask 077
           key="$RUNNER_TEMP/signing_key"
-          trap 'rm -f "$key"' EXIT
-          printf '%s\n' "$SIGNING_KEY" > "$key"
+          trap 'rm -f "$key" "$key.pub"' EXIT
+          # Strip CR (a key pasted from some editors has CRLF) and check the shape before signing,
+          # so a wrong paste fails with a reason instead of ssh-keygen's "Couldn't load public key".
+          printf '%s\n' "$SIGNING_KEY" | tr -d '\r' > "$key"
+          if ! head -n 1 "$key" | grep -q '^-----BEGIN OPENSSH PRIVATE KEY-----$'; then
+            echo "::error::REMEDIATION_SIGNING_KEY is not an OpenSSH private key (first line must be -----BEGIN OPENSSH PRIVATE KEY-----; was the .pub line pasted?)"
+            exit 1
+          fi
+          if ! ssh-keygen -y -f "$key" > "$key.pub" 2>/dev/null; then
+            echo "::error::REMEDIATION_SIGNING_KEY could not be parsed (truncated, passphrase-protected, or missing its END line)"
+            exit 1
+          fi
+          echo "Signing key fingerprint: $(ssh-keygen -lf "$key.pub" | cut -d' ' -f2)"
           ssh-keygen -Y sign -q -f "$key" -n slops-remediation bundle.json
           python3 ops/remediation/bundle.py verify bundle.json bundle.json.sig ops/remediation/allowed_signers
           echo "signed=true" >> "$GITHUB_OUTPUT"
