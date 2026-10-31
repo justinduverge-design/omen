@@ -1,0 +1,22 @@
+#!/bin/sh
+# Outside heartbeat (B13-HEAL-OUTSIDE-HEARTBEAT). Every alert we have runs inside the house, so a dead
+# router or a power cut silences all of them at once. This pings a free external monitor (Healthchecks.io)
+# every 5 minutes. When the pings stop, the monitor posts to Discord from outside the house.
+# The ping URL is a secret (anyone holding it can fake "alive"), so it lives only on the Pi in a root-only
+# file and never in this repo or a log. The request carries nothing about us: curl's default User-Agent, no body.
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-outside-heartbeat (Command Center, as root, by its 5-minute timer)
+Sends one GET to the ping URL in /etc/slops-alerting/outside-heartbeat-url. A missing
+URL file exits 1 so the unit shows failed instead of passing quietly.
+Exit 0 when the ping was delivered.
+USAGE
+    exit 0 ;;
+esac
+set -eu
+url_file=/etc/slops-alerting/outside-heartbeat-url
+[ -r "$url_file" ] || { echo "slops-outside-heartbeat: $url_file missing" >&2; exit 1; }
+# A failed ping needs no retry storm: the next run is 5 minutes away and the monitor's grace covers one miss.
+# The URL goes to curl on stdin as a config line, not as an argument, so it never shows in ps.
+printf 'url = "%s"\n' "$(cat "$url_file")" | curl -K - -fsS --max-time 10 --retry 2 --retry-delay 5 -o /dev/null

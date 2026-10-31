@@ -30,6 +30,7 @@ Add each PR here as it merges (number, area, title).
 | `heal/signing` | Fleet | B13-HEAL-SIGNING: canonical playbook bundle, a CI job that signs it on merge to main with `ssh-keygen -Y` (secret not yet created), stdlib verify (signature first, then schema), and tamper/wrong-key/no-key tests using a throwaway key |
 | `heal/playbooks` | Fleet | B13-HEAL-PLAYBOOKS: remediation playbook schema (stdlib validator, v1 vocabulary, no shell field, caps and verify required, human-only targets refused) and the GlitchTip stack playbook |
 | `heal/alert-owners` | Fleet | B13-ALERT-OWNERS: every dispatcher alert line ends `owner=… fix=RUNBOOK.md#anchor` from a checked-in map (`alert-owners.tsv`), annotated at delivery so signatures don't change; one runbook step per check; a test fails when a check has no row |
+| #817 | Fleet | B13-ALERT-OWNERS: every dispatcher alert line ends `owner=… fix=RUNBOOK.md#anchor` from a checked-in map (`alert-owners.tsv`), annotated at delivery so signatures don't change; one runbook step per check; a test fails when a check has no row |
 | #815 | Dependencies | `npm audit` clean again: overrides `follow-redirects` 1.16.2 (high, via axios) and `glob` 14.0.3, which brings `minimatch` 11 (moderate, via `@sentry/bundler-plugins`; no fixed Sentry release, and the forced audit fix would downgrade Sentry to 10.x) |
 | #813 | Docs | Session outputs kept on record: the 2026-10-29 standards-cards handoff, the family brief draft (to move to Valor-Core), Tailwind 3→4 landing screenshots |
 | #811 | Docs | AGENTS.md drops Jules from the runtime list and the dispatched-cloud-run rule: Google ends Jules 2026-12-31 (Valor-Core #12) |
@@ -45,6 +46,9 @@ Add each PR here as it merges (number, area, title).
 | #801 | CI | STANDARDS card J: the PR backend tests run when scripts, ops, infra, sql, hooks, mobile or docs that tests read change, and a test keeps the trigger list complete |
 | #800 | CI | STANDARDS card A: ShellCheck lints every tracked shell script found by its #! line, adding 24 extensionless scripts (the ops/ backup, restore and run jobs among them); three warnings get directives so deployed scripts keep their behavior |
 | #799 | Guards | STANDARDS card G: the Bash guard hook fails closed when it can't read the command, and blocks merges through the REST merge endpoint (gh api, curl) and the GraphQL mutation, with a test |
+| #821 | Pi fleet | B13-HEAL-WATCHDOG: `RuntimeWatchdogSec=15s` / `RebootWatchdogSec=2min` drop-in for all three Pis, and `slops-power-check` reports `get_throttled` under-voltage bits (Command Center through the dispatcher, Steward and Sentinel through a state file) |
+| #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
+| #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
