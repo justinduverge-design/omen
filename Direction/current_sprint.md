@@ -215,7 +215,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a merge to main produces a signed bundle. A tampered bundle fails verification in a test.
 
 ### B13-HEAL-REMEDIATOR-SHADOW — `slops-remediator` runs for a week reporting "would have run"
-- **Status:** READY
+- **Claim:** Claude Code, branch `heal/remediator-shadow` (stacked on `heal/signing`), 2026-10-30
+- **Status:** IN REVIEW (PR open: code and local tests; the deploy and the shadow week are FOUNDER_APPROVAL)
 - **Blocked by:** B13-HEAL-SIGNING; deploy is FOUNDER_APPROVAL
 - **Priority:** P2
 - **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.

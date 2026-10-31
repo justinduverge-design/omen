@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""slops-remediator [--root DIR] - SHADOW MODE (B13-HEAL-REMEDIATOR-SHADOW).
+
+Runs by its timer on Command Center as its own user. Reads the dispatcher's signature file, matches each
+active line to a signed playbook, and reports what it WOULD have run. Shadow mode has no code path that
+executes an action: actions exist here only as text. B13-HEAL-LIVE (founder approval) adds execution.
+
+Every run, in order:
+  1. kill switch  /etc/slops-remediator/disabled present -> report once, do nothing
+  2. signature    bundle.json + .sig verified against /etc/slops-remediator/allowed_signers, then the schema;
+                  any failure -> "remediation disabled: bad signature" and nothing else
+  3. replay       a bundle whose seq is lower than the highest seen is refused
+  4. per check    cooldown since the last attempt, then the 24h cap; a hit cap escalates with owner + runbook
+Attempts go to /var/lib/slops-remediator/ledger.jsonl (survives reboot). Reports go to
+/var/lib/slops-remediator/events, which the dispatcher moves aside and sends to Discord. --root prefixes every path (tests).
+Exit 0 on a completed run (refusals included: they are reported). Anything unexpected is reported as a crash, exit 1.
+"""
+
+import datetime
+import json
+import os
+import re
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+LIB = "/usr/local/lib/slops-remediator"
+sys.path.insert(0, LIB if os.path.isdir(LIB) else HERE)
+import bundle  # noqa: E402
+
+RUNBOOK = "ops/command-center/RUNBOOK.md"
+
+
+class Paths:
+    def __init__(self, root=""):
+        j = lambda p: root + p  # noqa: E731
+        self.disabled = j("/etc/slops-remediator/disabled")
+        self.signers = j("/etc/slops-remediator/allowed_signers")
+        self.bundle = j("/var/lib/slops-remediator/bundle.json")
+        self.sig = j("/var/lib/slops-remediator/bundle.json.sig")
+        self.ledger = j("/var/lib/slops-remediator/ledger.jsonl")
+        self.seen = j("/var/lib/slops-remediator/highest-seq")
+        self.disabled_noted = j("/var/lib/slops-remediator/disabled-noted")
+        self.refusal_noted = j("/var/lib/slops-remediator/refusal-noted")
+        self.ledger_noted = j("/var/lib/slops-remediator/ledger-noted")
+        self.signature = j("/var/lib/slops-alerting/last-signature")
+        self.owners = j("/usr/local/lib/slops-alerting/alert-owners.tsv")
+        self.events = j("/var/lib/slops-remediator/events")
+
+
+def now():
+    return datetime.datetime.now(datetime.timezone.utc)  # noqa: UP017 - the Pi may run Python < 3.11
+
+
+def stamp(t):
+    return t.strftime("%Y-%m-%dT%H:%MZ")
+
+
+def read(path, default=""):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except FileNotFoundError:
+        return default
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(text)
+    os.replace(tmp, path)
+
+
+MAX_EVENTS = 200
+
+
+def report(p, t, line):
+    """Append one report. If Discord sends keep failing the file is capped, and the cut is said."""
+    os.makedirs(os.path.dirname(p.events), exist_ok=True)
+    lines = read(p.events).splitlines()
+    if len(lines) >= MAX_EVENTS:
+        keep = lines[-(MAX_EVENTS // 2) :]
+        cut = f"{stamp(t)} SHADOW: {len(lines) - len(keep)} older unsent reports trimmed"
+        write(p.events, "\n".join([cut, *keep]) + "\n")
+    with open(p.events, "a", encoding="utf-8") as fh:
+        fh.write(f"{stamp(t)} {line}\n")
+
+
+def report_once(p, t, flag, line):
+    """A standing refusal is reported when it starts or changes, not every 5 minutes."""
+    if read(flag) != line:
+        report(p, t, line)
+        write(flag, line)
+
+
+def owner_table(path):
+    rows = []
+    for raw in read(path).splitlines():
+        if raw.strip() and not raw.startswith("#"):
+            check, pattern, owner, anchor, _sev = raw.split("\t")
+            rows.append((check, re.compile(pattern), owner, anchor))
+    return rows
+
+
+def active_checks(signature, rows):
+    """Check id -> (owner, anchor) for every line in the dispatcher's signature. Alert text picks the
+    check only; nothing from it reaches an action (arguments come from the signed playbook)."""
+    found = {}
+    for line in signature.splitlines():
+        for check, rx, owner, anchor in rows:
+            if line.strip() and rx.search(line):
+                found.setdefault(check, (owner, anchor))
+                break
+    return found
+
+
+def parse_at(value):
+    """A timezone-aware ledger time, or None."""
+    try:
+        at = datetime.datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    return at if at.tzinfo else None
+
+
+def ledger(p):
+    """Usable entries, plus a count of lines skipped (non-JSON, non-object, or no aware `at`)."""
+    out, bad = [], 0
+    for raw in read(p.ledger).splitlines():
+        try:
+            e = json.loads(raw)
+        except ValueError:
+            e = None
+        if isinstance(e, dict) and parse_at(e.get("at")):
+            e["_at"] = parse_at(e["at"])
+            out.append(e)
+        elif raw.strip():
+            bad += 1
+    return out, bad
+
+
+def describe(action):
+    return action["type"] + (" " + action["target"] if "target" in action else "")
+
+
+def run(p, t=None):
+    t = t or now()
+    if os.path.exists(p.disabled):
+        report_once(p, t, p.disabled_noted, "SHADOW: remediation disabled by kill switch; nothing considered")
+        return "disabled"
+    if os.path.exists(p.disabled_noted):
+        os.remove(p.disabled_noted)
+        report(p, t, "SHADOW: kill switch removed; remediation shadow resumed")
+    try:
+        with open(p.bundle, "rb") as fh:
+            seq, playbooks = bundle.verify_doc(fh.read(), p.sig, p.signers)
+    except (OSError, bundle.Refused) as e:
+        report_once(p, t, p.refusal_noted, f"SHADOW: remediation disabled: bad signature ({e})")
+        return "refused"
+    try:
+        highest = int(read(p.seen, "0").strip() or 0)
+    except ValueError:
+        report_once(p, t, p.refusal_noted, "SHADOW: remediation disabled: highest-seq file is corrupt")
+        return "refused"
+    if seq < highest:
+        report_once(p, t, p.refusal_noted, "SHADOW: remediation disabled: replayed bundle seq %d < %d" % (seq, highest))
+        return "refused"
+    if os.path.exists(p.refusal_noted):
+        os.remove(p.refusal_noted)
+        report(p, t, "SHADOW: signed bundle seq %d accepted; remediation shadow enabled" % seq)
+    write(p.seen, "%d\n" % seq)
+
+    try:
+        rows = owner_table(p.owners)
+    except (ValueError, re.error) as e:
+        report_once(p, t, p.refusal_noted, f"SHADOW: remediation disabled: owner table unreadable ({e})")
+        return "refused"
+    active = active_checks(read(p.signature), rows)
+    entries, bad = ledger(p)
+    if bad:
+        report_once(p, t, p.ledger_noted, f"SHADOW: ledger has {bad} unreadable lines (skipped; caps count the rest)")
+    day_ago = t - datetime.timedelta(hours=24)
+    results = []
+    for pb in playbooks:
+        if pb["check"] not in active:
+            continue
+        owner, anchor = active[pb["check"]]
+        mine = [e for e in entries if e.get("playbook") == pb["id"] and e.get("outcome") == "would_run"]
+        times = [e["_at"] for e in mine]
+        today = [x for x in times if x > day_ago]
+        action = describe(pb["action"])
+        if times and t - max(times) < datetime.timedelta(minutes=pb["cooldown_minutes"]):
+            results.append(("cooldown", pb["id"]))
+            continue
+        if len(today) >= pb["max_attempts_per_24h"]:
+            if not any(
+                e.get("playbook") == pb["id"] and e.get("outcome") == "escalated" and e["_at"] > max(times)
+                for e in entries
+            ):
+                entry = {"at": t.isoformat(), "playbook": pb["id"], "check": pb["check"], "outcome": "escalated"}
+                append_ledger(p, entry)
+                report(
+                    p,
+                    t,
+                    "SHADOW: %s still failing after %d would-be attempts today; would escalate. owner=%s fix=%s#%s"
+                    % (pb["check"], len(today), pb["escalate_to"] or owner, RUNBOOK, anchor),
+                )
+            results.append(("escalated", pb["id"]))
+            continue
+        entry = {
+            "at": t.isoformat(),
+            "playbook": pb["id"],
+            "check": pb["check"],
+            "action": action,
+            "outcome": "would_run",
+            "mode": "shadow",
+        }
+        append_ledger(p, entry)
+        report(
+            p,
+            t,
+            "SHADOW: would have run %s for %s (%d/%d today). Nothing was run."
+            % (action, pb["check"], len(today) + 1, pb["max_attempts_per_24h"]),
+        )
+        results.append(("would_run", pb["id"]))
+    return results
+
+
+def append_ledger(p, entry):
+    os.makedirs(os.path.dirname(p.ledger), exist_ok=True)
+    with open(p.ledger, "a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+def main(argv):
+    if len(argv) > 1 and argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    root = argv[2] if len(argv) > 2 and argv[1] == "--root" else ""
+    p = Paths(root)
+    try:
+        run(p)
+    except Exception as e:  # noqa: BLE001 - a crash must reach Discord, not die silently in the journal
+        report(p, now(), f"SHADOW: remediator crashed: {type(e).__name__}: {e}")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

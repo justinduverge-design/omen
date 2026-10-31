@@ -1,0 +1,16 @@
+[Unit]
+Description=Slops remediator, SHADOW mode (reports "would have run"; executes nothing)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=slops-remediator
+Group=slops-remediator
+ExecStart=/usr/local/sbin/slops-remediator
+# Shadow needs no privilege: no sudoers entry, no docker group. Read-only everywhere but its own state
+# directory (its reports live there too; the dispatcher, as root, collects them).
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/slops-remediator

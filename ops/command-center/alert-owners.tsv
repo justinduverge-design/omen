@@ -13,6 +13,7 @@ listener-drift	\bcheck=listener-drift\b	founder	listener-drift	warning
 omen-host-patch	\bcheck=omen-host-patch-kvm[12]\b	founder	omen-host-patch	warning
 omen-host-posture	\bcheck=omen-host-posture-kvm[12]\b	founder	omen-host-posture	warning
 public-exposure	\bcheck=public-exposure\b	founder	public-exposure	critical
+pi-hardware	\bcheck=\S*(under-voltage|booted-from-sd|ssd-missing)\b	founder	pi-hardware	critical
 host-unreachable	^result=DOWN check=(steward|sentinel)-unreachable\b	founder	host-unreachable	critical
 glitchtip-issue	^GlitchTip #\S+:	agent	glitchtip-issue	warning
 kuma-glitchtip	^GlitchTip: status=	founder	kuma-glitchtip	critical
@@ -21,6 +22,7 @@ kuma-monitor	^[^:]+: status=\d+$	founder	kuma-monitor	critical
 football-signal	^Omen football: (job_failure|source_loss|schema_drift|stale_data|disk_low|witness_mismatch|witness_outage) 	agent	football-signals	high
 football-stale-payload	^Omen football status payload is	agent	football-stale-payload	high
 a4-gates	^Omen A4 gates:	founder	a4-gates	medium
+remediator-shadow	^\d{4}-\d\d-\d\dT\d\d:\d\dZ SHADOW: 	founder	remediator-shadow	warning
 wifi-self-repair	^\d{4}-\d\d-\d\dT\d\d:\d\dZ 	founder	wifi-self-repair	warning
 # Last: unanchored because the probe's output is not in the repo; earlier rows win any overlap.
 pihole-probe	(?i)pi-?hole|dns	founder	pihole-probe	warning

@@ -152,6 +152,20 @@ if [ -s "$wifi_events" ]; then
   send "SLOPS SELF-REPAIR: Command Center Wi-Fi
 $(tail -n 20 "$wifi_events")" && : > "$wifi_events"
 fi
+# Remediator shadow reports (B13-HEAL-REMEDIATOR-SHADOW): "would have run X", refusals, escalations.
+# The batch is moved aside before sending, so lines the remediator appends meanwhile wait for the next
+# run; an unsent batch is retried first. Over 20 lines, the message says how many were cut.
+# The dispatcher only relays these; it never remediates.
+remediator_events=/var/lib/slops-remediator/events
+remediator_batch=/var/lib/slops-alerting/remediator-sending
+if [ ! -s "$remediator_batch" ] && [ -s "$remediator_events" ]; then mv "$remediator_events" "$remediator_batch"; fi
+if [ -s "$remediator_batch" ]; then
+  n="$(wc -l < "$remediator_batch")"
+  cut=""; [ "$n" -gt 20 ] && cut="
+($((n - 20)) earlier lines not shown)"
+  send "SLOPS REMEDIATOR (shadow, nothing was run)
+$(tail -n 20 "$remediator_batch")$cut" && rm -f "$remediator_batch"
+fi
 sig="$(printf '%s\n%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" "$power" | sed '/^$/d' | LC_ALL=C sort)"
 old="$(cat "$state" 2>/dev/null || true)"
 today="$(date -u +%Y-%m-%d)"

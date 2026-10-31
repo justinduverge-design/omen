@@ -33,3 +33,26 @@ A signature that `allowed_signers` can't verify fails the job on `main`, loudly.
 3. Commit `slops-remediation-ci namespaces="slops-remediation" <contents of /tmp/rk.pub without the comment>`.
 4. Delete `/tmp/rk` and `/tmp/rk.pub`.
 Until then the job validates and says "not signed" in its summary, and every verify refuses.
+
+## The remediator, shadow mode (`B13-HEAL-REMEDIATOR-SHADOW`)
+
+`slops-remediator` runs every 5 minutes as user `slops-remediator`, with no sudoers entry and no docker group.
+It reads the dispatcher's `last-signature`, matches each line to a check through `alert-owners.tsv`, and for
+each check with a signed playbook writes "would have run X (n/cap today). Nothing was run." to
+`/var/lib/slops-remediator/events`. The dispatcher relays that file to Discord as
+`SLOPS REMEDIATOR (shadow, nothing was run)`. **There is no code path that executes an action**; a test fails if
+the remediator gains a process, shell or socket API. Checked every run, in order: kill switch, signature and schema,
+replay (`seq` lower than the highest seen), cooldown, 24h cap. A hit cap escalates once with the owner and runbook step.
+
+**Deploy (founder, FOUNDER_APPROVAL; nothing here was deployed):**
+1. `useradd --system --no-create-home --shell /usr/sbin/nologin slops-remediator`
+2. `/usr/local/sbin/slops-remediator` (0755); `bundle.py` and `playbook_schema.py` in `/usr/local/lib/slops-remediator/` (0644).
+3. `/etc/slops-remediator/allowed_signers` = the committed public key (root, 0644).
+4. `install -d -o slops-remediator -m 0755 /var/lib/slops-remediator` (its state and its reports; the dispatcher, as root, collects them).
+5. Copy the latest signed CI artifact (`bundle.json`, `bundle.json.sig`) into `/var/lib/slops-remediator/`.
+6. Deploy the updated dispatcher and `alert-owners.tsv`, then `systemctl enable --now slops-remediator.timer`.
+7. On the Pi, prove the design's checks: the run reports "would have run" for a stopped test container; a tampered bundle,
+   an unknown-action bundle and `touch /etc/slops-remediator/disabled` each stop everything; the cap escalates; the
+   ledger survives a reboot. Then run a week of shadow before `B13-HEAL-LIVE`.
+
+Local proof: `node --test test/remediatorShadow.test.js`.
