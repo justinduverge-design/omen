@@ -208,7 +208,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
   missing caps or verify checks. There is one playbook for the GlitchTip stack.
 
 ### B13-HEAL-SIGNING — CI signs the playbook bundle; the Pi holds only the public key
-- **Status:** READY
+- **Claim:** Claude Code, branch `heal/signing` (stacked on `heal/playbooks`), 2026-10-30
+- **Status:** IN REVIEW (PR open; the CI signing secret is FOUNDER_APPROVAL)
 - **Blocked by:** B13-HEAL-PLAYBOOKS; FOUNDER_APPROVAL for the CI signing secret
 - **Priority:** P1
 - **Done when:** a merge to main produces a signed bundle. A tampered bundle fails verification in a test.
