@@ -5,6 +5,7 @@ Stdlib only: the remediator imports this on the Pi. A playbook names one alert c
 the v1 vocabulary, its caps and its verify check. Anything else is refused, unknown keys included, so a
 `shell`, `command` or `args` field can never ride along. Exit 0 if every file is valid, 1 otherwise.
 """
+
 import json
 import os
 import re
@@ -32,15 +33,28 @@ ALLOWED_TARGETS = {
     "rerun_unit": set(),
 }
 DOCKER_ACTIONS = {"compose_up", "docker_prune_images"}
-KEYS = {"schema", "id", "check", "host", "action", "preconditions", "max_attempts_per_24h",
-        "cooldown_minutes", "verify", "escalate_to", "note"}
+KEYS = {
+    "schema",
+    "id",
+    "check",
+    "host",
+    "action",
+    "preconditions",
+    "max_attempts_per_24h",
+    "cooldown_minutes",
+    "verify",
+    "escalate_to",
+    "note",
+}
 REQUIRED = KEYS - {"note"}
 ID = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
 
 
 def owner_checks(table=None):
     """Check ids from the alert owner map (B13-ALERT-OWNERS): a playbook may only answer a known check."""
-    table = table or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "command-center", "alert-owners.tsv")
+    table = table or os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "command-center", "alert-owners.tsv"
+    )
     with open(table, encoding="utf-8") as fh:
         return {l.split("\t")[0] for l in fh if l.strip() and not l.startswith("#")}
 
@@ -53,44 +67,49 @@ def validate(pb, checks):
     """Return a list of errors; empty means valid."""
     if not isinstance(pb, dict):
         return ["playbook is not an object"]
-    errs = ["unknown key: %s" % k for k in sorted(set(pb) - KEYS)]
-    errs += ["missing key: %s" % k for k in sorted(REQUIRED - set(pb))]
+    errs = [f"unknown key: {k}" for k in sorted(set(pb) - KEYS)]
+    errs += [f"missing key: {k}" for k in sorted(REQUIRED - set(pb))]
     if errs:
         return errs
     if pb["schema"] != SCHEMA:
-        errs.append("schema must be %s" % SCHEMA)
+        errs.append(f"schema must be {SCHEMA}")
     if not isinstance(pb["id"], str) or not ID.fullmatch(pb["id"]):
         errs.append("bad id")
     for k in ("check", "host", "escalate_to"):
         if not isinstance(pb[k], str):
-            return errs + ["%s must be text" % k]
+            return errs + [f"{k} must be text"]
     if pb["check"] not in checks:
-        errs.append("check %r is not in alert-owners.tsv" % (pb["check"],))
+        errs.append("check {!r} is not in alert-owners.tsv".format(pb["check"]))
     if pb["host"] not in HOSTS:
-        errs.append("host must be one of %s" % sorted(HOSTS))
+        errs.append(f"host must be one of {sorted(HOSTS)}")
     a = pb["action"]
     if not isinstance(a, dict):
         errs.append("action must be an object")
     else:
         t = a.get("type")
         if not isinstance(t, str) or t not in ACTIONS:
-            errs.append("unknown action: %r" % (t,))
+            errs.append(f"unknown action: {t!r}")
         else:
             allowed = {"type", "target"} if ACTIONS[t] else {"type"}
-            errs += ["unknown action key: %s" % k for k in sorted(set(a) - allowed)]
+            errs += [f"unknown action key: {k}" for k in sorted(set(a) - allowed)]
             if ACTIONS[t]:
                 tgt = a.get("target")
                 pattern = UNIT_TARGET if t in ("restart_unit", "rerun_unit") else TARGET
                 if not isinstance(tgt, str) or not pattern.fullmatch(tgt):
-                    errs.append("bad target for %s: %r" % (t, tgt))
+                    errs.append(f"bad target for {t}: {tgt!r}")
                 elif FORBIDDEN_TARGET.search(tgt):
-                    errs.append("target %r is human-only" % tgt)
+                    errs.append(f"target {tgt!r} is human-only")
                 elif tgt not in ALLOWED_TARGETS[t]:
-                    errs.append("target %r is not in the %s allowlist" % (tgt, t))
+                    errs.append(f"target {tgt!r} is not in the {t} allowlist")
     pre = pb["preconditions"]
     if not isinstance(pre, list) or any(not isinstance(p, str) or p not in PRECONDITIONS for p in pre):
-        errs.append("preconditions must be a list from %s" % sorted(PRECONDITIONS))
-    elif isinstance(a, dict) and isinstance(a.get("type"), str) and a["type"] in DOCKER_ACTIONS and "docker_daemon_up" not in pre:
+        errs.append(f"preconditions must be a list from {sorted(PRECONDITIONS)}")
+    elif (
+        isinstance(a, dict)
+        and isinstance(a.get("type"), str)
+        and a["type"] in DOCKER_ACTIONS
+        and "docker_daemon_up" not in pre
+    ):
         errs.append("docker actions need the docker_daemon_up precondition")
     if not _int(pb["max_attempts_per_24h"], 1, 3):
         errs.append("max_attempts_per_24h must be 1-3")
@@ -101,11 +120,11 @@ def validate(pb, checks):
         errs.append("verify must have exactly check and wait_seconds")
     else:
         if not isinstance(v["check"], str) or v["check"] not in checks:
-            errs.append("verify check %r is not in alert-owners.tsv" % (v["check"],))
+            errs.append("verify check {!r} is not in alert-owners.tsv".format(v["check"]))
         if not _int(v["wait_seconds"], 30, 900):
             errs.append("verify wait_seconds must be 30-900")
     if pb["escalate_to"] not in OWNERS:
-        errs.append("escalate_to must be one of %s" % sorted(OWNERS))
+        errs.append(f"escalate_to must be one of {sorted(OWNERS)}")
     if "note" in pb and not isinstance(pb["note"], str):
         errs.append("note must be text")
     return errs
@@ -118,12 +137,12 @@ def validate_bundle(playbooks, checks):
     for pb in playbooks:
         e = validate(pb, checks)
         name = pb.get("id", "?") if isinstance(pb, dict) else "?"
-        errs += ["%s: %s" % (name, x) for x in e]
+        errs += [f"{name}: {x}" for x in e]
         if not e:
             if pb["id"] in seen_ids:
-                errs.append("%s: duplicate id" % name)
+                errs.append(f"{name}: duplicate id")
             if pb["check"] in seen_checks:
-                errs.append("%s: second playbook for check %s" % (name, pb["check"]))
+                errs.append("{}: second playbook for check {}".format(name, pb["check"]))
             seen_ids.add(pb["id"])
             seen_checks.add(pb["check"])
     return errs
