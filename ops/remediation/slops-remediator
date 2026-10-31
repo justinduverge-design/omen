@@ -26,6 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LIB = "/usr/local/lib/slops-remediator"
 sys.path.insert(0, LIB if os.path.isdir(LIB) else HERE)
 import bundle  # noqa: E402
+import playbook_schema  # noqa: E402
 
 RUNBOOK = "ops/command-center/RUNBOOK.md"
 
@@ -153,9 +154,12 @@ def run(p, t=None):
         report(p, t, "SHADOW: kill switch removed; remediation shadow resumed")
     try:
         with open(p.bundle, "rb") as fh:
-            seq, playbooks = bundle.verify_doc(fh.read(), p.sig, p.signers)
-    except (OSError, bundle.Refused) as e:
+            seq, playbooks = bundle.verify_doc(fh.read(), p.sig, p.signers, playbook_schema.owner_checks(p.owners))
+    except bundle.Refused as e:
         report_once(p, t, p.refusal_noted, f"SHADOW: remediation disabled: bad signature ({e})")
+        return "refused"
+    except OSError as e:
+        report_once(p, t, p.refusal_noted, f"SHADOW: remediation disabled: cannot read its inputs ({e})")
         return "refused"
     try:
         highest = int(read(p.seen, "0").strip() or 0)
