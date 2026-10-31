@@ -32,7 +32,11 @@ A signature that `allowed_signers` can't verify fails the job on `main`, loudly.
 2. Paste `/tmp/rk` into the repo secret `REMEDIATION_SIGNING_KEY`.
 3. Commit `slops-remediation-ci namespaces="slops-remediation" <contents of /tmp/rk.pub without the comment>`.
 4. Delete `/tmp/rk` and `/tmp/rk.pub`.
-Until then the job validates and says "not signed" in its summary, and every verify refuses.
+Without a key, the job validates and says "not signed" in its summary, and every verify refuses.
+
+**Status (2026-10-30):** done. The public key (`SHA256:EVa+jMj/…`) landed in #824, and the secret `REMEDIATION_SIGNING_KEY`
+was added the same day. Each merge to `main` that touches playbooks now uploads `remediation-bundle-<sha>`.
+To rotate, replace the key line and the secret together.
 
 ## The remediator, shadow mode (`B13-HEAL-REMEDIATOR-SHADOW`)
 
