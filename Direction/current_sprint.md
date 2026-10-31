@@ -264,8 +264,10 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
+- **Blocked by:** None (founder deploys the dispatcher; founder records Command Center's SSD model in `ops/pi-fleet/PARTS.md`)
+- **Note:** the link fires only once a check emits the name: `under-voltage` ships with B13-HEAL-WATCHDOG, `booted-from-sd` with B13-HEAL-SD-SYNC; `ssd-missing` needs a producer (no card yet)
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
 
