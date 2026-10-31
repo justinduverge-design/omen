@@ -16,7 +16,9 @@ const NAMES = ["under-voltage", "ssd-missing", "booted-from-sd"];
 function withParts(message) {
   const start = DISPATCHER.indexOf("parts_url=");
   const end = DISPATCHER.indexOf("\n}\n", start) + 3;
-  return execFileSync("sh", ["-c", `${DISPATCHER.slice(start, end)}with_parts "$1"`, "sh", message], { encoding: "utf8" });
+  return execFileSync("sh", ["-c", `${DISPATCHER.slice(start, end)}with_parts "$1"`, "sh", message], {
+    encoding: "utf8",
+  });
 }
 
 for (const name of NAMES) {
@@ -27,7 +29,8 @@ for (const name of NAMES) {
 }
 
 test("a name in reason text alone does not add the link", () => {
-  const msg = "SLOPS ALERT: CRITICAL state change\nresult=DOWN check=steward-unreachable reason=under-voltage-suspected";
+  const msg =
+    "SLOPS ALERT: CRITICAL state change\nresult=DOWN check=steward-unreachable reason=under-voltage-suspected";
   assert.equal(withParts(msg), msg);
 });
 
