@@ -10,7 +10,8 @@ same way `O1b`'s GlitchTip stack was.
 | File | Deployed path | Owner/mode | Task |
 |---|---|---|---|
 | `slops-wifi-watchdog` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-wifi-watchdog`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-WIFI` (deployed 2026-10-29) |
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). `B13-HEAL-WATCHDOG` adds Command Center's under-voltage line (`ops/pi-fleet/watchdog/`): not yet deployed |
+| `slops-outside-heartbeat` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-outside-heartbeat`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-OUTSIDE-HEARTBEAT` (not yet deployed) |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). `B13-HEAL-PARTS-LIST` adds the parts link: not yet deployed. `B13-HEAL-WATCHDOG` adds Command Center's under-voltage line (`ops/pi-fleet/watchdog/`): not yet deployed |
 
 ## slops-alert-dispatcher
 
@@ -39,3 +40,26 @@ Command Center is Wi-Fi only (founder decision 2026-10-29). Deployed path `/usr/
 Every minute it pings the router. When the router is unreachable it reconnects Wi-Fi at 3 min, restarts
 NetworkManager at 10 min, and reboots at 20 min, at most once per 6h. It only touches this Pi's own network.
 Events go to `/var/lib/slops-alerting/wifi-events`, and the dispatcher posts them once the network is back.
+
+## slops-outside-heartbeat
+
+Every other alert runs inside the house, so a dead router or a power cut silences them all at once. Every 5 minutes
+this pings a free Healthchecks.io check. When the pings stop, Healthchecks.io posts to Discord from outside the house.
+It is a dead-man's switch: it reports silence. It only sends a GET to the ping URL. It reads no state and repairs nothing.
+
+The ping URL is a secret, because anyone holding it can fake "alive". It lives only in
+`/etc/slops-alerting/outside-heartbeat-url` (`root:root` `0600`), never in this repo, a log or a chat.
+
+**Founder setup (account creation and the deploy are yours):**
+
+1. Create a free Healthchecks.io account (Hobbyist plan: 20 checks, $0). New check `command-center`:
+   Period **5 minutes**, Grace **5 minutes**.
+2. Integrations → Discord → connect the alerts channel. The Discord integration is free.
+3. Copy the check's ping URL. On Command Center, store it without echoing it:
+   `sudo install -d -m 0755 /etc/slops-alerting && sudo install -m 0600 /dev/null /etc/slops-alerting/outside-heartbeat-url && sudo nano /etc/slops-alerting/outside-heartbeat-url`
+4. Install and start:
+   `sudo install -m 0755 slops-outside-heartbeat /usr/local/sbin/ && sudo install -m 0644 slops-outside-heartbeat.service slops-outside-heartbeat.timer /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now slops-outside-heartbeat.timer`
+5. Check: `systemctl start slops-outside-heartbeat.service; systemctl status slops-outside-heartbeat.service` shows
+   success, and the check turns green on Healthchecks.io.
+6. Prove the card: unplug the router. Within about 15 minutes (5 since the last ping, plus 5 of grace, plus the monitor's own check cycle) a Healthchecks.io "DOWN" message reaches Discord on your
+   phone over cellular. Plug it back in and an "UP" message follows.

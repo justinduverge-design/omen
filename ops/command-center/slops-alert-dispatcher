@@ -35,6 +35,13 @@ send() {
   printf '%s' "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
     | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null
 }
+# Hardware alerts carry a link to the parts list (B13-HEAL-PARTS-LIST). Only the message gets the line;
+# the signature stays the same, so adding the link never re-sends an alert.
+parts_url=https://github.com/justinduverge-design/omen/blob/main/ops/pi-fleet/PARTS.md
+with_parts() {
+  printf '%s' "$1"
+  if printf '%s' "$1" | grep -Eq 'check=[^ ]*(under-voltage|ssd-missing|booted-from-sd)'; then printf '\nParts to buy: %s' "$parts_url"; fi
+}
 if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi
 mkdir -p /var/lib/slops-alerting
 # Read one host's state. A host that stays unreachable for 10+ minutes is reported instead of silently reading as
@@ -150,8 +157,8 @@ if [ "$sig" = "$old" ]; then
   active="$(printf '%s\n%s' "$sig" "$football" | sed '/^$/d')"
   [ -z "$active" ] && exit 0
   [ "$today" = "$(cat "$reminder_state" 2>/dev/null || true)" ] && exit 0
-  send "SLOPS REMINDER: these conditions are still active
-$active"
+  send "$(with_parts "SLOPS REMINDER: these conditions are still active
+$active")"
   printf '%s\n' "$today" > "$reminder_state"
   exit 0
 fi
@@ -159,8 +166,8 @@ fi
 # a failed send was never retried - the state said "already reported" for an
 # alert that never left the machine. Under set -e a failed send exits non-zero
 # with the state untouched, and the next run retries.
-if [ -n "$sig" ]; then send "SLOPS ALERT: CRITICAL state change
-$sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
+if [ -n "$sig" ]; then send "$(with_parts "SLOPS ALERT: CRITICAL state change
+$sig")"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
 printf '%s\n' "$sig" > "$state"
 # A real alert counts as today's notification: no reminder on top of it.
 printf '%s\n' "$today" > "$reminder_state"

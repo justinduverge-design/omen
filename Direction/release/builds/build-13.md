@@ -43,6 +43,8 @@ Add each PR here as it merges (number, area, title).
 | #800 | CI | STANDARDS card A: ShellCheck lints every tracked shell script found by its #! line, adding 24 extensionless scripts (the ops/ backup, restore and run jobs among them); three warnings get directives so deployed scripts keep their behavior |
 | #799 | Guards | STANDARDS card G: the Bash guard hook fails closed when it can't read the command, and blocks merges through the REST merge endpoint (gh api, curl) and the GraphQL mutation, with a test |
 | #821 | Pi fleet | B13-HEAL-WATCHDOG: `RuntimeWatchdogSec=15s` / `RebootWatchdogSec=2min` drop-in for all three Pis, and `slops-power-check` reports `get_throttled` under-voltage bits (Command Center through the dispatcher, Steward and Sentinel through a state file) |
+| #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
+| #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
