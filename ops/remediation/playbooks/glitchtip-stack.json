@@ -1,0 +1,13 @@
+{
+  "schema": "slops-remediation-playbook.v1",
+  "id": "glitchtip-stack-up",
+  "check": "kuma-glitchtip",
+  "host": "command-center",
+  "action": { "type": "compose_up", "target": "glitchtip" },
+  "preconditions": ["docker_daemon_up", "disk_free_over_10pct"],
+  "max_attempts_per_24h": 2,
+  "cooldown_minutes": 30,
+  "verify": { "check": "kuma-glitchtip", "wait_seconds": 180 },
+  "escalate_to": "founder",
+  "note": "Containers down with a healthy boot line come back with compose up. The 2026-10-29 cgroup case fails both tries and escalates with the runbook step."
+}

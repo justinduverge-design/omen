@@ -200,8 +200,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** item 1 reads as amended, and `decision_log.md` records the decision. The dispatcher stays notification-only.
 
 ### B13-HEAL-PLAYBOOKS — playbook schema + v1 action vocabulary in the repo
-- **Status:** READY
-- **Blocked by:** B13-ALERT-OWNERS
+- **Claim:** Claude Code, branch `heal/playbooks` (stacked on `heal/alert-owners`), 2026-10-30
+- **Status:** IN REVIEW (PR open)
+- **Blocked by:** B13-ALERT-OWNERS (PR open, unmerged)
 - **Priority:** P1
 - **Done when:** `ops/remediation/playbooks/` has a schema with a test that rejects unknown actions, shell fields and
   missing caps or verify checks. There is one playbook for the GlitchTip stack.
