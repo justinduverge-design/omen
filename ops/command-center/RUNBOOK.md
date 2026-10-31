@@ -45,6 +45,9 @@ Enabled units, containers or listeners drifted from the baseline. Fix the drift 
 ## public-exposure
 Sentinel saw a service reachable from the internet that should not be. Confirm from outside (phone on cellular), then close it at the firewall by hand; firewall changes are human-only.
 
+## pi-hardware
+A Pi reports failing hardware (`under-voltage`, `booted-from-sd`, `ssd-missing`). Buy the part listed in `ops/pi-fleet/PARTS.md` for that check, then swap it by hand.
+
 ## host-unreachable
 Steward or Sentinel has not answered SSH for 10 minutes. Check power, then the network; look at the host's last boot journal after it returns.
 

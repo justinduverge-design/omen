@@ -13,6 +13,7 @@ listener-drift	\bcheck=listener-drift\b	founder	listener-drift	warning
 omen-host-patch	\bcheck=omen-host-patch-kvm[12]\b	founder	omen-host-patch	warning
 omen-host-posture	\bcheck=omen-host-posture-kvm[12]\b	founder	omen-host-posture	warning
 public-exposure	\bcheck=public-exposure\b	founder	public-exposure	critical
+pi-hardware	\bcheck=\S*(under-voltage|booted-from-sd|ssd-missing)\b	founder	pi-hardware	critical
 host-unreachable	^result=DOWN check=(steward|sentinel)-unreachable\b	founder	host-unreachable	critical
 glitchtip-issue	^GlitchTip #\S+:	agent	glitchtip-issue	warning
 kuma-glitchtip	^GlitchTip: status=	founder	kuma-glitchtip	critical

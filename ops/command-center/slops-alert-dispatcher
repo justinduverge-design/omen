@@ -41,6 +41,13 @@ send() {
   printf '%s' "$1" | annotate "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
     | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null
 }
+# Hardware alerts carry a link to the parts list (B13-HEAL-PARTS-LIST). Only the message gets the line;
+# the signature stays the same, so adding the link never re-sends an alert.
+parts_url=https://github.com/justinduverge-design/omen/blob/main/ops/pi-fleet/PARTS.md
+with_parts() {
+  printf '%s' "$1"
+  if printf '%s' "$1" | grep -Eq 'check=[^ ]*(under-voltage|ssd-missing|booted-from-sd)'; then printf '\nParts to buy: %s' "$parts_url"; fi
+}
 if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi
 mkdir -p /var/lib/slops-alerting
 # Read one host's state. A host that stays unreachable for 10+ minutes is reported instead of silently reading as
@@ -56,6 +63,16 @@ read_host() {
 bad="$({ read_host steward; read_host sentinel; } | grep '^result=' | grep -v '=HEALTHY' || true)"
 kuma="$(docker exec uptime-kuma sqlite3 -readonly -csv /app/data/kuma.db 'SELECT m.name,(SELECT h.status FROM heartbeat h WHERE h.monitor_id=m.id ORDER BY h.time DESC LIMIT 1) FROM monitor m WHERE m.active=1' | awk -F, '$2 != "" && $2 != 1 {print $1 ": status=" $2}')"
 pihole="$(/usr/local/lib/slops-alerting/pihole-dns-probe.py 2>&1 || true)"
+# B13-HEAL-WATCHDOG: Command Center's own under-voltage bits (Steward and Sentinel report theirs through
+# the status reader above). Read-only; a WARNING here is a power supply on its way out.
+if [ -x /usr/local/sbin/slops-power-check ]; then
+  power="$(/usr/local/sbin/slops-power-check command-center 2>/dev/null || true)"
+  # No line at all means the check crashed: report it, never read it as healthy.
+  [ -n "$power" ] || power='result=DOWN check=command-center-under-voltage reason=power_check_no_output'
+  power="$(printf '%s\n' "$power" | grep -v '^result=HEALTHY' || true)"
+else
+  power='result=DOWN check=command-center-under-voltage reason=power_check_not_installed'
+fi
 # O9: unresolved GlitchTip issues. Read straight from Postgres, the same way
 # Kuma is read straight from SQLite above - no API token to provision, and the
 # transaction is forced read-only so this path cannot mutate error records.
@@ -149,7 +166,7 @@ if [ -s "$remediator_batch" ]; then
   send "SLOPS REMEDIATOR (shadow, nothing was run)
 $(tail -n 20 "$remediator_batch")$cut" && rm -f "$remediator_batch"
 fi
-sig="$(printf '%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" | sed '/^$/d' | LC_ALL=C sort)"
+sig="$(printf '%s\n%s\n%s\n%s\n%s\n%s' "$bad" "$kuma" "$pihole" "$glitchtip" "$stale" "$power" | sed '/^$/d' | LC_ALL=C sort)"
 old="$(cat "$state" 2>/dev/null || true)"
 today="$(date -u +%Y-%m-%d)"
 # Unchanged signature: stay quiet, EXCEPT once per day while anything is still
@@ -160,8 +177,8 @@ if [ "$sig" = "$old" ]; then
   active="$(printf '%s\n%s' "$sig" "$football" | sed '/^$/d')"
   [ -z "$active" ] && exit 0
   [ "$today" = "$(cat "$reminder_state" 2>/dev/null || true)" ] && exit 0
-  send "SLOPS REMINDER: these conditions are still active
-$active"
+  send "$(with_parts "SLOPS REMINDER: these conditions are still active
+$active")"
   printf '%s\n' "$today" > "$reminder_state"
   exit 0
 fi
@@ -169,8 +186,8 @@ fi
 # a failed send was never retried - the state said "already reported" for an
 # alert that never left the machine. Under set -e a failed send exits non-zero
 # with the state untouched, and the next run retries.
-if [ -n "$sig" ]; then send "SLOPS ALERT: CRITICAL state change
-$sig"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
+if [ -n "$sig" ]; then send "$(with_parts "SLOPS ALERT: CRITICAL state change
+$sig")"; elif [ -n "$old" ]; then send 'SLOPS RECOVERY: previously reported alert conditions are healthy again.'; fi
 printf '%s\n' "$sig" > "$state"
 # A real alert counts as today's notification: no reminder on top of it.
 printf '%s\n' "$today" > "$reminder_state"

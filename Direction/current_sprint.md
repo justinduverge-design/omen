@@ -240,8 +240,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
 ### B13-HEAL-WATCHDOG — hardware watchdog on all three Pis, plus under-voltage watch
-- **Status:** READY
-- **Blocked by:** None (deploy is a Pi write)
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-watchdog`
+- **Blocked by:** FOUNDER — deploy per `ops/pi-fleet/watchdog/README.md` on all three Pis, and add the under-voltage state file to the Steward/Sentinel status reader
 - **Priority:** P1
 - **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
 
@@ -261,14 +262,17 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
 
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-outside-heartbeat`
+- **Blocked by:** FOUNDER — create the free Healthchecks.io account and check, connect Discord, deploy (`ops/command-center/README.md` → slops-outside-heartbeat)
 - **Priority:** P2
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
+- **Blocked by:** None (founder deploys the dispatcher; founder records Command Center's SSD model in `ops/pi-fleet/PARTS.md`)
+- **Note:** the link fires only once a check emits the name: `under-voltage` ships with B13-HEAL-WATCHDOG, `booted-from-sd` with B13-HEAL-SD-SYNC; `ssd-missing` needs a producer (no card yet)
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
 
