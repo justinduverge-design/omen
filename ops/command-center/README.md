@@ -29,6 +29,11 @@ read-only Postgres transaction.
 root-only executable and must stay that way. A `0755` install was made and corrected during
 the `O9` pass — check the mode after any deploy.
 
+**Owners and runbook steps (`B13-ALERT-OWNERS`).** Each alert line ends `owner=… fix=RUNBOOK.md#anchor`.
+`slops-alert-annotate` and `alert-owners.tsv` deploy to `/usr/local/lib/slops-alerting/` (`root:root`, `0755` and
+`0644`; neither holds a secret). The annotation is added at delivery, after the signature compare, so editing the
+table never re-alerts. If either file is missing the alert still goes out, without the tags.
+
 Backup of the pre-`O9` version is on the Pi at
 `/usr/local/sbin/slops-alert-dispatcher.bak-20260821-o9-before-glitchtip`.
 

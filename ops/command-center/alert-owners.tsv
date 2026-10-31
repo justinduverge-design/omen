@@ -1,0 +1,26 @@
+# check-id	match (Python regex, first match wins)	owner	runbook-anchor	severity
+# Every line the dispatcher can emit must match one row here (test/alertOwners.test.js).
+# Owners: founder (Pi, boot, network, secrets, prod), agent (repo fix through the build loop).
+omen-ready	\bcheck=omen-ready\b	founder	omen-ready	critical
+tls-expiry	\bcheck=tls-expiry\b	founder	tls-expiry	critical
+supabase-backup-freshness	\bcheck=supabase-backup-freshness\b	founder	supabase-backup-freshness	critical
+football-backup-freshness	\bcheck=football-backup-freshness\b	founder	football-backup-freshness	critical
+restic-integrity	\bcheck=restic-integrity\b	founder	restic-integrity	critical
+command-center-alive	\bcheck=command-center-alive\b	founder	command-center-alive	critical
+network-health	\bcheck=network-health\b	founder	network-health	warning
+auth-security	\bcheck=auth-security\b	founder	auth-security	critical
+listener-drift	\bcheck=listener-drift\b	founder	listener-drift	warning
+omen-host-patch	\bcheck=omen-host-patch-kvm[12]\b	founder	omen-host-patch	warning
+omen-host-posture	\bcheck=omen-host-posture-kvm[12]\b	founder	omen-host-posture	warning
+public-exposure	\bcheck=public-exposure\b	founder	public-exposure	critical
+host-unreachable	^result=DOWN check=(steward|sentinel)-unreachable\b	founder	host-unreachable	critical
+glitchtip-issue	^GlitchTip #\S+:	agent	glitchtip-issue	warning
+kuma-glitchtip	^GlitchTip: status=	founder	kuma-glitchtip	critical
+kuma-recall	^recall: .*: status=	founder	kuma-recall	warning
+kuma-monitor	^[^:]+: status=\d+$	founder	kuma-monitor	critical
+football-signal	^Omen football: (job_failure|source_loss|schema_drift|stale_data|disk_low|witness_mismatch|witness_outage) 	agent	football-signals	high
+football-stale-payload	^Omen football status payload is	agent	football-stale-payload	high
+a4-gates	^Omen A4 gates:	founder	a4-gates	medium
+wifi-self-repair	^\d{4}-\d\d-\d\dT\d\d:\d\dZ 	founder	wifi-self-repair	warning
+# Last: unanchored because the probe's output is not in the repo; earlier rows win any overlap.
+pihole-probe	(?i)pi-?hole|dns	founder	pihole-probe	warning

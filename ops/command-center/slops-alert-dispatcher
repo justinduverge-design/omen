@@ -31,8 +31,14 @@ webhook=/etc/slops-alerting/discord-webhook-url
 # failed and no notification would have gone out at all - the alerting system
 # failing precisely when it mattered most. Found 2026-08-21 when GlitchTip
 # became the fourth signal source and produced the first multi-line signature.
+# Every alert line ends `owner=… fix=RUNBOOK.md#anchor` (B13-ALERT-OWNERS). Done here, at
+# delivery, so signatures stay owner-free and a table edit never re-alerts. A missing or broken
+# annotator must not cost the alert itself: fall back to the bare text.
+annotate() {
+  /usr/local/lib/slops-alerting/slops-alert-annotate /usr/local/lib/slops-alerting/alert-owners.tsv 2>/dev/null || printf '%s' "$1"
+}
 send() {
-  printf '%s' "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
+  printf '%s' "$1" | annotate "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
     | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null
 }
 if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi

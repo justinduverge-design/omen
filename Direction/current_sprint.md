@@ -136,7 +136,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** the five containers are up, Kuma `GlitchTip` reads 1, and the line leaves the alert with one RECOVERY.
 
 ### B13-ALERT-OWNERS — every alert line names an owner and a runbook step
-- **Status:** READY
+- **Claim:** Claude Code, branch `heal/alert-owners`, 2026-10-30
+- **Status:** IN REVIEW (PR open; deploy is FOUNDER_APPROVAL)
 - **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
 - **Priority:** P1
 - **Done when:** a checked-in map (check name → owner, runbook anchor, severity) covers every check the dispatcher

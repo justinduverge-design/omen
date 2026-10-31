@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""slops-alert-annotate [owners.tsv] < message > message
+
+Appends `owner=<who> fix=<runbook>#<anchor>` to every alert line of a dispatcher message
+(B13-ALERT-OWNERS). Header lines (`SLOPS ...`) and blank lines pass through untouched. A line
+no row matches still goes out, tagged `owner=founder fix=<runbook>#unmapped`, so a new check is
+never silenced by a missing entry. Annotation is display only: the dispatcher compares
+signatures before this runs, so owner or runbook edits never re-alert.
+"""
+import re
+import sys
+
+RUNBOOK = "ops/command-center/RUNBOOK.md"
+DEFAULT_TABLE = "/usr/local/lib/slops-alerting/alert-owners.tsv"
+
+
+def load(path):
+    rows = []
+    with open(path, encoding="utf-8") as fh:
+        for raw in fh:
+            if not raw.strip() or raw.startswith("#"):
+                continue
+            check, pattern, owner, anchor, severity = raw.rstrip("\n").split("\t")
+            rows.append((check, re.compile(pattern), owner, anchor, severity))
+    return rows
+
+
+def lookup(rows, line):
+    for row in rows:
+        if row[1].search(line):
+            return row
+    return None
+
+
+def annotate(rows, line):
+    if not line.strip() or line.startswith("SLOPS "):
+        return line
+    row = lookup(rows, line)
+    owner, anchor = (row[2], row[3]) if row else ("founder", "unmapped")
+    return "%s owner=%s fix=%s#%s" % (line, owner, RUNBOOK, anchor)
+
+
+def main(argv):
+    if len(argv) > 1 and argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    rows = load(argv[1] if len(argv) > 1 else DEFAULT_TABLE)
+    text = sys.stdin.read()
+    sys.stdout.write("\n".join(annotate(rows, l) for l in text.split("\n")))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
