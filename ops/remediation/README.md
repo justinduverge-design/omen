@@ -53,6 +53,8 @@ replay (`seq` lower than the highest seen), cooldown, 24h cap. A hit cap escalat
 2. `/usr/local/sbin/slops-remediator` (0755); `bundle.py` and `playbook_schema.py` in `/usr/local/lib/slops-remediator/` (0644).
 3. `/etc/slops-remediator/allowed_signers` = the committed public key (root, 0644).
 4. `install -d -o slops-remediator -m 0755 /var/lib/slops-remediator` (its state and its reports; the dispatcher, as root, collects them).
+   Let it read the dispatcher's state: `chgrp slops-remediator /var/lib/slops-alerting && chmod 0750 /var/lib/slops-alerting`
+   (the files there are 0644 alert state with no secret; the webhook stays in `/etc/slops-alerting/`).
 5. Copy the latest signed CI artifact (`bundle.json`, `bundle.json.sig`) into `/var/lib/slops-remediator/`.
 6. Deploy the updated dispatcher and `alert-owners.tsv`, then `systemctl enable --now slops-remediator.timer`.
 7. On the Pi, prove the design's checks: the run reports "would have run" for a stopped test container; a tampered bundle,
