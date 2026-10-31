@@ -1,5 +1,16 @@
 # Omen Decision Log
 
+## 2026-10-30 — Fleet Constitution item 1 amended: signed, pre-approved playbooks only
+
+- **Decision (founder, Valor-Core decision 0003 item 3):** the self-healing design is approved. Fleet Constitution
+  item 1 now allows a separate remediator to run only actions pre-approved through a reviewed, signed playbook,
+  within its limits. Monitoring, alerting and the dispatcher stay notification-only.
+- **Boundaries:** boot, kernel, reboot, firewall, DNS (Pi-hole, eero), secrets, deploys, database writes, package upgrades and
+  KVM1/KVM2 production stay human-only. The design scoped this list to v1; it is made permanent in the Constitution, so
+  widening it takes another amendment. At least one week of
+  shadow mode ("would have run X", no actions) comes before `B13-HEAL-LIVE`.
+- **Evidence:** `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md` item 1; card `B13-HEAL-CONSTITUTION`.
+
 ## 2026-10-18 — Branch triage: retire stale work, archive what was never pushed
 
 - **Decision (delegated by the founder):** the ~30 local branches left after the prune were triaged against main by

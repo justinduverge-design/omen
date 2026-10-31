@@ -1,6 +1,6 @@
 # Self-healing for the Pi fleet: design proposal (2026-10-29)
 
-**Status: PROPOSED. Needs the founder's yes on the constitution change below before anything is built.**
+**Status: APPROVED 2026-10-30 (Valor-Core `company/decisions/0003-antigravity-self-healing-and-truth.md`, item 3). The amendment below is now fleet Constitution item 1. Build as designed, with one week of shadow mode before any action.**
 
 ## Problem
 
