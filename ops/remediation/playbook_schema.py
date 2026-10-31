@@ -56,7 +56,7 @@ def owner_checks(table=None):
         os.path.dirname(os.path.abspath(__file__)), "..", "command-center", "alert-owners.tsv"
     )
     with open(table, encoding="utf-8") as fh:
-        return {l.split("\t")[0] for l in fh if l.strip() and not l.startswith("#")}
+        return {row.split("\t")[0] for row in fh if row.strip() and not row.startswith("#")}
 
 
 def _int(v, lo, hi):
