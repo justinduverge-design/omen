@@ -13,12 +13,30 @@ const table = path.join(dir, "alert-owners.tsv");
 // One sample per check the dispatcher can emit (fleet spec: 14 Steward/Sentinel checks, plus
 // unreachable hosts, Kuma, Pi-hole, GlitchTip, football codes, A4, stale payload).
 const STEWARD_CHECKS = [
-  "omen-ready", "tls-expiry", "supabase-backup-freshness", "football-backup-freshness",
-  "restic-integrity", "command-center-alive", "network-health", "auth-security", "listener-drift",
-  "omen-host-patch-kvm1", "omen-host-patch-kvm2", "omen-host-posture-kvm1", "omen-host-posture-kvm2",
+  "omen-ready",
+  "tls-expiry",
+  "supabase-backup-freshness",
+  "football-backup-freshness",
+  "restic-integrity",
+  "command-center-alive",
+  "network-health",
+  "auth-security",
+  "listener-drift",
+  "omen-host-patch-kvm1",
+  "omen-host-patch-kvm2",
+  "omen-host-posture-kvm1",
+  "omen-host-posture-kvm2",
   "public-exposure",
 ];
-const FOOTBALL = ["job_failure", "source_loss", "schema_drift", "stale_data", "disk_low", "witness_mismatch", "witness_outage"];
+const FOOTBALL = [
+  "job_failure",
+  "source_loss",
+  "schema_drift",
+  "stale_data",
+  "disk_low",
+  "witness_mismatch",
+  "witness_outage",
+];
 const SAMPLES = [
   ...STEWARD_CHECKS.map((c) => `result=WARNING check=${c} reason=x`),
   "result=DOWN check=steward-unreachable reason=no_response_over_ssh_10min",
@@ -54,7 +72,11 @@ test("every emittable check maps to a real owner and an existing runbook heading
 
 test("every table row is reachable and has a runbook heading", () => {
   const runbook = fs.readFileSync(path.join(dir, "RUNBOOK.md"), "utf8");
-  const anchors = fs.readFileSync(table, "utf8").split("\n").filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t"));
+  const anchors = fs
+    .readFileSync(table, "utf8")
+    .split("\n")
+    .filter((l) => l && !l.startsWith("#"))
+    .map((l) => l.split("\t"));
   for (const row of anchors) {
     assert.equal(row.length, 5, `bad row: ${row.join("|")}`);
     assert.match(runbook, new RegExp(`^## ${row[3]}$`, "m"));
@@ -74,7 +96,10 @@ test("a new check mentioning dns is unmapped only if nothing else matches", () =
 
 test("headers and blanks pass through; an unknown line is tagged unmapped, never dropped", () => {
   const out = run("SLOPS ALERT: CRITICAL state change\nsomething new\n");
-  assert.equal(out, "SLOPS ALERT: CRITICAL state change\nsomething new owner=founder fix=ops/command-center/RUNBOOK.md#unmapped\n");
+  assert.equal(
+    out,
+    "SLOPS ALERT: CRITICAL state change\nsomething new owner=founder fix=ops/command-center/RUNBOOK.md#unmapped\n",
+  );
 });
 
 test("the dispatcher annotates at delivery only, with a bare-text fallback", () => {
