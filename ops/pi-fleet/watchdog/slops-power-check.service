@@ -1,0 +1,7 @@
+[Unit]
+Description=Record under-voltage state for the alert dispatcher (read-only)
+
+[Service]
+Type=oneshot
+StateDirectory=slops-power
+ExecStart=/usr/local/sbin/slops-power-check %H /var/lib/slops-power/under-voltage.status

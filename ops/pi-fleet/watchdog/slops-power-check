@@ -1,0 +1,39 @@
+#!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-power-check HOST [STATE_FILE] (any Pi; by the dispatcher on Command Center, by its timer on Steward and Sentinel)
+Reads `vcgencmd get_throttled` and prints one line:
+  result=HEALTHY|WARNING|CRITICAL|DOWN check=HOST-under-voltage reason=... throttled=0x...
+With STATE_FILE it also writes that line atomically (mode 0644) for the status reader.
+Exit 0 whatever the result; the result is in the line.
+USAGE
+    exit 0 ;;
+esac
+# Under-voltage is the early warning for a dying power supply (B13-HEAL-WATCHDOG). get_throttled bits:
+#   0x1 under-voltage now, 0x4 throttled now, 0x10000 under-voltage since boot, 0x40000 throttled since boot.
+# Read-only: it reports and never changes clocks, power or anything else. The check= name carries
+# "under-voltage", so the dispatcher adds the parts-list link (B13-HEAL-PARTS-LIST).
+set -eu
+host="${1:?usage: slops-power-check HOST [STATE_FILE]}"
+state="${2:-}"
+raw="$(${VCGENCMD:-vcgencmd} get_throttled 2>/dev/null || true)"
+hex="${raw#throttled=}"
+case "$hex" in
+  # Not hex: the arithmetic below would abort with no output, which a reader could take for healthy.
+  0x|0x*[!0-9a-fA-F]*) result=DOWN reason=get_throttled_unreadable ;;
+  0x*) v=$((hex))
+    if [ $((v & 0x1)) -ne 0 ]; then result=CRITICAL reason=under_voltage_now
+    elif [ $((v & 0x10000)) -ne 0 ]; then result=WARNING reason=under_voltage_since_boot
+    elif [ $((v & 0x4)) -ne 0 ]; then result=WARNING reason=throttled_now
+    else result=HEALTHY reason=none
+    fi ;;
+  # A check that cannot read the chip must not look healthy.
+  *) result=DOWN reason=get_throttled_unreadable hex=unknown ;;
+esac
+line="result=$result check=$host-under-voltage reason=$reason throttled=$hex"
+printf '%s\n' "$line"
+if [ -n "$state" ]; then
+  tmp="$(mktemp "$state.XXXXXX")"
+  printf '%s\n' "$line" > "$tmp" && chmod 0644 "$tmp" && mv -f "$tmp" "$state"
+fi
