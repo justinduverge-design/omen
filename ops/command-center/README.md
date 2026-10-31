@@ -10,7 +10,7 @@ same way `O1b`'s GlitchTip stack was.
 | File | Deployed path | Owner/mode | Task |
 |---|---|---|---|
 | `slops-wifi-watchdog` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-wifi-watchdog`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-WIFI` (deployed 2026-10-29) |
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11) |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). `B13-HEAL-WATCHDOG` adds Command Center's under-voltage line (`ops/pi-fleet/watchdog/`): not yet deployed |
 
 ## slops-alert-dispatcher
 
