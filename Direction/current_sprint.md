@@ -191,14 +191,16 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ## Lane 5: self-healing behind a trust chain (proposed 2026-10-29; design `Direction/reviews/2026-10-29-self-healing-design.md`)
 
 ### B13-HEAL-CONSTITUTION — amend fleet Constitution item 1 to allow signed, pre-approved playbooks
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — the amendment wording in the design note
+- **Claim:** Claude Code, branch `heal/constitution`, 2026-10-30
+- **Status:** VERIFIED
+- **Approval:** Valor-Core decision 0003 item 3 (2026-10-30)
+- **Evidence:** fleet spec item 1 reads as amended; `decision_log.md` 2026-10-30 entry; dispatcher unchanged (docs only)
 - **Priority:** P1
 - **Done when:** item 1 reads as amended, and `decision_log.md` records the decision. The dispatcher stays notification-only.
 
 ### B13-HEAL-PLAYBOOKS — playbook schema + v1 action vocabulary in the repo
 - **Status:** READY
-- **Blocked by:** B13-HEAL-CONSTITUTION, B13-ALERT-OWNERS
+- **Blocked by:** B13-ALERT-OWNERS
 - **Priority:** P1
 - **Done when:** `ops/remediation/playbooks/` has a schema with a test that rejects unknown actions, shell fields and
   missing caps or verify checks. There is one playbook for the GlitchTip stack.
