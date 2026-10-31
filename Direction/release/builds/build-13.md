@@ -42,7 +42,7 @@ Add each PR here as it merges (number, area, title).
 | #801 | CI | STANDARDS card J: the PR backend tests run when scripts, ops, infra, sql, hooks, mobile or docs that tests read change, and a test keeps the trigger list complete |
 | #800 | CI | STANDARDS card A: ShellCheck lints every tracked shell script found by its #! line, adding 24 extensionless scripts (the ops/ backup, restore and run jobs among them); three warnings get directives so deployed scripts keep their behavior |
 | #799 | Guards | STANDARDS card G: the Bash guard hook fails closed when it can't read the command, and blocks merges through the REST merge endpoint (gh api, curl) and the GraphQL mutation, with a test |
-| `claude/heal-outside-heartbeat` | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
+| #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
