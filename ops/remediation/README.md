@@ -35,7 +35,7 @@ A signature that `allowed_signers` can't verify fails the job on `main`, loudly.
 Without a key, the job validates and says "not signed" in its summary, and every verify refuses.
 
 **Status (2026-10-30):** done. The public key (`SHA256:EVa+jMj/…`) landed in #824, and the secret `REMEDIATION_SIGNING_KEY`
-was added the same day. Each merge to `main` that touches playbooks now uploads `remediation-bundle-<sha>`.
+was added 2026-10-31. The first attempt missed the Actions secrets tab, so the run after #825 said "not signed"; check with `gh secret list`. Each merge to `main` that touches playbooks now uploads `remediation-bundle-<sha>`.
 To rotate, replace the key line and the secret together.
 
 ## The remediator, shadow mode (`B13-HEAL-REMEDIATOR-SHADOW`)

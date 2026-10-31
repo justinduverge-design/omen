@@ -27,6 +27,7 @@ Add each PR here as it merges (number, area, title).
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
 | #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
 | #814 | Fleet | B13-HEAL-CONSTITUTION: fleet Constitution item 1 amended per Valor-Core decision 0003 — a separate remediator may run only signed, pre-approved playbook actions; the dispatcher stays notification-only; shadow mode before live |
+| #826 | Fleet | B13-HEAL-SIGNING: README records the secret's real date (the first add missed the Actions tab); this merge produces the first signed bundle |
 | #825 | Fleet | B13-HEAL-SIGNING: README records that signing is set up (key in #824, secret added); this merge produces the first signed bundle |
 | #824 | Fleet | B13-HEAL-SIGNING follow-up: the CI public key (SHA256:EVa+jMj/…) in `ops/remediation/allowed_signers`; the test now expects exactly one key |
 | #822 | Fleet | B13-HEAL-REMEDIATOR-SHADOW: `slops-remediator` in shadow mode only (reports "would have run", no execution path), with kill switch, signature/schema/replay refusal, cooldown, 24h cap with one escalation, and survive-a-reboot tests run locally; the dispatcher relays its reports; not deployed |
