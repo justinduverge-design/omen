@@ -257,8 +257,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
 
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
-- **Status:** READY
-- **Blocked by:** None
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-outside-heartbeat`
+- **Blocked by:** FOUNDER — create the free Healthchecks.io account and check, connect Discord, deploy (`ops/command-center/README.md` → slops-outside-heartbeat)
 - **Priority:** P2
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
