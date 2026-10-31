@@ -91,11 +91,14 @@ test("no public key or no signature refuses everything", () => {
   assert.match(verify(bundle, path.join(tmp, "missing.sig"), ci.signers).stderr, /signature file missing/);
 });
 
-test("the checked-in allowed_signers holds no key yet, and no private key is in the repo", () => {
+test("the checked-in allowed_signers holds exactly the CI public key, and no private key is in the repo", () => {
   const signers = fs.readFileSync(path.join(__dirname, "..", "ops", "remediation", "allowed_signers"), "utf8");
-  assert.equal(signers.split("\n").filter((l) => l.trim() && !l.startsWith("#")).length, 0);
+  const keys = signers.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
+  assert.equal(keys.length, 1);
+  assert.match(keys[0], /^slops-remediation-ci namespaces="slops-remediation" ssh-ed25519 AAAA[0-9A-Za-z+/]+=*$/);
   const files = execFileSync("git", ["ls-files", "ops/remediation"], { encoding: "utf8" });
   assert.doesNotMatch(files, /signing_key|id_ed25519|\.pem$/m);
+  assert.doesNotMatch(signers, /PRIVATE KEY/);
 });
 
 test("CI signs only on main, with the secret, and never publishes unsigned", () => {
