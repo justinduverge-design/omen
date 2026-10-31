@@ -1,0 +1,61 @@
+name: Remediation bundle
+
+# B13-HEAL-SIGNING. Merging to main is the approval: this job validates every playbook, builds one
+# canonical bundle and signs it with a key only CI holds (secret REMEDIATION_SIGNING_KEY, an OpenSSH
+# ed25519 private key). The Pi holds only the public key (ops/remediation/allowed_signers). On a PR it
+# builds and validates without signing. Without the secret it says so in the run summary and uploads
+# nothing, instead of shipping an unsigned bundle.
+on:
+  push:
+    branches: [main]
+    paths: ["ops/remediation/**", "ops/command-center/alert-owners.tsv", ".github/workflows/remediation-bundle.yml"]
+  pull_request:
+    paths: ["ops/remediation/**", "ops/command-center/alert-owners.tsv", ".github/workflows/remediation-bundle.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remediation-bundle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and validate the bundle
+        run: python3 ops/remediation/bundle.py build bundle.json "$GITHUB_SHA" "$GITHUB_RUN_NUMBER"
+      - name: Sign (push to main only)
+        # Only a push to main signs: a manual run or a PR must never sign unmerged playbooks.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: sign
+        env:
+          SIGNING_KEY: ${{ secrets.REMEDIATION_SIGNING_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::warning::REMEDIATION_SIGNING_KEY is not set: bundle built and validated but NOT signed or published"
+            echo "Remediation bundle: **not signed** (REMEDIATION_SIGNING_KEY missing). Nothing was published." >> "$GITHUB_STEP_SUMMARY"
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          umask 077
+          key="$RUNNER_TEMP/signing_key"
+          trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$SIGNING_KEY" > "$key"
+          ssh-keygen -Y sign -q -f "$key" -n slops-remediation bundle.json
+          python3 ops/remediation/bundle.py verify bundle.json bundle.json.sig ops/remediation/allowed_signers
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+          echo "Remediation bundle: signed for $GITHUB_SHA." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish the signed bundle
+        if: steps.sign.outputs.signed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: remediation-bundle-${{ github.sha }}
+          path: |
+            bundle.json
+            bundle.json.sig
+          retention-days: 90

@@ -1,0 +1,3 @@
+# Public key that signs the remediation playbook bundle (B13-HEAL-SIGNING). Public only: safe to commit.
+# Empty until the founder creates the CI signing key; verify refuses every bundle while no key line is here.
+# Format (one line): slops-remediation-ci namespaces="slops-remediation" ssh-ed25519 AAAA...
