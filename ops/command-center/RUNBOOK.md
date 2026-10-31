@@ -77,6 +77,9 @@ The KVM1 status payload stopped advancing. Check `omen-football-capture.service`
 A4 scoring-gate state changed. Green is news, not a fault: read `/var/lib/omen-a4-gates/state.json` and decide on enabling.
 `state_stale`/`checker_unavailable` means the gates pull or run timer stopped.
 
+## remediator-shadow
+`slops-remediator` in shadow mode: it reports what it would have run, and nothing was run. "would escalate" means the playbook's cap was hit: follow the check's own section. "bad signature" or "replayed bundle" means the remediator refused its bundle: check `/var/lib/slops-remediator/bundle.json*` against the latest signed CI artifact. Kill switch: `sudo touch /etc/slops-remediator/disabled`.
+
 ## wifi-self-repair
 Command Center repaired its own Wi-Fi (`slops-wifi-watchdog`). Informational; repeated reboots in a day mean check the link and see `B13-HEAL-WIFI`.
 

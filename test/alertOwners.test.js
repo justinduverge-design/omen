@@ -43,6 +43,7 @@ const SAMPLES = [
   "result=DOWN check=sentinel-unreachable reason=no_response_over_ssh_10min",
   "result=WARNING label=Steward check=tls-expiry reason=x",
   "2026-10-29T03:14Z router unreachable 3 min: reconnecting Wi-Fi",
+  "2026-10-30T03:15Z SHADOW: would have run compose_up glitchtip for kuma-glitchtip (1/2 today). Nothing was run.",
   "GlitchTip: status=0",
   "recall: search: status=0",
   "Omen API ready: status=0",
