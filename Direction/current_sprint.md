@@ -137,8 +137,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-OWNERS — every alert line names an owner and a runbook step
 - **Claim:** Claude Code, branch `heal/alert-owners`, 2026-10-30
-- **Status:** IN REVIEW (PR open; deploy is FOUNDER_APPROVAL)
-- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Status:** VERIFIED
+- **Evidence:** merged #817; deployed on Command Center 2026-10-31 (`slops-alert-annotate` + `alert-owners.tsv` in `/usr/local/lib/slops-alerting/`, dispatcher sha256 `582949f9…`). The live alert state annotated on the Pi 2026-11-01: every line ends `owner=… fix=ops/command-center/RUNBOOK.md#…`. `test/alertOwners.test.js` fails a check without an entry.
+- **Blocked by:** None
 - **Priority:** P1
 - **Done when:** a checked-in map (check name → owner, runbook anchor, severity) covers every check the dispatcher
   can emit (14 Steward/Sentinel checks, each Kuma monitor, Pi-hole, GlitchTip, football codes, A4, stale payload).
@@ -201,23 +202,27 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-HEAL-PLAYBOOKS — playbook schema + v1 action vocabulary in the repo
 - **Claim:** Claude Code, branch `heal/playbooks` (stacked on `heal/alert-owners`), 2026-10-30
-- **Status:** IN REVIEW (PR open)
-- **Blocked by:** B13-ALERT-OWNERS (PR open, unmerged)
+- **Status:** VERIFIED
+- **Evidence:** merged #823 (replaced #819, closed when its base branch was deleted). `test/remediationPlaybooks.test.js` rejects unknown actions, shell fields, missing caps and missing verify checks; `ops/remediation/playbooks/glitchtip-stack.json`. Playbooks are JSON, not YAML (the Pi's Python has no YAML parser).
+- **Blocked by:** None
 - **Priority:** P1
 - **Done when:** `ops/remediation/playbooks/` has a schema with a test that rejects unknown actions, shell fields and
   missing caps or verify checks. There is one playbook for the GlitchTip stack.
 
 ### B13-HEAL-SIGNING — CI signs the playbook bundle; the Pi holds only the public key
 - **Claim:** Claude Code, branch `heal/signing` (stacked on `heal/playbooks`), 2026-10-30
-- **Status:** IN REVIEW (PR open; the CI signing secret is FOUNDER_APPROVAL)
-- **Blocked by:** B13-HEAL-PLAYBOOKS; FOUNDER_APPROVAL for the CI signing secret
+- **Status:** VERIFIED
+- **Evidence:** merged #820, #824 (public key in `allowed_signers`) and #827; secret `REMEDIATION_SIGNING_KEY` added 2026-10-31. Run 41161405069 on main signed bundle seq 20; `ssh-keygen -Y verify` against the committed `allowed_signers` gave a good signature (`SHA256:EVa+jMj/…`), and the Pi accepted it. `test/remediationBundle.test.js` fails a tampered bundle.
+- **Blocked by:** None
 - **Priority:** P1
 - **Done when:** a merge to main produces a signed bundle. A tampered bundle fails verification in a test.
 
 ### B13-HEAL-REMEDIATOR-SHADOW — `slops-remediator` runs for a week reporting "would have run"
 - **Claim:** Claude Code, branch `heal/remediator-shadow` (stacked on `heal/signing`), 2026-10-30
-- **Status:** IN REVIEW (PR open: code and local tests; the deploy and the shadow week are FOUNDER_APPROVAL)
-- **Blocked by:** B13-HEAL-SIGNING; deploy is FOUNDER_APPROVAL
+- **Status:** IN_PROGRESS (shadow week running since 2026-10-31, ends no earlier than 2026-11-07)
+- **Evidence so far:** merged #822 and #828; deployed on Command Center 2026-10-31 with founder approval (user `slops-remediator`, timer every 5 min, `/var/lib/slops-alerting` 0750 for its group). It accepted signed bundle seq 20 and runs with `Result=success`. Deploy found two gaps, fixed in #828.
+- **Left:** a week of Discord shadow reports; the on-Pi refusal, kill-switch and cap checks; the reboot check after B13-HEAL-BOOT-ORDER.
+- **Blocked by:** the shadow week; the reboot check waits on B13-HEAL-BOOT-ORDER
 - **Priority:** P2
 - **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
 
@@ -271,7 +276,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
-- **Blocked by:** None (founder deploys the dispatcher; founder records Command Center's SSD model in `ops/pi-fleet/PARTS.md`)
+- **Blocked by:** producers for the linked alerts: `under-voltage` (B13-HEAL-WATCHDOG, not deployed), `booted-from-sd` (B13-HEAL-SD-SYNC), `ssd-missing` (no card yet). The dispatcher with the parts link is deployed (2026-10-31), and the SSD model is recorded (2026-11-01)
 - **Note:** the link fires only once a check emits the name: `under-voltage` ships with B13-HEAL-WATCHDOG, `booted-from-sd` with B13-HEAL-SD-SYNC; `ssd-missing` needs a producer (no card yet)
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
