@@ -11,7 +11,7 @@ same way `O1b`'s GlitchTip stack was.
 |---|---|---|---|
 | `slops-wifi-watchdog` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-wifi-watchdog`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-WIFI` (deployed 2026-10-29) |
 | `slops-outside-heartbeat` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-outside-heartbeat`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-OUTSIDE-HEARTBEAT` (not yet deployed) |
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). `B13-HEAL-PARTS-LIST` adds the parts link: not yet deployed. `B13-HEAL-WATCHDOG` adds Command Center's under-voltage line (`ops/pi-fleet/watchdog/`): not yet deployed |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). Redeployed 2026-10-31 (sha256 `582949f9…`, `0700`) with the owner tags (`B13-ALERT-OWNERS`), the parts link (`B13-HEAL-PARTS-LIST`) and the under-voltage line; backup `.bak-20261031-before-heal`. The under-voltage check itself (`ops/pi-fleet/watchdog/`) is not yet deployed, so the line reads `power_check_not_installed` |
 
 ## slops-alert-dispatcher
 

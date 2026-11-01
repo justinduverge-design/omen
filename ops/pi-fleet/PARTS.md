@@ -11,8 +11,8 @@ Hardware as observed by the inventory audit (`Valor-Core/inventory/snapshots/202
 | Steward | Raspberry Pi Zero 2 W | 64 GB microSD | micro-USB (the `PWR IN` port), 5.1 V 2.5 A |
 | Sentinel | Raspberry Pi Zero 2 W | 64 GB microSD | micro-USB (the `PWR IN` port), 5.1 V 2.5 A |
 
-**Not yet recorded:** the brand and model of Command Center's current SSD and its cable. Founder: run `lsusb` and
-`lsblk -o NAME,MODEL,SIZE` on Command Center and write the result in this line.
+**Command Center's current SSD (read 2026-11-01):** `lsblk` reports model `Lufasnd`, 476.9 GB, on `sda` over USB, in a
+Sabrent USB enclosure (`lsusb`: JMicron `152d:a578`). The cable model is not recorded.
 
 ## Which alert means which part
 
