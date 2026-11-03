@@ -83,10 +83,10 @@ test("the dispatcher's power block turns a crashed check into DOWN", () => {
 });
 
 const THERMAL = [
-  ["throttled=0x0", "temp=45.1'C", "HEALTHY", "none", "40-49C"],
+  ["throttled=0x0", "temp=45.1'C", "HEALTHY", "none", "-"],
   ["throttled=0x0", "temp=72.0'C", "WARNING", "warm_now", "70-79C"],
   ["throttled=0x0", "temp=81.3'C", "CRITICAL", "hot_now", "80-89C"],
-  ["throttled=0x40000", "temp=55.0'C", "WARNING", "throttled_since_boot", "50-59C"],
+  ["throttled=0x40000", "temp=55.0'C", "WARNING", "throttled_since_boot", "-"],
   [
     "throttled=0xa0008",
     "temp=79.9'C",
@@ -94,24 +94,21 @@ const THERMAL = [
     "warm_now,soft_temp_limit_now,capped_since_boot,soft_temp_limit_since_boot",
     "70-79C",
   ],
-  ["throttled=0x2", "temp=60.0'C", "WARNING", "capped_now", "60-69C"],
-  ["throttled=0x50005", "temp=50.0'C", "WARNING", "throttled_now,throttled_since_boot", "50-59C"],
+  ["throttled=0x2", "temp=60.0'C", "WARNING", "capped_now", "-"],
+  ["throttled=0x50005", "temp=50.0'C", "WARNING", "throttled_now,throttled_since_boot", "-"],
   ["throttled=0x0", "error", "DOWN", "measure_temp_unreadable", "unknown"],
   ["error", "temp=45.1'C", "DOWN", "get_throttled_unreadable", "unknown"],
 ];
 for (const [raw, temp, result, reason, band] of THERMAL) {
   test(`thermal ${raw} ${temp} reads ${result} ${reason}`, () => {
     const second = runTemp(raw, temp).out.split("\n")[1];
-    assert.equal(
-      second.split(" throttled=")[0],
-      `result=${result} check=steward-thermal reason=${reason} temp_band=${band}`,
-    );
+    assert.equal(second, `result=${result} check=steward-thermal reason=${reason} temp_band=${band}`);
   });
 }
 
-test("the thermal line carries a band, not the exact reading, so the signature holds still", () => {
-  const a = runTemp("throttled=0x40000", "temp=61.2'C").out;
-  const b = runTemp("throttled=0x40000", "temp=64.8'C").out;
+test("a sticky since-boot state holds one signature as the temperature crosses band edges", () => {
+  const a = runTemp("throttled=0x40000", "temp=49.2'C").out.split("\n")[1];
+  const b = runTemp("throttled=0x40000", "temp=51.8'C").out.split("\n")[1];
   assert.equal(a, b);
 });
 
@@ -152,4 +149,10 @@ test("a missing or stale status file is DOWN, never silent", () => {
 
 test("hardware alerts for heat get the parts link", () => {
   assert.match(DISPATCHER, /under-voltage\|thermal\|ssd-missing/);
+});
+
+test("a temperature that is not a number reads DOWN, never a crash", () => {
+  for (const t of ["temp=.'C", "temp=5.'C x", "temp=abc"]) {
+    assert.match(runTemp("throttled=0x0", t).out.split("\n")[1], /reason=measure_temp_unreadable/);
+  }
 });

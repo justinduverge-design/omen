@@ -19,7 +19,7 @@ These are reference copies. Editing them here changes no Pi. Deploying them is t
     DOWN when the chip cannot be read.
   - `check=<host>-thermal`: CRITICAL at 80 °C; WARNING at 70 °C, or when the clock was capped, throttled or held at
     the soft temperature limit, now or since boot. The reason lists every cause (`throttled_since_boot,…`). The line
-    carries a 10-degree band (`temp_band=40-49C`), not the reading: a non-healthy line is part of the dispatcher's
+    carries a 10-degree band only when heat is the cause (`temp_band=70-79C`, otherwise `-`), and no raw hex, not the reading: a non-healthy line is part of the dispatcher's
     signature, and an exact reading would re-send the alert every 5 minutes.
   - The timer also appends the exact reading to `/var/lib/slops-power/history` (`<UTC> temp=45.1 throttled=0x0`),
     keeping 7 days. That file is the temperature and throttling history.
@@ -52,6 +52,7 @@ a missing state file before the power lines print. Both go:
 sudo install -m 0755 read-power-state /usr/local/lib/slops-alerting/
 sudo sed -i -e 's|^set -eu$|set -u|' -e 's|^exec sudo -n /bin/cat|sudo -n /bin/cat|' /usr/local/lib/slops-alerting/read-state
 echo '/usr/local/lib/slops-alerting/read-power-state "$(hostname)"' | sudo tee -a /usr/local/lib/slops-alerting/read-state
+grep -c '^exec\|^set -eu' /usr/local/lib/slops-alerting/read-state   # expect 0: the sed matched
 ```
 
 On **Command Center**, deploy the updated `slops-alert-dispatcher` (keep it `root:root` `0700`; see

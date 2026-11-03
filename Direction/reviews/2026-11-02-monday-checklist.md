@@ -42,7 +42,7 @@ can't happen quietly again.
 
 ## 2. BOOT-ORDER: verify, and the supervised reboot (10 min)
 
-**State on 2026-11-02:** already done. `vcgencmd bootloader_config` on Command Center reads `BOOT_ORDER=0xf14` (USB
+**State on 2026-11-02:** set, with the reboot proof still to do. `vcgencmd bootloader_config` on Command Center reads `BOOT_ORDER=0xf14` (USB
 SSD first, SD card as the fallback), and the journal shows `rpi-eeprom-update` ran on 29 Oct at 22:50. The Pi runs from
 `/dev/sda2` (the SSD) with no update pending. The one thing left is to watch a reboot come back on the SSD, which
 also proves the remediator's ledger survives a reboot.
@@ -85,7 +85,8 @@ also proves the remediator's ledger survives a reboot.
 ## 3. Hardware watchdog hang test (5 min, optional)
 
 The watchdog is set to reset a Pi whose kernel hangs for 15 s. Prove it on one Zero while you can see it. Not on
-Command Center:
+Command Center. `kernel.panic` reads `0` on both Zeros (2026-11-02), so the kernel's own panic timer won't reboot it
+first and the test really exercises the watchdog. Check again with `ssh sentinel cat /proc/sys/kernel/panic`.
 
 ```bash
 ssh sentinel "sudo sh -c 'echo 1 > /proc/sys/kernel/sysrq; echo c > /proc/sysrq-trigger'"
@@ -117,7 +118,7 @@ Skip this if the heartbeat is already green on healthchecks.io.
 3. Put it on the Pi:
 
    ```bash
-   ssh -t command-center 'read -r -p "Ping URL: " u && printf "%s\n" "$u" | sudo tee /etc/slops-alerting/outside-heartbeat-url >/dev/null && sudo chmod 0600 /etc/slops-alerting/outside-heartbeat-url && sudo systemctl start slops-outside-heartbeat.service && systemctl is-active slops-outside-heartbeat.timer'
+   ssh -t command-center 'read -rs -p "Ping URL (hidden): " u && printf "%s\n" "$u" | sudo tee /etc/slops-alerting/outside-heartbeat-url >/dev/null && sudo chmod 0600 /etc/slops-alerting/outside-heartbeat-url && sudo systemctl start slops-outside-heartbeat.service && systemctl is-active slops-outside-heartbeat.timer'
    ```
 
    Good: the check turns green on healthchecks.io within a minute.

@@ -5,7 +5,7 @@ case "${1:-}" in
 slops-power-check HOST [STATE_FILE [HISTORY_FILE]] (any Pi; by the dispatcher on Command Center, by its timer everywhere)
 Reads `vcgencmd get_throttled` and `vcgencmd measure_temp` and prints two lines:
   result=HEALTHY|WARNING|CRITICAL|DOWN check=HOST-under-voltage reason=... throttled=0x...
-  result=HEALTHY|WARNING|CRITICAL|DOWN check=HOST-thermal reason=... temp_band=NN-NNC throttled=0x...
+  result=HEALTHY|WARNING|CRITICAL|DOWN check=HOST-thermal reason=... temp_band=NN-NNC|-
 With STATE_FILE it also writes both lines atomically (mode 0644) for the status reader.
 With HISTORY_FILE it appends `<UTC time> temp=<C> throttled=<hex>` and keeps the last 2016 lines (7 days at 5 min).
 Exit 0 whatever the result; the result is in the lines.
@@ -17,7 +17,7 @@ esac
 #   now:        0x1 under-voltage, 0x2 frequency capped, 0x4 throttled, 0x8 soft temperature limit
 #   since boot: 0x10000 under-voltage, 0x20000 capped, 0x40000 throttled, 0x80000 soft temperature limit
 # Read-only: it reports and never changes clocks, power or anything else. "under-voltage" in the check name adds the
-# parts-list link (B13-HEAL-PARTS-LIST). The thermal line carries a 10-degree band, not the exact temperature: a
+# parts-list link (B13-HEAL-PARTS-LIST). The thermal line carries a 10-degree band (only at 70 C and up), not the exact temperature: a
 # non-healthy line is part of the dispatcher's signature, and an exact reading would re-send the alert every run.
 # The exact reading goes to HISTORY_FILE.
 set -eu
@@ -31,7 +31,7 @@ traw="$($vc measure_temp 2>/dev/null || true)"
 temp="${traw#temp=}"
 temp="${temp%\'C}"
 case "$temp" in
-  ''|*[!0-9.]*|*.*.*) temp="" ;;
+  ''|[!0-9]*|*[!0-9.]*|*.*.*) temp="" ;;
 esac
 case "$hex" in
   # Not hex: the arithmetic below would abort with no output, which a reader could take for healthy.
@@ -50,7 +50,7 @@ power="result=$result check=$host-under-voltage reason=$reason throttled=$hex"
 
 if [ -z "$v" ] || [ -z "$temp" ]; then
   [ -z "$v" ] && treason=get_throttled_unreadable || treason=measure_temp_unreadable
-  thermal="result=DOWN check=$host-thermal reason=$treason temp_band=unknown throttled=$hex"
+  thermal="result=DOWN check=$host-thermal reason=$treason temp_band=unknown"
 else
   whole="${temp%%.*}"
   low=$(( whole / 10 * 10 ))
@@ -66,7 +66,11 @@ else
   [ $((v & 0x40000)) -ne 0 ] && add throttled_since_boot
   [ $((v & 0x80000)) -ne 0 ] && add soft_temp_limit_since_boot
   if [ -n "$reasons" ] && [ "$tresult" = HEALTHY ]; then tresult=WARNING; fi
-  thermal="result=$tresult check=$host-thermal reason=${reasons:-none} temp_band=$low-$((low + 9))C throttled=$hex"
+  # The band is in the line only when heat is the cause: a sticky *_since_boot state must not re-alert every time the
+  # idle temperature crosses a 10-degree edge. No raw hex either: the "now" bits flip without the state changing.
+  band=-
+  [ "$whole" -ge 70 ] && band="$low-$((low + 9))C"
+  thermal="result=$tresult check=$host-thermal reason=${reasons:-none} temp_band=$band"
 fi
 
 printf '%s\n%s\n' "$power" "$thermal"

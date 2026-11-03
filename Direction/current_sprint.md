@@ -234,15 +234,16 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
 
 ### B13-HEAL-BOOT-ORDER — SSD first, SD card as the fallback (urgent: the card is in the slot now)
-- **Status:** VERIFIED (the Monday supervised reboot re-confirms it)
+- **Status:** IN_PROGRESS (EEPROM set and read back; the reboot half of `Done when:` is the Monday supervised reboot)
 - **Evidence:** applied by the founder 2026-10-29 (`rpi-eeprom-update` at 22:50 in the journal). Read 2026-11-02: `rpi-eeprom-config` and `vcgencmd bootloader_config` (the config the running bootloader booted with) both say `BOOT_ORDER=0xf14`; root is `/dev/sda2`; no `pieeprom.upd` pending. Verify and rollback commands: `Direction/reviews/2026-11-02-monday-checklist.md` step 2.
-- **Blocked by:** None
+- **Left:** a reboot that comes back on `/dev/sda2` (Monday checklist step 2). The journal's `rpi-eeprom-update` ran 24 s into the current boot, so this boot alone doesn't prove a fresh boot keeps 0xf14.
+- **Blocked by:** the in-room reboot
 - **Priority:** P0
 - **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
 
 ### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
 - **Status:** READY
-- **Blocked by:** None (B13-HEAL-BOOT-ORDER verified 2026-11-02); writing the SD card is a Pi write (FOUNDER_APPROVAL)
+- **Blocked by:** B13-HEAL-BOOT-ORDER's Monday reboot; writing the SD card is a Pi write (FOUNDER_APPROVAL)
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
