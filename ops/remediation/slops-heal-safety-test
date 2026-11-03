@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""slops-heal-safety-test - the on-Pi safety tests for slops-remediator (B13-HEAL-REMEDIATOR-SHADOW).
+
+Run it from the Mac, in the omen repo; nothing is installed and nothing needs sudo:
+    ssh command-center python3 - < ops/remediation/slops-heal-safety-test
+
+It runs the DEPLOYED remediator (/usr/local/sbin/slops-remediator and its library) against a throwaway copy of the
+LIVE inputs: the CI-signed bundle, the public key and the owner table. The live state in /var/lib/slops-remediator
+and the live kill switch are never touched, so the shadow week keeps running. Each check prints PASS or FAIL;
+the exit code is the number of failures.
+
+  0. baseline     the real signed bundle verifies and an active GlitchTip alert reads "would have run"
+  1. tampered     one changed byte in the bundle: refused, "bad signature" reported once, nothing recorded
+  2. kill switch  the disabled file stops everything, reported once; removing it resumes
+  3. retry cap    a target that never recovers: 2 would-be attempts, then one escalation with its owner, no loop
+"""
+import datetime
+import importlib.util
+import json
+import os
+import shutil
+import sys
+import tempfile
+from importlib.machinery import SourceFileLoader
+
+if len(sys.argv) > 1 and sys.argv[1] in ("-h", "--help"):
+    print(__doc__)
+    sys.exit(0)
+
+REMEDIATOR = "/usr/local/sbin/slops-remediator"
+LIVE = {
+    "/etc/slops-remediator/allowed_signers": "/etc/slops-remediator/allowed_signers",
+    "/var/lib/slops-remediator/bundle.json": "/var/lib/slops-remediator/bundle.json",
+    "/var/lib/slops-remediator/bundle.json.sig": "/var/lib/slops-remediator/bundle.json.sig",
+    "/usr/local/lib/slops-alerting/alert-owners.tsv": "/usr/local/lib/slops-alerting/alert-owners.tsv",
+}
+ALERT = "GlitchTip: status=0\n"  # the line the dispatcher writes when the GlitchTip stack is down
+T0 = datetime.datetime(2026, 11, 2, 12, 0, tzinfo=datetime.timezone.utc)
+
+spec = importlib.util.spec_from_loader("rem", SourceFileLoader("rem", REMEDIATOR))
+rem = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(rem)
+work = tempfile.mkdtemp(prefix="heal-safety-")
+failures = 0
+
+
+def sandbox(name):
+    root = os.path.join(work, name)
+    for dst, src in LIVE.items():
+        os.makedirs(os.path.dirname(root + dst), exist_ok=True)
+        shutil.copyfile(src, root + dst)
+    os.makedirs(root + "/var/lib/slops-alerting", exist_ok=True)
+    with open(root + "/var/lib/slops-alerting/last-signature", "w") as fh:
+        fh.write(ALERT)
+    return root
+
+
+def run(root, minutes=0):
+    return rem.run(rem.Paths(root), T0 + datetime.timedelta(minutes=minutes))
+
+
+def read(root, rel):
+    try:
+        with open(root + rel) as fh:
+            return fh.read()
+    except OSError:
+        return ""
+
+
+def ledger(root):
+    return [json.loads(x) for x in read(root, "/var/lib/slops-remediator/ledger.jsonl").splitlines() if x.strip()]
+
+
+def check(label, ok, detail):
+    global failures
+    print(("PASS  " if ok else "FAIL  ") + label + ("" if ok else "  <- " + detail))
+    failures += 0 if ok else 1
+
+
+try:
+    r = sandbox("baseline")
+    out = run(r)
+    check("0 baseline: real signed bundle accepted, alert reads 'would have run'",
+          "would_run" in str(out) and "would have run" in read(r, "/var/lib/slops-remediator/events"),
+          f"run returned {out!r}; events: {read(r, '/var/lib/slops-remediator/events')!r}")
+
+    r = sandbox("tampered")
+    b = r + "/var/lib/slops-remediator/bundle.json"
+    data = bytearray(open(b, "rb").read())
+    i = data.index(b"cooldown_minutes") + len("cooldown_minutes") + 2  # first digit of the value
+    data[i] = ord("1") if data[i] != ord("1") else ord("2")
+    open(b, "wb").write(bytes(data))
+    first, second = run(r), run(r, 5)
+    ev = read(r, "/var/lib/slops-remediator/events")
+    check("1 tampered playbook refused, reported once, nothing recorded",
+          first == second == "refused" and len([x for x in ev.splitlines() if "bad signature" in x]) == 1
+          and not ledger(r),
+          f"runs {first!r}/{second!r}; events {ev!r}; ledger {ledger(r)}")
+
+    r = sandbox("killswitch")
+    open(r + "/etc/slops-remediator/disabled", "w").close()
+    a, b2 = run(r), run(r, 5)
+    ev = read(r, "/var/lib/slops-remediator/events")
+    stopped = a == b2 == "disabled" and ev.count("disabled by kill switch") == 1 and not ledger(r)
+    os.remove(r + "/etc/slops-remediator/disabled")
+    resumed = run(r, 10)
+    check("2 kill switch stops everything; removing it resumes",
+          stopped and "would_run" in str(resumed) and "kill switch removed" in read(r, "/var/lib/slops-remediator/events"),
+          f"runs {a!r}/{b2!r} then {resumed!r}; events {read(r, '/var/lib/slops-remediator/events')!r}")
+
+    r = sandbox("cap")
+    outs = [run(r, m) for m in (0, 31, 62, 93, 124)]
+    got = [e.get("outcome") for e in ledger(r)]
+    ev = read(r, "/var/lib/slops-remediator/events")
+    check("3 retry cap: 2 attempts, then one escalation with its owner, no loop",
+          got == ["would_run", "would_run", "escalated"] and "would escalate" in ev and "owner=founder" in ev,
+          f"ledger outcomes {got}; runs {outs}")
+except Exception as e:  # a crash is a failure, never a silent pass
+    check("the test itself ran", False, f"{type(e).__name__}: {e}")
+finally:
+    shutil.rmtree(work, ignore_errors=True)
+
+print("\nall 4 passed" if not failures else f"\n{failures} FAILED")
+sys.exit(failures)

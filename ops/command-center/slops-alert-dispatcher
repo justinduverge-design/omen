@@ -46,7 +46,7 @@ send() {
 parts_url=https://github.com/justinduverge-design/omen/blob/main/ops/pi-fleet/PARTS.md
 with_parts() {
   printf '%s' "$1"
-  if printf '%s' "$1" | grep -Eq 'check=[^ ]*(under-voltage|ssd-missing|booted-from-sd)'; then printf '\nParts to buy: %s' "$parts_url"; fi
+  if printf '%s' "$1" | grep -Eq 'check=[^ ]*(under-voltage|thermal|ssd-missing|booted-from-sd)'; then printf '\nParts to buy: %s' "$parts_url"; fi
 }
 if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi
 mkdir -p /var/lib/slops-alerting

@@ -40,6 +40,7 @@ const FOOTBALL = [
 const SAMPLES = [
   ...STEWARD_CHECKS.map((c) => `result=WARNING check=${c} reason=x`),
   "result=DOWN check=command-center-under-voltage reason=power_check_no_output",
+  "result=WARNING check=steward-thermal reason=throttled_since_boot temp_band=60-69C throttled=0x40000",
   "result=DOWN check=steward-unreachable reason=no_response_over_ssh_10min",
   "result=DOWN check=sentinel-unreachable reason=no_response_over_ssh_10min",
   "result=WARNING label=Steward check=tls-expiry reason=x",
