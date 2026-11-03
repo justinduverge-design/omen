@@ -35,7 +35,7 @@ function runTemp(throttled, temp, ...args) {
 }
 
 test("the watchdog fires at the bcm2835 ceiling and bounds a hung reboot", () => {
-  const conf = fs.readFileSync(path.join(DIR, "10-slops-watchdog.conf"), "utf8");
+  const conf = fs.readFileSync(path.join(DIR, "50-slops-watchdog.conf"), "utf8");
   assert.match(conf, /^\[Manager\]$/m);
   assert.match(conf, /^RuntimeWatchdogSec=15s$/m);
   assert.match(conf, /^RebootWatchdogSec=2min$/m);
@@ -95,6 +95,7 @@ const THERMAL = [
     "70-79C",
   ],
   ["throttled=0x2", "temp=60.0'C", "WARNING", "capped_now", "60-69C"],
+  ["throttled=0x50005", "temp=50.0'C", "WARNING", "throttled_now,throttled_since_boot", "50-59C"],
   ["throttled=0x0", "error", "DOWN", "measure_temp_unreadable", "unknown"],
   ["error", "temp=45.1'C", "DOWN", "get_throttled_unreadable", "unknown"],
 ];

@@ -38,7 +38,7 @@ can't happen quietly again.
    It's on already (`Storage=persistent` in `/etc/systemd/journald.conf.d/omen-retention.conf`); this is the proof.
    If the last line is still the old boot, run `ssh steward 'sudo mkdir -p /var/log/journal && sudo systemd-tmpfiles --create --prefix /var/log/journal && sudo systemctl restart systemd-journald'`
    and reseat once more.
-5. **Since the watchdog deploy:** `ssh steward 'tail -3 /var/lib/slops-power/history'` shows a reading every 5 minutes.
+5. **History (live since 2026-11-02):** `ssh steward 'tail -3 /var/lib/slops-power/history'` shows a reading every 5 minutes.
 
 ## 2. BOOT-ORDER: verify, and the supervised reboot (10 min)
 
@@ -63,10 +63,12 @@ also proves the remediator's ledger survives a reboot.
    Wait 3 minutes, then:
 
    ```bash
-   ssh command-center 'findmnt -no SOURCE /; uptime -s; systemctl is-active slops-remediator.timer slops-alert-dispatcher.timer; sudo docker ps --format "{{.Names}}" | grep -c glitchtip'
+   ssh command-center 'findmnt -no SOURCE /; uptime -s; systemctl is-active slops-remediator.timer slops-alert-dispatcher.timer slops-power-check.timer; sudo docker ps --format "{{.Names}}" | grep -c glitchtip; /usr/sbin/iw dev wlan0 get power_save; systemctl show -p RuntimeWatchdogUSec'
    ```
 
-   Good: `/dev/sda2`, today's boot time, both `active`, and the GlitchTip count is at least 5.
+   Good: `/dev/sda2`, today's boot time, all three `active`, the GlitchTip count is at least 5, `Power save: off`
+   (on 2026-11-02 it still read `on` because the setting waits for this reboot; that closes part of B13-HEAL-WIFI),
+   and `RuntimeWatchdogUSec=15s`.
    **If it booted from the SD card** (`/dev/mmcblk0p2`), the SSD didn't boot. Don't change the EEPROM. Check the SSD
    cable and the powered hub's power light, then reboot again.
 3. **Rollback, only if you want SD-first back:**

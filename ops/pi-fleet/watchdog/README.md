@@ -4,7 +4,7 @@ These are reference copies. Editing them here changes no Pi. Deploying them is t
 
 | File | Deployed path | Pis |
 |---|---|---|
-| `10-slops-watchdog.conf` | `/etc/systemd/system.conf.d/10-slops-watchdog.conf` (`0644`) | all three |
+| `50-slops-watchdog.conf` | `/etc/systemd/system.conf.d/50-slops-watchdog.conf` (`0644`) | all three |
 | `slops-power-check` | `/usr/local/sbin/slops-power-check` (`root:root` `0755`) | all three |
 | `slops-power-check.service`, `.timer` | `/etc/systemd/system/` | all three |
 | `read-power-state` | `/usr/local/lib/slops-alerting/read-power-state` (`root:root` `0755`) | Steward, Sentinel |
@@ -37,7 +37,7 @@ On **each** Pi:
 
 ```bash
 sudo install -d -m 0755 /etc/systemd/system.conf.d
-sudo install -m 0644 10-slops-watchdog.conf /etc/systemd/system.conf.d/
+sudo install -m 0644 50-slops-watchdog.conf /etc/systemd/system.conf.d/
 sudo install -m 0755 slops-power-check /usr/local/sbin/
 sudo install -m 0644 slops-power-check.service slops-power-check.timer /etc/systemd/system/
 sudo systemctl daemon-reexec && sudo systemctl enable --now slops-power-check.timer

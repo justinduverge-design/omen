@@ -10,8 +10,8 @@ same way `O1b`'s GlitchTip stack was.
 | File | Deployed path | Owner/mode | Task |
 |---|---|---|---|
 | `slops-wifi-watchdog` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-wifi-watchdog`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-WIFI` (deployed 2026-10-29) |
-| `slops-outside-heartbeat` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-outside-heartbeat`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-OUTSIDE-HEARTBEAT` (not yet deployed) |
-| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). Redeployed 2026-10-31 (sha256 `582949f9…`, `0700`) with the owner tags (`B13-ALERT-OWNERS`), the parts link (`B13-HEAL-PARTS-LIST`) and the under-voltage line; backup `.bak-20261031-before-heal`. The under-voltage check itself (`ops/pi-fleet/watchdog/`) is not yet deployed, so the line reads `power_check_not_installed` |
+| `slops-outside-heartbeat` (+ `.service`, `.timer`) | `/usr/local/sbin/slops-outside-heartbeat`, `/etc/systemd/system/` | `root:root` `0755` | `B13-HEAL-OUTSIDE-HEARTBEAT` (installed 2026-11-02; timer off until the founder adds the ping URL) |
+| `slops-alert-dispatcher` | `/usr/local/sbin/slops-alert-dispatcher` | `root:root` `0700` | `O9`; redeployed 2026-10-29 with the Wi-Fi SELF-REPAIR block, sha256 `96cdf6c0…`, mode restored to `0700` (it had been `0755` since 2026-10-11). Redeployed 2026-10-31 (sha256 `582949f9…`, `0700`) with the owner tags (`B13-ALERT-OWNERS`), the parts link (`B13-HEAL-PARTS-LIST`) and the under-voltage line. Redeployed 2026-11-02 (sha256 `72527d86…`, `0700`; backup `.bak-20261102-before-watchdog`): the parts link covers `thermal`, and `slops-power-check` is now installed, so the under-voltage and thermal lines are live; backup `.bak-20261031-before-heal`. |
 
 ## slops-alert-dispatcher
 

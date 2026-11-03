@@ -60,6 +60,7 @@ else
   elif [ "$whole" -ge 70 ]; then tresult=WARNING; add warm_now
   fi
   [ $((v & 0x2)) -ne 0 ] && add capped_now
+  [ $((v & 0x4)) -ne 0 ] && add throttled_now
   [ $((v & 0x8)) -ne 0 ] && add soft_temp_limit_now
   [ $((v & 0x20000)) -ne 0 ] && add capped_since_boot
   [ $((v & 0x40000)) -ne 0 ] && add throttled_since_boot
