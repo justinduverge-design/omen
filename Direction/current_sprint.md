@@ -221,8 +221,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Claim:** Claude Code, branch `heal/remediator-shadow` (stacked on `heal/signing`), 2026-10-30
 - **Status:** IN_PROGRESS (shadow week running since 2026-10-31, ends no earlier than 2026-11-07)
 - **Evidence so far:** merged #822 and #828; deployed on Command Center 2026-10-31 with founder approval (user `slops-remediator`, timer every 5 min, `/var/lib/slops-alerting` 0750 for its group). It accepted signed bundle seq 20 and runs with `Result=success`. Deploy found two gaps, fixed in #828.
-- **Left:** a week of Discord shadow reports; the on-Pi refusal, kill-switch and cap checks; the reboot check after B13-HEAL-BOOT-ORDER.
-- **Blocked by:** the shadow week; the reboot check waits on B13-HEAL-BOOT-ORDER
+- **On-Pi safety checks:** 2026-11-02, `ssh command-center python3 - < ops/remediation/slops-heal-safety-test` ran the deployed remediator against a copy of the live signed bundle: all 4 passed (real bundle accepted, tampered copy refused, kill switch stops and resumes, retry cap escalates after 2 with its owner).
+- **Left:** a week of Discord shadow reports (to 2026-11-07); the reboot check (`Direction/reviews/2026-11-02-monday-checklist.md` step 2).
+- **Blocked by:** the shadow week; the supervised reboot (Monday checklist step 2)
 - **Priority:** P2
 - **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
 
@@ -233,35 +234,40 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
 
 ### B13-HEAL-BOOT-ORDER — SSD first, SD card as the fallback (urgent: the card is in the slot now)
-- **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL given 2026-10-29; needs a Pi write (EEPROM `BOOT_ORDER=0xf14`)
+- **Status:** IN_PROGRESS (EEPROM set and read back; the reboot half of `Done when:` is the Monday supervised reboot)
+- **Evidence:** applied by the founder 2026-10-29 (`rpi-eeprom-update` at 22:50 in the journal). Read 2026-11-02: `rpi-eeprom-config` and `vcgencmd bootloader_config` (the config the running bootloader booted with) both say `BOOT_ORDER=0xf14`; root is `/dev/sda2`; no `pieeprom.upd` pending. Verify and rollback commands: `Direction/reviews/2026-11-02-monday-checklist.md` step 2.
+- **Left:** a reboot that comes back on `/dev/sda2` (Monday checklist step 2). The journal's `rpi-eeprom-update` ran 24 s into the current boot, so this boot alone doesn't prove a fresh boot keeps 0xf14.
+- **Blocked by:** the in-room reboot
 - **Priority:** P0
 - **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
 
 ### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
 - **Status:** READY
-- **Blocked by:** B13-HEAL-BOOT-ORDER
+- **Blocked by:** B13-HEAL-BOOT-ORDER's Monday reboot; writing the SD card is a Pi write (FOUNDER_APPROVAL)
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
-### B13-HEAL-WATCHDOG — hardware watchdog on all three Pis, plus under-voltage watch
-- **Status:** IN_PROGRESS
-- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-watchdog`
-- **Blocked by:** FOUNDER — deploy per `ops/pi-fleet/watchdog/README.md` on all three Pis, and add the under-voltage state file to the Steward/Sentinel status reader
+### B13-HEAL-WATCHDOG — hardware watchdog on all three Pis, plus under-voltage, temperature and throttling watch
+- **Status:** VERIFIED
+- **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-watchdog`; temperature and throttling history added 2026-11-02 (branch `heal/lane5-remote`, founder request)
+- **Evidence:** deployed 2026-11-02 with founder approval on all three Pis (backups `*.bak-20261102-before-watchdog`). `RuntimeWatchdogUSec=15s RebootWatchdogUSec=2min` on each. The drop-in is `50-slops-watchdog.conf`: a `10-` name lost to Raspberry Pi OS's `40-rpi-enable-watchdog.conf` (1 min), found on deploy. Each Pi reports `<host>-under-voltage` and `<host>-thermal` and keeps 7 days of exact readings in `/var/lib/slops-power/history`. The dispatcher's own SSH key receives both lines from Steward and Sentinel (`read-state` calls `read-power-state`). Command Center's dispatcher redeployed (sha256 `72527d86…`). Fail proofs on each Pi: a fake `vcgencmd` (0x50005, 82 °C) reads CRITICAL on both lines; an unreadable chip reads DOWN; a missing or 20-min-old status file reads `status_missing` / `status_stale`.
+- **Left (optional, in the room):** the supervised hang test (Monday checklist step 3).
+- **Blocked by:** None
 - **Priority:** P1
-- **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits.
+- **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits (2026-11-02: and temperature and throttling, now and since boot).
 
 ### B13-HEAL-WIFI — Command Center stays on Wi-Fi and repairs its own link
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-29 Claude Code (alert-repeats session)
-- **Blocked by:** FOUNDER — deploy `ops/command-center/slops-wifi-watchdog` (+ `.service`, `.timer`) and the dispatcher update; founder chose Wi-Fi only
+- **Blocked by:** the in-room reboots (Monday checklist step 2): power save off and the reboot checks need a reboot
 - **Priority:** P1
-- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; dispatcher sha256 `96cdf6c0…`, mode 0700). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf` (founder ran it 2026-10-29; applies on next reboot)
+- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; mode 0700); the dispatcher carrying the SELF-REPAIR block is deployed (2026-10-31 and 2026-11-02). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf`; on 2026-11-02 Command Center still reads `Power save: on` because it has not rebooted since 2026-10-29. 2026-11-02 sandbox fail proof (copy of the deployed script, fake dead router, nothing real touched): reconnect at 3 min, NetworkManager at 10, reboot at 20, each logged for the dispatcher.
+- **Steward and Sentinel:** keep `slops-link-watchdog.sh` (deployed 2026-10-18; monotonic clock, ARP fallback, reboot backoff 30/60/120 min, max 3). Founder chose 2026-11-02 to keep the better one rather than add a second ladder. Same sandbox proof 2026-11-02: reconnect at 10 min, reboot 1/3 at 31 min, none at 32, reboot 2/3 at 65. Power save reads off on both.
 - **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
 
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
 - **Status:** READY
-- **Blocked by:** FOUNDER — buy 3 local-API plugs (Shelly or Tasmota); then a signed playbook
+- **Blocked by:** FOUNDER — buy 3 local-API plugs (shopping list: Monday checklist step 6; Command Center's SSD hub goes on Command Center's plug); then a signed playbook
 - **Priority:** P1
 - **Note:** 2026-10-29: two reboots of Command Center went dark until the founder cut power. The boot journal shows the Pi actually booted fine from the SSD (sshd and docker up, Wi-Fi associated at 192.168.5.30, Tailscale DERP connected), then stopped answering on Wi-Fi (Mac ARP for .30 incomplete). So the suspect is the Wi-Fi link, not the SSD or hub. See B13-HEAL-WIRED first; the plugs remain the backstop
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
@@ -269,15 +275,16 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-outside-heartbeat`
-- **Blocked by:** FOUNDER — create the free Healthchecks.io account and check, connect Discord, deploy (`ops/command-center/README.md` → slops-outside-heartbeat)
+- **Evidence so far:** installed on Command Center 2026-11-02 with founder approval (script, service and timer; nothing replaced). Fail proof: with no URL file the unit exits 1 and shows failed. The timer is installed but off until the URL exists.
+- **Blocked by:** FOUNDER — the free Healthchecks.io account, the check, Discord, and the ping URL on the Pi (Monday checklist step 5, which then enables the timer and runs the stop/start fail proof)
 - **Priority:** P2
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
-- **Blocked by:** producers for the linked alerts: `under-voltage` (B13-HEAL-WATCHDOG, not deployed), `booted-from-sd` (B13-HEAL-SD-SYNC), `ssd-missing` (no card yet). The dispatcher with the parts link is deployed (2026-10-31), and the SSD model is recorded (2026-11-01)
-- **Note:** the link fires only once a check emits the name: `under-voltage` ships with B13-HEAL-WATCHDOG, `booted-from-sd` with B13-HEAL-SD-SYNC; `ssd-missing` needs a producer (no card yet)
+- **Blocked by:** producers for the last two linked alerts: `booted-from-sd` (B13-HEAL-SD-SYNC) and `ssd-missing` (no card yet). `under-voltage` and `thermal` are live (B13-HEAL-WATCHDOG, 2026-11-02). The founder's exact parts links are on the page (2026-11-02); the SSD hub model is not recorded.
+- **Note:** the link fires only once a check emits the name
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.
 

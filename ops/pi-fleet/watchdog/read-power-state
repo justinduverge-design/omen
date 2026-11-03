@@ -1,0 +1,23 @@
+#!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+read-power-state HOST [STATUS_FILE] (Steward and Sentinel; called by the status reader the dispatcher's SSH key runs)
+Prints the power and thermal lines that slops-power-check's timer wrote. A missing file prints DOWN status_missing,
+a file older than 15 minutes prints DOWN status_stale, so a timer that never ran or died is never silent.
+Exit 0 always: the status reader goes on to print its other files.
+USAGE
+    exit 0 ;;
+esac
+# B13-HEAL-WATCHDOG. Deployed to /usr/local/lib/slops-alerting/read-power-state (root:root 0755). The status file is
+# 0644, so this needs no sudo. Read-only.
+host="${1:?usage: read-power-state HOST [STATUS_FILE]}"
+file="${2:-/var/lib/slops-power/under-voltage.status}"
+down() {
+  printf 'result=DOWN check=%s-under-voltage reason=%s\n' "$host" "$1"
+  printf 'result=DOWN check=%s-thermal reason=%s\n' "$host" "$1"
+}
+if [ ! -r "$file" ]; then down status_missing; exit 0; fi
+if [ -n "$(find "$file" -mmin +15 2>/dev/null)" ]; then down status_stale; exit 0; fi
+grep '^result=' "$file" || down status_empty
+exit 0

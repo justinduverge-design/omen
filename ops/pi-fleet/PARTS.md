@@ -12,17 +12,19 @@ Hardware as observed by the inventory audit (`Valor-Core/inventory/snapshots/202
 | Sentinel | Raspberry Pi Zero 2 W | 64 GB microSD | micro-USB (the `PWR IN` port), 5.1 V 2.5 A |
 
 **Command Center's current SSD (read 2026-11-01):** `lsblk` reports model `Lufasnd`, 476.9 GB, on `sda` over USB, in a
-Sabrent USB enclosure (`lsusb`: JMicron `152d:a578`). The cable model is not recorded.
+Sabrent USB enclosure (`lsusb`: JMicron `152d:a578`). The SSD is powered through a USB hub with its own power supply
+(founder, 2026-11-02; the hub model is not recorded). The cable model is not recorded.
 
 ## Which alert means which part
 
 | Alert check name | Meaning | Buy |
 |---|---|---|
 | `under-voltage` | `vcgencmd get_throttled` reports under-voltage now or since boot | that Pi's power supply; if it repeats with the new supply, its cable (Pi 4) |
+| `thermal` | 70 °C or more, or the chip capped or throttled its clock now or since boot | that Pi's case (the heatsink case, below); check airflow first |
 | `ssd-missing` | Command Center cannot see its SSD | SSD and cable |
 | `booted-from-sd` | Command Center booted from the backup SD card, so the SSD did not boot | SSD and cable; reflash the SD after |
 
-The dispatcher appends a link to this page to any alert whose `check=` name contains one of these. Producers: `under-voltage` comes from `B13-HEAL-WATCHDOG`, `booted-from-sd` from `B13-HEAL-SD-SYNC`; `ssd-missing` has no producer yet. Use these exact names in
+The dispatcher appends a link to this page to any alert whose `check=` name contains one of these. Producers: `under-voltage` and `thermal` come from `B13-HEAL-WATCHDOG`, `booted-from-sd` from `B13-HEAL-SD-SYNC`; `ssd-missing` has no producer yet. Use these exact names in
 any new hardware alert.
 
 ## Exact parts
@@ -41,6 +43,20 @@ exists for.
 | microSD (second choice) | all three | Samsung PRO Endurance 64 GB microSDXC (`MB-MJ64KA`) | no |
 
 Endurance cards are rated for constant writes (dashcam use), which is what a Pi's logs do to an SD card.
+
+## What the founder bought (Amazon links, 2026-11-02)
+
+The parts in use now. Rebuy these first; the table above is the fallback when a link is out of stock.
+
+| Part | For | Link |
+|---|---|---|
+| Power supply | Steward, Sentinel (same one) | https://a.co/d/04QlLi4G |
+| Case | Steward, Sentinel (same one) | https://a.co/d/0fJe1wAN |
+| Power supply | Command Center | https://a.co/d/06t7lcYn |
+| Case | Command Center | https://a.co/d/0cf6FTqh |
+| Storage | Command Center | https://a.co/d/04WL1OJ5 |
+| Storage | Command Center | https://a.co/d/0eqrn9K9 |
+| Powered USB hub | Command Center's SSD | model not recorded |
 
 ## Where to buy
 

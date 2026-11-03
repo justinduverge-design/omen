@@ -46,7 +46,8 @@ Enabled units, containers or listeners drifted from the baseline. Fix the drift 
 Sentinel saw a service reachable from the internet that should not be. Confirm from outside (phone on cellular), then close it at the firewall by hand; firewall changes are human-only.
 
 ## pi-hardware
-A Pi reports failing hardware (`under-voltage`, `booted-from-sd`, `ssd-missing`). Buy the part listed in `ops/pi-fleet/PARTS.md` for that check, then swap it by hand.
+A Pi reports failing hardware (`under-voltage`, `thermal`, `booted-from-sd`, `ssd-missing`). Buy the part listed in `ops/pi-fleet/PARTS.md` for that check, then swap it by hand.
+`thermal` reasons: `hot_now` (80 °C or more) and `warm_now` (70 °C or more) mean check the case and the airflow first; `*_since_boot` holds until the next reboot. The exact readings for the last 7 days are in `/var/lib/slops-power/history` on that Pi.
 
 ## host-unreachable
 Steward or Sentinel has not answered SSH for 10 minutes. Check power, then the network; look at the host's last boot journal after it returns.

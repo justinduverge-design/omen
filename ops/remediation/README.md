@@ -48,7 +48,7 @@ each check with a signed playbook writes "would have run X (n/cap today). Nothin
 the remediator gains a process, shell or socket API. Checked every run, in order: kill switch, signature and schema,
 replay (`seq` lower than the highest seen), cooldown, 24h cap. A hit cap escalates once with the owner and runbook step.
 
-**Deploy (founder, FOUNDER_APPROVAL; nothing here was deployed):**
+**Deploy (founder, FOUNDER_APPROVAL; deployed on Command Center 2026-10-31, shadow mode):**
 1. `useradd --system --no-create-home --shell /usr/sbin/nologin slops-remediator`
 2. `/usr/local/sbin/slops-remediator` (0755); `bundle.py` and `playbook_schema.py` in `/usr/local/lib/slops-remediator/` (0644).
 3. `/etc/slops-remediator/allowed_signers` = the committed public key (root, 0644).
