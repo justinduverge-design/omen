@@ -1,0 +1,10 @@
+[Unit]
+Description=Copy the SSD system onto the fallback SD card (B13-HEAL-SD-SYNC; overwrites the SD card)
+ConditionPathExists=/usr/local/sbin/rpi-clone
+
+[Service]
+Type=oneshot
+StateDirectory=slops-sd-sync
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/usr/local/sbin/slops-sd-sync /var/lib/slops-sd-sync/status

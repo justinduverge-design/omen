@@ -14,6 +14,7 @@ omen-host-patch	\bcheck=omen-host-patch-kvm[12]\b	founder	omen-host-patch	warnin
 omen-host-posture	\bcheck=omen-host-posture-kvm[12]\b	founder	omen-host-posture	warning
 public-exposure	\bcheck=public-exposure\b	founder	public-exposure	critical
 pi-hardware	\bcheck=\S*(under-voltage|thermal|booted-from-sd|ssd-missing)\b	founder	pi-hardware	critical
+sd-sync	\bcheck=command-center-sd-sync\b	founder	sd-sync	warning
 host-unreachable	^result=DOWN check=(steward|sentinel)-unreachable\b	founder	host-unreachable	critical
 glitchtip-issue	^GlitchTip #\S+:	agent	glitchtip-issue	warning
 kuma-glitchtip	^GlitchTip: status=	founder	kuma-glitchtip	critical

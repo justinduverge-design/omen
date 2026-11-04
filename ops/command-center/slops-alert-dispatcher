@@ -73,6 +73,15 @@ if [ -x /usr/local/sbin/slops-power-check ]; then
 else
   power='result=DOWN check=command-center-under-voltage reason=power_check_not_installed'
 fi
+# B13-HEAL-SD-SYNC: booted from the SD card, SSD not visible, weekly SD copy failed or stale. Same rules as above.
+if [ -x /usr/local/sbin/slops-boot-check ]; then
+  boot="$(/usr/local/sbin/slops-boot-check command-center 2>/dev/null || true)"
+  [ -n "$boot" ] || boot='result=DOWN check=command-center-booted-from-sd reason=boot_check_no_output'
+  boot="$(printf '%s\n' "$boot" | grep -v '^result=HEALTHY' || true)"
+else
+  boot='result=DOWN check=command-center-booted-from-sd reason=boot_check_not_installed'
+fi
+power="$(printf '%s\n%s' "$power" "$boot" | sed '/^$/d')"
 # O9: unresolved GlitchTip issues. Read straight from Postgres, the same way
 # Kuma is read straight from SQLite above - no API token to provision, and the
 # transaction is forced read-only so this path cannot mutate error records.

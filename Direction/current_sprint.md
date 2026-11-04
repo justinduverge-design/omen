@@ -243,8 +243,10 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
 
 ### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
-- **Status:** READY
-- **Blocked by:** None (B13-HEAL-BOOT-ORDER verified 2026-11-02); writing the SD card is a Pi write (FOUNDER_APPROVAL)
+- **Status:** IN_PROGRESS
+- **Claim:** 2026-11-03 Claude Code (sd-sync session), branch `claude/inspiring-edison-027e76`; also gives `ssd-missing` its producer
+- **Built (repo):** `ops/pi-fleet/sd-sync/` (`slops-sd-sync` + weekly timer, `slops-boot-check`), wired into the dispatcher's power block. Tests `test/piSdSync.test.js`. Deploy steps and the supervised test boot from SD: `ops/pi-fleet/sd-sync/README.md`.
+- **Blocked by:** the founder's deploy and the supervised SD test boot (Pi writes, FOUNDER_APPROVAL); B13-HEAL-BOOT-ORDER verified 2026-11-02
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
@@ -287,7 +289,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
-- **Blocked by:** producers for the last two linked alerts: `booted-from-sd` (B13-HEAL-SD-SYNC) and `ssd-missing` (no card yet). `under-voltage` and `thermal` are live (B13-HEAL-WATCHDOG, 2026-11-02). The founder's exact parts links are on the page (2026-11-02); the SSD hub model is not recorded.
+- **Blocked by:** both last producers are built in B13-HEAL-SD-SYNC (`booted-from-sd`, `ssd-missing`, `ops/pi-fleet/sd-sync/slops-boot-check`) and close with its deploy. `under-voltage` and `thermal` are live (B13-HEAL-WATCHDOG, 2026-11-02). The founder's exact parts links are on the page (2026-11-02); the SSD hub model is not recorded.
 - **Note:** the link fires only once a check emits the name
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.

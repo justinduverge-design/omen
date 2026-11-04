@@ -1,0 +1,67 @@
+#!/bin/sh
+# B13-HEAL-SD-SYNC: copies Command Center's SSD system onto the fallback SD card weekly, so an SSD death boots a
+# current system that keeps the cgroup boot line GlitchTip needs. Overwrites the SD card.
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-sd-sync [STATUS_FILE] (Command Center, as root, by its weekly timer)
+Copies the running SSD system onto the SD card in the slot with rpi-clone, then checks the SD card's boot line
+still has cgroup_enable=memory (GlitchTip needs it) and points at the SD card's own root.
+Writes one line to STATUS_FILE (default /var/lib/slops-sd-sync/status) for slops-boot-check:
+  result=HEALTHY|CRITICAL check=command-center-sd-sync reason=...
+OVERWRITES THE WHOLE SD CARD. Refuses to run unless root is the SSD (/dev/sda2). Exit 1 on any failure.
+USAGE
+    exit 0 ;;
+esac
+# B13-HEAL-SD-SYNC. Test overrides: SLOPS_ROOT_SOURCE, SD_DISK, SSD_CMDLINE, RPI_CLONE, SD_BOOT_DIR, SD_PARTUUID.
+set -u
+status="${1:-/var/lib/slops-sd-sync/status}"
+sd="${SD_DISK:-/dev/mmcblk0}"
+log="${SD_SYNC_LOG:-/var/log/slops-sd-sync.log}"
+done_with() {
+  mkdir -p "$(dirname "$status")"
+  printf 'result=%s check=command-center-sd-sync reason=%s\n' "$1" "$2" > "$status.tmp" && mv "$status.tmp" "$status"
+  [ "$1" = HEALTHY ] && exit 0
+  echo "slops-sd-sync: $2" >&2
+  exit 1
+}
+root="${SLOPS_ROOT_SOURCE-$(findmnt -no SOURCE / 2>/dev/null || true)}"
+# Booted from SD means the SSD is gone or broken: copying would overwrite the only working system.
+[ "$root" = /dev/sda2 ] || done_with CRITICAL refused_root_not_ssd
+[ -b "$sd" ] || [ -n "${SD_BOOT_DIR:-}" ] || done_with CRITICAL sd_card_missing
+# Never copy a boot line that would kill GlitchTip on the fallback.
+grep -qw 'cgroup_enable=memory' "${SSD_CMDLINE:-/boot/firmware/cmdline.txt}" 2>/dev/null \
+  || done_with CRITICAL ssd_boot_line_missing_cgroup
+# One copy at a time: two rpi-clones on one card would wreck it.
+if [ -z "${SD_SYNC_LOCKED:-}" ] && command -v flock >/dev/null 2>&1; then
+  SD_SYNC_LOCKED=1 exec flock -n /run/slops-sd-sync.lock "$0" "$@" || done_with CRITICAL sync_already_running
+fi
+# Mark the copy as started: a power cut or kill mid-copy leaves this line, which the boot check reports
+# as an interrupted copy once it is older than any normal run (it never reads last week's HEALTHY).
+done_marker() { printf 'result=CRITICAL check=command-center-sd-sync reason=clone_interrupted\n' > "$status.tmp" && mv "$status.tmp" "$status"; }
+mkdir -p "$(dirname "$status")" && done_marker
+# -U: unattended, initialising the card's partitions if they do not match yet.
+"${RPI_CLONE:-/usr/local/sbin/rpi-clone}" -U "${sd#/dev/}" >"$log" 2>&1 || done_with CRITICAL clone_failed
+
+if [ -n "${SD_BOOT_DIR:-}" ]; then
+  boot="$SD_BOOT_DIR"
+else
+  boot="$(mktemp -d)"
+  trap 'umount "$boot" 2>/dev/null; rmdir "$boot" 2>/dev/null' EXIT
+  mount -o ro "${sd}p1" "$boot" || done_with CRITICAL sd_boot_unmountable
+fi
+line="$(cat "$boot/cmdline.txt" 2>/dev/null || true)"
+partuuid="${SD_PARTUUID-$(blkid -s PARTUUID -o value "${sd}p2" 2>/dev/null || true)}"
+printf '%s' "$line" | grep -qw 'cgroup_enable=memory' || done_with CRITICAL sd_boot_line_missing_cgroup
+[ -n "$partuuid" ] && printf '%s' "$line" | grep -qw "root=PARTUUID=$partuuid" || done_with CRITICAL sd_boot_line_wrong_root
+# The SD's own fstab must mount the SD, or the fallback boot drops to an emergency shell.
+fstab="${SD_FSTAB-}"
+if [ -z "${SD_BOOT_DIR:-}" ]; then
+  rootmnt="$(mktemp -d)"
+  trap 'umount "$boot" "$rootmnt" 2>/dev/null; rmdir "$boot" "$rootmnt" 2>/dev/null' EXIT
+  mount -o ro "${sd}p2" "$rootmnt" || done_with CRITICAL sd_root_unmountable
+  fstab="$rootmnt/etc/fstab"
+fi
+if [ -n "$fstab" ]; then
+  grep -Eq "^PARTUUID=${partuuid}[[:space:]]+/[[:space:]]" "$fstab" 2>/dev/null || done_with CRITICAL sd_fstab_wrong_root
+fi
+done_with HEALTHY none
