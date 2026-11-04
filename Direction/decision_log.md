@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-11-03 — Constitution item 1: peer power-cycle is a bounded exception (option (a))
+
+- **Decision (founder):** amend fleet Constitution item 1 so a peer power-cycle through a signed `power_cycle`
+  playbook is a bounded exception to the human-only reboot rule. Limits: allowlisted target outlets; a Pi never cycles
+  its own outlet; 30–60 s off; max 2 per day per target, then page the founder; shadow only until `B13-HEAL-LIVE`.
+- **Why:** the 2026-10-29 design's "When the founder is not there" table approved peer power-cycling, which conflicted
+  with item 1 as amended 2026-10-30. A full freeze or wedged SSD has no other unattended fix.
+- **Unchanged:** OS reboots, boot/kernel, firewall, DNS, secrets, deploys, DB writes, package upgrades, KVM production
+  stay human-only. Rejected: option (b), keep cycling human-only. The `power_cycle` action itself is a later card.
+
 ## 2026-11-03 — Power-cycling uses one local-control strip, not three plugs
 
 - **Decision (founder):** buy one TP-Link Tapo P316M (6 individually switched outlets) instead of three smart plugs, for
@@ -7,8 +17,8 @@
 - **Trade-off:** the strip is a single point of failure for power-cycling; the daily cap still pages, and the hardware
   watchdog covers OS hangs without it. Rejected: Amazon Basics strip (Alexa cloud only), Kasa HS300 (HW v2.0
   local-auth failures reported), Shelly Power Strip 4 (EU only).
-- **Open (founder):** Constitution item 1 keeps reboots human-only, so an automatic peer power-cycle needs either an
-  amendment (a signed, capped `power_cycle` playbook as a bounded exception) or stays human-only. Card `B13-HEAL-POWER-PLUGS`.
+- **Decided 2026-11-03 (founder, option (a)):** Constitution item 1 now allows a signed, capped `power_cycle` playbook as
+  a bounded exception; see the entry above. Card `B13-HEAL-POWER-PLUGS`.
 
 ## 2026-10-30 — Fleet Constitution item 1 amended: signed, pre-approved playbooks only
 
