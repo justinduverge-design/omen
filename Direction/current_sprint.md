@@ -222,8 +222,9 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** IN_PROGRESS (shadow week running since 2026-10-31, ends no earlier than 2026-11-07)
 - **Evidence so far:** merged #822 and #828; deployed on Command Center 2026-10-31 with founder approval (user `slops-remediator`, timer every 5 min, `/var/lib/slops-alerting` 0750 for its group). It accepted signed bundle seq 20 and runs with `Result=success`. Deploy found two gaps, fixed in #828.
 - **On-Pi safety checks:** 2026-11-02, `ssh command-center python3 - < ops/remediation/slops-heal-safety-test` ran the deployed remediator against a copy of the live signed bundle: all 4 passed (real bundle accepted, tampered copy refused, kill switch stops and resumes, retry cap escalates after 2 with its owner).
-- **Left:** a week of Discord shadow reports (to 2026-11-07); the reboot check (`Direction/reviews/2026-11-02-monday-checklist.md` step 2).
-- **Blocked by:** the shadow week; the supervised reboot (Monday checklist step 2)
+- **Reboot check:** 2026-11-02 21:47 supervised reboot of Command Center. The timer came back active and the state survived (`highest-seq` still 20; the ledger was empty before and after, since no alert matched a playbook). The safety tests passed 4/4 again after the reboot.
+- **Left:** a week of Discord shadow reports (to 2026-11-07).
+- **Blocked by:** the shadow week
 - **Priority:** P2
 - **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
 
@@ -234,10 +235,10 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
 
 ### B13-HEAL-BOOT-ORDER — SSD first, SD card as the fallback (urgent: the card is in the slot now)
-- **Status:** IN_PROGRESS (EEPROM set and read back; the reboot half of `Done when:` is the Monday supervised reboot)
+- **Status:** VERIFIED
 - **Evidence:** applied by the founder 2026-10-29 (`rpi-eeprom-update` at 22:50 in the journal). Read 2026-11-02: `rpi-eeprom-config` and `vcgencmd bootloader_config` (the config the running bootloader booted with) both say `BOOT_ORDER=0xf14`; root is `/dev/sda2`; no `pieeprom.upd` pending. Verify and rollback commands: `Direction/reviews/2026-11-02-monday-checklist.md` step 2.
-- **Left:** a reboot that comes back on `/dev/sda2` (Monday checklist step 2). The journal's `rpi-eeprom-update` ran 24 s into the current boot, so this boot alone doesn't prove a fresh boot keeps 0xf14.
-- **Blocked by:** the in-room reboot
+- **Reboot proof:** 2026-11-02 21:47, supervised by the founder: Command Center rebooted and came back on `/dev/sda2` (new boot ID; `BOOT_ORDER=0xf14`, no pending update, no boot from the SD card).
+- **Blocked by:** None
 - **Priority:** P0
 - **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
 
@@ -245,7 +246,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-11-03 Claude Code (sd-sync session), branch `claude/inspiring-edison-027e76`; also gives `ssd-missing` its producer
 - **Built (repo):** `ops/pi-fleet/sd-sync/` (`slops-sd-sync` + weekly timer, `slops-boot-check`), wired into the dispatcher's power block. Tests `test/piSdSync.test.js`. Deploy steps and the supervised test boot from SD: `ops/pi-fleet/sd-sync/README.md`.
-- **Blocked by:** the founder's deploy and the supervised SD test boot (Pi writes, FOUNDER_APPROVAL)
+- **Blocked by:** the founder's deploy and the supervised SD test boot (Pi writes, FOUNDER_APPROVAL); B13-HEAL-BOOT-ORDER verified 2026-11-02
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
@@ -253,7 +254,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** VERIFIED
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-watchdog`; temperature and throttling history added 2026-11-02 (branch `heal/lane5-remote`, founder request)
 - **Evidence:** deployed 2026-11-02 with founder approval on all three Pis (backups `*.bak-20261102-before-watchdog`). `RuntimeWatchdogUSec=15s RebootWatchdogUSec=2min` on each. The drop-in is `50-slops-watchdog.conf`: a `10-` name lost to Raspberry Pi OS's `40-rpi-enable-watchdog.conf` (1 min), found on deploy. Each Pi reports `<host>-under-voltage` and `<host>-thermal` and keeps 7 days of exact readings in `/var/lib/slops-power/history`. The dispatcher's own SSH key receives both lines from Steward and Sentinel (`read-state` calls `read-power-state`). Command Center's dispatcher redeployed (sha256 `72527d86…`). Fail proofs on each Pi: a fake `vcgencmd` (0x50005, 82 °C) reads CRITICAL on both lines; an unreadable chip reads DOWN; a missing or 20-min-old status file reads `status_missing` / `status_stale`.
-- **Left (optional, in the room):** the supervised hang test (Monday checklist step 3).
+- **Hang test:** 2026-11-02, with the founder in the room: Sentinel's kernel was crashed on purpose (`sysrq c`, `kernel.panic=0`) at 21:54:25. The hardware watchdog reset it and it booted at 21:54:41, about 16 s later, back with both timers active and `15s`. Command Center also read `15s` after its 21:47 reboot.
 - **Blocked by:** None
 - **Priority:** P1
 - **Done when:** `RuntimeWatchdogSec` is set on each Pi, and the dispatcher reports `get_throttled` under-voltage bits (2026-11-02: and temperature and throttling, now and since boot).
@@ -261,24 +262,27 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-HEAL-WIFI — Command Center stays on Wi-Fi and repairs its own link
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-10-29 Claude Code (alert-repeats session)
-- **Blocked by:** the in-room reboots (Monday checklist step 2): power save off and the reboot checks need a reboot
+- **Forced drop:** 2026-11-02 19:30:40, a real `nmcli device disconnect wlan0` with a 12-min fallback timer armed. Command Center was unreachable 19:30:53–19:34:03, and the watchdog's 3-min rung reconnected it (`router unreachable 3 min: reconnecting wlan0`). No reboot was needed, the fallback was cancelled unused, and the dispatcher sent and cleared `wifi-events`.
+- **Blocked by:** two more reboots that come back untouched (1 of 3 done 2026-11-02). The founder couldn't single out the SELF-REPAIR post among tonight's test messages; check it at the next real drop
 - **Priority:** P1
-- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; mode 0700); the dispatcher carrying the SELF-REPAIR block is deployed (2026-10-31 and 2026-11-02). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf`; on 2026-11-02 Command Center still reads `Power save: on` because it has not rebooted since 2026-10-29. 2026-11-02 sandbox fail proof (copy of the deployed script, fake dead router, nothing real touched): reconnect at 3 min, NetworkManager at 10, reboot at 20, each logged for the dispatcher.
+- **Evidence so far:** deployed 2026-10-29 23:17 (timer active, run Result=success; mode 0700); the dispatcher carrying the SELF-REPAIR block is deployed (2026-10-31 and 2026-11-02). Wi-Fi power save off via `/etc/NetworkManager/conf.d/wifi-powersave-off.conf`; after the 2026-11-02 21:47 reboot Command Center reads `Power save: off` (it read `on` before, because the setting waits for a reboot). That reboot came back untouched (1 of the 3). 2026-11-02 sandbox fail proof (copy of the deployed script, fake dead router, nothing real touched): reconnect at 3 min, NetworkManager at 10, reboot at 20, each logged for the dispatcher.
 - **Steward and Sentinel:** keep `slops-link-watchdog.sh` (deployed 2026-10-18; monotonic clock, ARP fallback, reboot backoff 30/60/120 min, max 3). Founder chose 2026-11-02 to keep the better one rather than add a second ladder. Same sandbox proof 2026-11-02: reconnect at 10 min, reboot 1/3 at 31 min, none at 32, reboot 2/3 at 65. Power save reads off on both.
 - **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
 
 ### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
 - **Status:** READY
 - **Blocked by:** FOUNDER — buy 3 local-API plugs (shopping list: Monday checklist step 6; Command Center's SSD hub goes on Command Center's plug); then a signed playbook
+- **Note (2026-11-02):** all three Pis share one power strip with an on/off switch, hidden behind the desk. One flip takes the whole fleet down, and only the outside heartbeat sees that. Cheapest fix: a clear switch guard over it, or move the Pi bricks to a strip without a switch
 - **Priority:** P1
 - **Note:** 2026-10-29: two reboots of Command Center went dark until the founder cut power. The boot journal shows the Pi actually booted fine from the SSD (sshd and docker up, Wi-Fi associated at 192.168.5.30, Tailscale DERP connected), then stopped answering on Wi-Fi (Mac ARP for .30 incomplete). So the suspect is the Wi-Fi link, not the SSD or hub. See B13-HEAL-WIRED first; the plugs remain the backstop
 - **Done when:** a Pi that has been unreachable for 15 min is power-cycled by a peer (max 2/day, then a page), proven with a forced test.
 
 ### B13-HEAL-OUTSIDE-HEARTBEAT — alert when the whole house goes dark
-- **Status:** IN_PROGRESS
+- **Status:** VERIFIED
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-outside-heartbeat`
 - **Evidence so far:** installed on Command Center 2026-11-02 with founder approval (script, service and timer; nothing replaced). Fail proof: with no URL file the unit exits 1 and shows failed. The timer is installed but off until the URL exists.
-- **Blocked by:** FOUNDER — the free Healthchecks.io account, the check, Discord, and the ping URL on the Pi (Monday checklist step 5, which then enables the timer and runs the stop/start fail proof)
+- **Evidence:** 2026-11-02, the founder created the healthchecks.io check (5 min period, 10 min grace, Discord integration) and put the ping URL on the Pi (`/etc/slops-alerting/outside-heartbeat-url`, root 0600; the URL never left the Pi). First ping 19:28 `Result=success`, timer enabled. Fail proof: pings stopped 19:29–19:53. The healthchecks.io log shows the check going down and coming back up, which is what a router unplug looks like from outside.
+- **Blocked by:** None
 - **Priority:** P2
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
