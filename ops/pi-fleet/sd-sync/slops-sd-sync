@@ -1,4 +1,6 @@
 #!/bin/sh
+# B13-HEAL-SD-SYNC: copies Command Center's SSD system onto the fallback SD card weekly, so an SSD death boots a
+# current system that keeps the cgroup boot line GlitchTip needs. Overwrites the SD card.
 case "${1:-}" in
   -h|--help) cat <<'USAGE'
 slops-sd-sync [STATUS_FILE] (Command Center, as root, by its weekly timer)

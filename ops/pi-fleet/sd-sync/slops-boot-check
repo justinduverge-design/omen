@@ -1,4 +1,6 @@
 #!/bin/sh
+# B13-HEAL-SD-SYNC: reports whether Command Center booted from the backup SD card, whether its SSD is visible,
+# and whether the weekly SSD->SD copy is current. Read-only; run by the alert dispatcher.
 case "${1:-}" in
   -h|--help) cat <<'USAGE'
 slops-boot-check HOST [SYNC_STATUS_FILE] (Command Center; run by the dispatcher every tick)

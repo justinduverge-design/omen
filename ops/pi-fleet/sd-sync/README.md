@@ -1,7 +1,7 @@
 # Weekly SSD→SD copy and boot alerts (`B13-HEAL-SD-SYNC`)
 
 Reference copies: editing them here changes no Pi. Every step below is a Pi write and needs the founder's
-approval for that exact step. Command Center only (hostname `Comand-Center`; check names say `command-center`).
+approval for that exact step. Command Center only (check names say `command-center`; the hostname is spelled differently, see `PARTS.md`).
 
 | File | Deployed path |
 |---|---|
