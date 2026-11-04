@@ -243,10 +243,12 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** `rpi-eeprom-config` shows `BOOT_ORDER=0xf14`, and a reboot comes back on `/dev/sda2`.
 
 ### B13-HEAL-SD-SYNC — weekly SSD→SD system copy, with an alert when the Pi booted from SD
-- **Status:** IN_PROGRESS
+- **Status:** VERIFIED
 - **Claim:** 2026-11-03 Claude Code (sd-sync session), branch `claude/inspiring-edison-027e76`; also gives `ssd-missing` its producer
 - **Built (repo):** `ops/pi-fleet/sd-sync/` (`slops-sd-sync` + weekly timer, `slops-boot-check`), wired into the dispatcher's power block. Tests `test/piSdSync.test.js`. Deploy steps and the supervised test boot from SD: `ops/pi-fleet/sd-sync/README.md`.
-- **Blocked by:** the founder's deploy and the supervised SD test boot (Pi writes, FOUNDER_APPROVAL); B13-HEAL-BOOT-ORDER verified 2026-11-02
+- **Deployed:** 2026-11-03 20:45–20:50 EST with founder approval ("Yes, deploy now"). rpi-clone 2.0.27 knows `/boot/firmware`. Backups `*.bak-20261103-before-sd-sync` (dispatcher, `alert-owners.tsv`). First copy `Result=success` in 2:58; the SD's `cmdline.txt` reads `root=PARTUUID=5405a598-02` with `cgroup_enable=memory`, fstab edited by rpi-clone. All three boot-check lines HEALTHY; dispatcher sha256 `da274881…`, a manual run `Result=success`. Timer next: Sun 2026-11-08 04:36.
+- **Test boot:** 2026-11-03, founder in the room. SSD unplugged, power on: root `/dev/mmcblk0p2`, `cgroup_enable=memory` in `/proc/cmdline`, GlitchTip, Pi-hole, Kuma and the rest up; `booted-from-sd` CRITICAL `root_on_sd_card` and `ssd-missing` CRITICAL `ssd_not_visible`. The dispatcher sent the alert at 20:51 and the founder saw it on Discord. SSD back in, power on: root `/dev/sda2`, all three lines HEALTHY, 9 containers up.
+- **Blocked by:** None
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
