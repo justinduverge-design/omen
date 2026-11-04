@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Focused test for omen-host-posture.sh two-step drift logic. Stubs ssh; no network, no secrets.
 set -Eeuo pipefail
+case "${1:-}" in -h|--help)
+  echo "usage: test-omen-host-posture.sh"
+  echo "Tests the two-step drift logic of omen-host-posture.sh with a stubbed ssh; no network."
+  exit 0 ;;
+esac
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 W="$(mktemp -d)"; trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/state" "$W/etc"

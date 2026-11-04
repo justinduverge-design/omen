@@ -3,6 +3,11 @@
 # over a forced-command channel. Usage: omen-host-posture.sh kvm1|kvm2
 set -Eeuo pipefail
 umask 027
+case "${1:-}" in -h|--help)
+  echo "usage: omen-host-posture.sh kvm1|kvm2"
+  echo "Observes an Omen VPS posture over the forced-command channel and writes the Sentinel status file."
+  exit 0 ;;
+esac
 ROLE="${1:?role kvm1|kvm2}"
 case "$ROLE" in
   kvm1) IP="${OVERRIDE_IP:-100.115.155.19}"; EXPECTED_MID="5e55043ddbfb6cdd" ;;
