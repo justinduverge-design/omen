@@ -1,5 +1,8 @@
 # Monday checklist: Pi fleet, in the room (2026-11-02)
 
+**Done 2026-11-02, evening:** steps 0–5 run with the founder at the desk. Results are in `Direction/current_sprint.md`,
+Lane 5. Step 6 (plugs) and step 7 (spares) are purchases.
+
 Everything here needs someone at the desk. Everything that could be done remotely was done on 2026-11-02 (Lane 5 in
 `Direction/current_sprint.md`). Do it top to bottom in one sitting, about 45 minutes. Each step says what "good" looks
 like; stop at the first step that isn't good and work through that step.
@@ -66,7 +69,7 @@ also proves the remediator's ledger survives a reboot.
    ssh command-center 'findmnt -no SOURCE /; uptime -s; systemctl is-active slops-remediator.timer slops-alert-dispatcher.timer slops-power-check.timer; sudo docker ps --format "{{.Names}}" | grep -c glitchtip; /usr/sbin/iw dev wlan0 get power_save; systemctl show -p RuntimeWatchdogUSec'
    ```
 
-   Good: `/dev/sda2`, today's boot time, all three `active`, the GlitchTip count is at least 5, `Power save: off`
+   Good: `/dev/sda2`, today's boot time, all three `active`, the GlitchTip count is 3 (web, Postgres, Valkey; an earlier draft wrongly said 5), `Power save: off`
    (on 2026-11-02 it still read `on` because the setting waits for this reboot; that closes part of B13-HEAL-WIFI),
    and `RuntimeWatchdogUSec=15s`.
    **If it booted from the SD card** (`/dev/mmcblk0p2`), the SSD didn't boot. Don't change the EEPROM. Check the SSD
