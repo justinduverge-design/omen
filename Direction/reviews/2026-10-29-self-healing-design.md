@@ -98,4 +98,6 @@ can be a safety net. No reboot timer exists on Command Center today.
 | Outside heartbeat (Kuma push from an external free monitor) | whole house down | free |
 | Hardware-replacement alert with a pre-researched parts list (Amazon overnight, Best Buy, Staples, Walmart, Target) | anything that needs a part | free; the founder buys |
 
+> **2026-11-03:** the smart-plug row now runs as one Tapo P316M strip, and fleet Constitution item 1 was amended (option (a)) so this peer power-cycle is a bounded exception to the human-only reboot rule. See `Blueprints/specs/infrastructure/slops-os-raspberry-pi-fleet-v1.md` item 1 and `Direction/decision_log.md` 2026-11-03.
+
 Alerts stay on Discord.

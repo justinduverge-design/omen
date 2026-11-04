@@ -40,6 +40,7 @@ Add each PR here as it merges (number, area, title).
 | #829 | Records | Lane 5 records match the Pi: ALERT-OWNERS, PLAYBOOKS and SIGNING VERIFIED with evidence; REMEDIATOR-SHADOW in its shadow week; Command Center SSD model recorded; dispatcher deploy recorded |
 | #838 | Records | Monday checklist run with the founder: BOOT-ORDER reboot on `/dev/sda2` (VERIFIED), Sentinel watchdog hang test reset in 16 s, safety tests 4/4 after reboot, heartbeat live and fail-proven (VERIFIED), real Wi-Fi drop self-repaired in 3 min |
 | #837 | Fleet | Lane 5 remote pass: WATCHDOG deployed on all three Pis with temperature and throttling history (drop-in renamed `50-` so it beats Raspberry Pi OS's 1-min default); heartbeat installed; Wi-Fi ladders sandbox-proven; `slops-heal-safety-test` 4/4 on the Pi; BOOT-ORDER read back as 0xf14, reboot proof on Monday; Monday checklist; every Lane 5 status line aligned |
+| `records/lane5-strip` | Records | POWER-PLUGS becomes one Tapo P316M strip paired over Matter (decision and playbook plan on the card); PARTS-LIST VERIFIED now that all four hardware alerts are live; hub chipset recorded |
 | #842 | Records | POWER-PLUGS becomes one Tapo P316M strip paired over Matter (decision and playbook plan on the card); PARTS-LIST VERIFIED now that all four hardware alerts are live; hub chipset recorded |
 | #813 | Docs | Session outputs kept on record: the 2026-10-29 standards-cards handoff, the family brief draft (to move to Valor-Core), Tailwind 3→4 landing screenshots |
 | #811 | Docs | AGENTS.md drops Jules from the runtime list and the dispatched-cloud-run rule: Google ends Jules 2026-12-31 (Valor-Core #12) |
@@ -59,6 +60,7 @@ Add each PR here as it merges (number, area, title).
 | #839 | Pi fleet | B13-HEAL-SD-SYNC: weekly `rpi-clone` SSD→SD copy on Command Center that checks the SD boot line keeps `cgroup_enable=memory`; the dispatcher reports `booted-from-sd`, `ssd-missing` (the last parts-list producer) and a failed or stale copy. Repo only: deploy and the test boot from SD are the founder's |
 | #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
 | #840 | Pi fleet | Sentinel `omen-host-posture.sh` into `ops/pi-fleet/sentinel-checks/`; a confirmed WARNING drift stays in `drift_pending` so it alerts every run instead of flapping. Repo only: deploy to Sentinel is the founder's |
+| #843 | Pi fleet | Constitution item 1 amended 2026-11-03 (option (a)): a signed `power_cycle` playbook is a bounded exception (allowlisted outlets, never its own, 30–60 s, 2/day then page, shadow until B13-HEAL-LIVE). Docs only |
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
