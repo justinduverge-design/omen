@@ -57,6 +57,7 @@ Add each PR here as it merges (number, area, title).
 | #821 | Pi fleet | B13-HEAL-WATCHDOG: `RuntimeWatchdogSec=15s` / `RebootWatchdogSec=2min` drop-in for all three Pis, and `slops-power-check` reports `get_throttled` under-voltage bits (Command Center through the dispatcher, Steward and Sentinel through a state file) |
 | #839 | Pi fleet | B13-HEAL-SD-SYNC: weekly `rpi-clone` SSD→SD copy on Command Center that checks the SD boot line keeps `cgroup_enable=memory`; the dispatcher reports `booted-from-sd`, `ssd-missing` (the last parts-list producer) and a failed or stale copy. Repo only: deploy and the test boot from SD are the founder's |
 | #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
+| #840 | Pi fleet | Sentinel `omen-host-posture.sh` into `ops/pi-fleet/sentinel-checks/`; a confirmed WARNING drift stays in `drift_pending` so it alerts every run instead of flapping. Repo only: deploy to Sentinel is the founder's |
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
