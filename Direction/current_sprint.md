@@ -246,7 +246,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** IN_PROGRESS
 - **Claim:** 2026-11-03 Claude Code (sd-sync session), branch `claude/inspiring-edison-027e76`; also gives `ssd-missing` its producer
 - **Built (repo):** `ops/pi-fleet/sd-sync/` (`slops-sd-sync` + weekly timer, `slops-boot-check`), wired into the dispatcher's power block. Tests `test/piSdSync.test.js`. Deploy steps and the supervised test boot from SD: `ops/pi-fleet/sd-sync/README.md`.
-- **Blocked by:** the founder's deploy and the supervised SD test boot (Pi writes, FOUNDER_APPROVAL); B13-HEAL-BOOT-ORDER verified 2026-11-02
+- **Deployed:** 2026-11-03 20:45–20:50 EST with founder approval ("Yes, deploy now"). rpi-clone 2.0.27 knows `/boot/firmware`. Backups `*.bak-20261103-before-sd-sync` (dispatcher, `alert-owners.tsv`). First copy `Result=success` in 2:58; the SD's `cmdline.txt` reads `root=PARTUUID=5405a598-02` with `cgroup_enable=memory`, fstab edited by rpi-clone. All three boot-check lines HEALTHY; dispatcher sha256 `da274881…`, a manual run `Result=success`. Timer next: Sun 2026-11-08 04:36.
+- **Blocked by:** the supervised SD test boot (founder in the room; `ops/pi-fleet/sd-sync/README.md`)
 - **Priority:** P1
 - **Done when:** the SD card boots a current system that includes the cgroup boot line, and a test boot from SD sends "booted from backup SD".
 
