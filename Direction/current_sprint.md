@@ -271,9 +271,11 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Steward and Sentinel:** keep `slops-link-watchdog.sh` (deployed 2026-10-18; monotonic clock, ARP fallback, reboot backoff 30/60/120 min, max 3). Founder chose 2026-11-02 to keep the better one rather than add a second ladder. Same sandbox proof 2026-11-02: reconnect at 10 min, reboot 1/3 at 31 min, none at 32, reboot 2/3 at 65. Power save reads off on both.
 - **Done when:** power save reads off after a reboot; a forced Wi-Fi drop climbs the ladder (reconnect at 3 min, NetworkManager at 10, reboot at 20, max one reboot per 6h) and posts one SELF-REPAIR message to Discord; three reboots in a row come back untouched.
 
-### B13-HEAL-POWER-PLUGS — local-only smart plugs; Pis power-cycle each other
+### B13-HEAL-POWER-PLUGS — one local-control smart strip; Pis power-cycle each other
 - **Status:** READY
-- **Blocked by:** FOUNDER — buy 3 local-API plugs (shopping list: Monday checklist step 6; Command Center's SSD hub goes on Command Center's plug); then a signed playbook
+- **Blocked by:** FOUNDER — buy the strip (chosen 2026-11-03: TP-Link Tapo P316M, 6 individually switched outlets, Matter); FOUNDER DECISION — Constitution item 1 keeps reboots human-only, but the design's table approves peer power-cycling. Either amend item 1 to allow a signed `power_cycle` playbook as a bounded exception, or keep cycling human-only (the strip then only lets the founder cut power remotely); then the playbook work below
+- **Decision (2026-11-03):** one strip instead of three plugs (no room for three). Each Pi on its own switched outlet; Command Center's SSD hub shares Command Center's outlet. Pair it over **Matter**, not the Tapo cloud, so a power-cycle works with the internet down. Rejected: Amazon Basics strip (Alexa cloud only), Kasa HS300 (HW v2.0 local-auth failures reported), Shelly Power Strip 4 (EU only). Trade-off: the strip is one point of failure; if it hangs, the cap pages the founder and the hardware watchdog still covers OS hangs.
+- **Playbook work after the strip arrives:** a Matter controller on Command Center; a `power_cycle` action whose targets are outlet numbers on an allowlist; a Pi never cycles its own outlet; max 2 per day, then a page. Widening the vocabulary is its own reviewed PR, after the founder decision above. Until B13-HEAL-LIVE it runs in shadow only: it reports "would have power-cycled" and cuts nothing.
 - **Note (2026-11-02):** all three Pis share one power strip with an on/off switch, hidden behind the desk. One flip takes the whole fleet down, and only the outside heartbeat sees that. Cheapest fix: a clear switch guard over it, or move the Pi bricks to a strip without a switch
 - **Priority:** P1
 - **Note:** 2026-10-29: two reboots of Command Center went dark until the founder cut power. The boot journal shows the Pi actually booted fine from the SSD (sshd and docker up, Wi-Fi associated at 192.168.5.30, Tailscale DERP connected), then stopped answering on Wi-Fi (Mac ARP for .30 incomplete). So the suspect is the Wi-Fi link, not the SSD or hub. See B13-HEAL-WIRED first; the plugs remain the backstop
@@ -289,9 +291,10 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Done when:** unplugging the router produces a Discord alert from outside the house.
 
 ### B13-HEAL-PARTS-LIST — hardware alerts carry a parts list
-- **Status:** IN_PROGRESS
+- **Status:** VERIFIED
+- **Evidence (2026-11-03):** `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD and SD card models per Pi and the SSD cable (the one in the SSD box, plus an exact spare: Anker USB-C to USB-A 3.x, 1 ft; the cable now in use is not recorded), with overnight and local-store options. The deployed dispatcher adds the parts link to `under-voltage`, `thermal`, `ssd-missing` and `booted-from-sd` alerts, and all four producers are live (B13-HEAL-WATCHDOG 2026-11-02, B13-HEAL-SD-SYNC verified 2026-11-03).
 - **Claim:** 2026-10-30 Claude Code (heal-resilience session), branch `claude/heal-parts-list`
-- **Blocked by:** both last producers are built in B13-HEAL-SD-SYNC (`booted-from-sd`, `ssd-missing`, `ops/pi-fleet/sd-sync/slops-boot-check`) and close with its deploy. `under-voltage` and `thermal` are live (B13-HEAL-WATCHDOG, 2026-11-02). The founder's exact parts links are on the page (2026-11-02); the SSD hub model is not recorded.
+- **Blocked by:** None
 - **Note:** the link fires only once a check emits the name
 - **Priority:** P2
 - **Done when:** the runbook lists exact power supply, SSD, SD card and cable models per Pi, with overnight and local-store options. The SSD-missing, under-voltage and SD-fallback alerts link to it.

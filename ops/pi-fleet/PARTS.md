@@ -13,7 +13,7 @@ Hardware as observed by the inventory audit (`Valor-Core/inventory/snapshots/202
 
 **Command Center's current SSD (read 2026-11-01):** `lsblk` reports model `Lufasnd`, 476.9 GB, on `sda` over USB, in a
 Sabrent USB enclosure (`lsusb`: JMicron `152d:a578`). The SSD is powered through a USB hub with its own power supply
-(founder, 2026-11-02; the hub model is not recorded). The cable model is not recorded.
+(founder, 2026-11-02). The hub's chipset is Genesys Logic GL3523 (`lsusb` `05e3:0620`, read 2026-11-03); its brand is not recorded. The cable model is not recorded.
 
 ## Which alert means which part
 
@@ -56,7 +56,7 @@ The parts in use now. Rebuy these first; the table above is the fallback when a 
 | Case | Command Center | https://a.co/d/0cf6FTqh |
 | Storage | Command Center | https://a.co/d/04WL1OJ5 |
 | Storage | Command Center | https://a.co/d/0eqrn9K9 |
-| Powered USB hub | Command Center's SSD | model not recorded |
+| Powered USB hub | Command Center's SSD | brand not recorded; Genesys GL3523 USB 3 hub chipset |
 
 ## Where to buy
 

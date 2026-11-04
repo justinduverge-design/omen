@@ -1,5 +1,15 @@
 # Omen Decision Log
 
+## 2026-11-03 — Power-cycling uses one local-control strip, not three plugs
+
+- **Decision (founder):** buy one TP-Link Tapo P316M (6 individually switched outlets) instead of three smart plugs, for
+  lack of space. It is paired over Matter so a power-cycle never depends on the internet or a vendor cloud.
+- **Trade-off:** the strip is a single point of failure for power-cycling; the daily cap still pages, and the hardware
+  watchdog covers OS hangs without it. Rejected: Amazon Basics strip (Alexa cloud only), Kasa HS300 (HW v2.0
+  local-auth failures reported), Shelly Power Strip 4 (EU only).
+- **Open (founder):** Constitution item 1 keeps reboots human-only, so an automatic peer power-cycle needs either an
+  amendment (a signed, capped `power_cycle` playbook as a bounded exception) or stays human-only. Card `B13-HEAL-POWER-PLUGS`.
+
 ## 2026-10-30 — Fleet Constitution item 1 amended: signed, pre-approved playbooks only
 
 - **Decision (founder, Valor-Core decision 0003 item 3):** the self-healing design is approved. Fleet Constitution
