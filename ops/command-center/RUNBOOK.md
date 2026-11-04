@@ -49,6 +49,9 @@ Sentinel saw a service reachable from the internet that should not be. Confirm f
 A Pi reports failing hardware (`under-voltage`, `thermal`, `booted-from-sd`, `ssd-missing`). Buy the part listed in `ops/pi-fleet/PARTS.md` for that check, then swap it by hand.
 `thermal` reasons: `hot_now` (80 °C or more) and `warm_now` (70 °C or more) mean check the case and the airflow first; `*_since_boot` holds until the next reboot. The exact readings for the last 7 days are in `/var/lib/slops-power/history` on that Pi.
 
+## sd-sync
+The weekly SSD→SD copy on Command Center failed (`clone_failed`, `sd_boot_line_*`, `sd_card_missing`, `refused_root_not_ssd`) or has not run for 8 days (`sync_stale`, `sync_never_ran`). The SD card is the fallback if the SSD dies, so until this clears a fallback boot may bring up an old system. rpi-clone's output is in `/var/log/slops-sd-sync.log`; `ops/pi-fleet/sd-sync/README.md` has the steps.
+
 ## host-unreachable
 Steward or Sentinel has not answered SSH for 10 minutes. Check power, then the network; look at the host's last boot journal after it returns.
 

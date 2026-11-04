@@ -22,9 +22,9 @@ Sabrent USB enclosure (`lsusb`: JMicron `152d:a578`). The SSD is powered through
 | `under-voltage` | `vcgencmd get_throttled` reports under-voltage now or since boot | that Pi's power supply; if it repeats with the new supply, its cable (Pi 4) |
 | `thermal` | 70 °C or more, or the chip capped or throttled its clock now or since boot | that Pi's case (the heatsink case, below); check airflow first |
 | `ssd-missing` | Command Center cannot see its SSD | SSD and cable |
-| `booted-from-sd` | Command Center booted from the backup SD card, so the SSD did not boot | SSD and cable; reflash the SD after |
+| `booted-from-sd` | Command Center booted from the backup SD card, so the SSD did not boot | SSD and cable; after the swap, the next weekly copy refreshes the SD |
 
-The dispatcher appends a link to this page to any alert whose `check=` name contains one of these. Producers: `under-voltage` and `thermal` come from `B13-HEAL-WATCHDOG`, `booted-from-sd` from `B13-HEAL-SD-SYNC`; `ssd-missing` has no producer yet. Use these exact names in
+The dispatcher appends a link to this page to any alert whose `check=` name contains one of these. Producers: `under-voltage` and `thermal` come from `B13-HEAL-WATCHDOG`, `booted-from-sd` and `ssd-missing` from `B13-HEAL-SD-SYNC` (`ops/pi-fleet/sd-sync/slops-boot-check`). Use these exact names in
 any new hardware alert.
 
 ## Exact parts

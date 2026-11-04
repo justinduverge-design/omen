@@ -1,0 +1,73 @@
+#!/bin/sh
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+slops-boot-check HOST [SYNC_STATUS_FILE] (Command Center; run by the dispatcher every tick)
+Prints three lines, read-only:
+  result=HEALTHY|CRITICAL|WARNING|DOWN check=HOST-booted-from-sd reason=...
+  result=HEALTHY|CRITICAL|WARNING check=HOST-ssd-missing reason=...
+  result=HEALTHY|CRITICAL|WARNING check=HOST-sd-sync reason=...
+SYNC_STATUS_FILE defaults to /var/lib/slops-sd-sync/status (written by slops-sd-sync).
+Exit 0 whatever the result; the result is in the lines.
+USAGE
+    exit 0 ;;
+esac
+# B13-HEAL-SD-SYNC. Every non-HEALTHY line is part of the dispatcher's signature, so reasons are fixed words:
+# never a device path, a time or a count, or the alert would re-send every run.
+# Test overrides: SLOPS_ROOT_SOURCE, SLOPS_SYS_BLOCK, LSUSB, SLOPS_NOW.
+set -u
+host="${1:?usage: slops-boot-check HOST [SYNC_STATUS_FILE]}"
+status="${2:-/var/lib/slops-sd-sync/status}"
+ssd_root=/dev/sda2
+ssd_usb_id=152d:a578   # Sabrent enclosure, JMicron bridge (ops/pi-fleet/PARTS.md)
+
+root="${SLOPS_ROOT_SOURCE-$(findmnt -no SOURCE / 2>/dev/null || true)}"
+case "$root" in
+  "$ssd_root") r=HEALTHY why=none ;;
+  /dev/mmcblk0p*) r=CRITICAL why=root_on_sd_card ;;
+  '') r=DOWN why=root_unreadable ;;
+  *) r=WARNING why=root_not_on_ssd ;;
+esac
+echo "result=$r check=$host-booted-from-sd reason=$why"
+
+disk=no; [ -e "${SLOPS_SYS_BLOCK:-/sys/block}/sda" ] && disk=yes
+lsusb_cmd="${LSUSB:-lsusb}"
+if command -v "$lsusb_cmd" >/dev/null 2>&1; then
+  usb=no; [ -n "$("$lsusb_cmd" -d "$ssd_usb_id" 2>/dev/null || true)" ] && usb=yes
+else
+  usb=unknown
+fi
+case "$disk/$usb" in
+  yes/yes|yes/unknown) r=HEALTHY why=none ;;
+  yes/no) r=WARNING why=ssd_enclosure_not_recognised ;;
+  no/yes) r=CRITICAL why=enclosure_visible_disk_missing ;;
+  *) r=CRITICAL why=ssd_not_visible ;;
+esac
+echo "result=$r check=$host-ssd-missing reason=$why"
+
+# The weekly copy is only a safety net while it is recent. 8 days = one missed Sunday plus a day.
+if [ ! -s "$status" ]; then
+  echo "result=WARNING check=$host-sd-sync reason=sync_never_ran"
+else
+  line="$(head -n 1 "$status")"
+  now="${SLOPS_NOW:-$(date +%s)}"
+  mtime="$(stat -c %Y "$status" 2>/dev/null || stat -f %m "$status" 2>/dev/null || echo '')"
+  case "$line" in
+    "result="[A-Z]*" check=$host-sd-sync reason="[a-z_]*) ;;
+    *) line="result=WARNING check=$host-sd-sync reason=sync_status_unreadable" ;;
+  esac
+  case "$mtime" in
+    ''|*[!0-9]*) echo "result=WARNING check=$host-sd-sync reason=sync_status_unreadable" ;;
+    *)
+      age=$(( now - mtime ))
+      case "$line" in
+        # A copy takes under an hour; within 6 h the marker is a run in progress, after that it was cut off.
+        *reason=clone_interrupted) [ "$age" -lt 21600 ] && line="result=HEALTHY check=$host-sd-sync reason=none" ;;
+      esac
+      # A failed copy keeps its own CRITICAL reason; only a good copy goes stale.
+      case "$line" in
+        result=HEALTHY*) [ "$age" -gt 691200 ] && line="result=WARNING check=$host-sd-sync reason=sync_stale" ;;
+      esac
+      echo "$line" ;;
+  esac
+fi
+exit 0

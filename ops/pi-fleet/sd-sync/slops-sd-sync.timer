@@ -1,0 +1,10 @@
+[Unit]
+Description=Weekly SSD to SD system copy, Sunday 04:30
+
+[Timer]
+OnCalendar=Sun 04:30
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
