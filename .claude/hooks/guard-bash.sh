@@ -20,6 +20,13 @@ fi
 if grep -Eq 'pulls/[^/[:space:]]+/merge([^a-z]|$)' <<<"$cmd" || { grep -Eq 'gh +api\b' <<<"$cmd" && grep -q 'mergePullRequest' <<<"$cmd"; }; then
   block "no merging through gh api; use scripts/merge-pr.sh <PR>"
 fi
+# Valor-Core rules/base.md: --justin merges a deploying PR; it is the founder's flag, never an agent's.
+# grep reads one line at a time, so join lines and drop quotes and backslashes first: "a \<newline> --justin"
+# and --jus""tin would slip past otherwise. Still open: a flag split across variables (J=--jus; K=tin).
+flat=$(tr '\n' ' ' <<<"$cmd" | tr -d '\\"'"'")
+if grep -q -- '--justin' <<<"$flat" && grep -Eq 'merge|pr\.sh' <<<"$flat"; then
+  block "--justin is the founder's flag; agents merge only docs-only PRs (rules/base.md)"
+fi
 # Map rule 10: never push to main.
 if grep -Eq 'git +push\b.*\b(main|HEAD:main)\b' <<<"$cmd"; then
   block "no pushes to main; open a PR"

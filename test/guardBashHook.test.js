@@ -25,6 +25,20 @@ for (const hook of HOOKS) {
     assert.equal(run(hook, call("scripts/merge-pr.sh 799")).status, 0);
   });
 
+  test(`${name}: refuses the founder's --justin flag to agents`, () => {
+    assert.equal(run(hook, call("scripts/merge-pr.sh 799 --justin")).status, 2);
+    assert.equal(run(hook, call("bash scripts/merge-pr.sh 799 --merge --justin")).status, 2);
+    for (const command of [
+      "scripts/merge-pr.sh 799 \\\n  --justin",
+      "scripts/merge-pr.sh 799\n--justin",
+      'scripts/merge-pr.sh 799 --jus""tin',
+      "J=--justin; scripts/merge-pr.sh 799 $J",
+      "x=merge; scripts/${x}-pr.sh 799 --justin",
+    ]) {
+      assert.equal(run(hook, call(command)).status, 2, command);
+    }
+  });
+
   test(`${name}: fails closed when the input can't be read`, () => {
     const bad = run(hook, "not json");
     assert.equal(bad.status, 2);

@@ -3,26 +3,40 @@
 # with only three checks). Waits for checks to exist, then for every one of them to finish, then
 # merges only if all passed. Works for any number of checks.
 #
-#   scripts/merge-pr.sh <PR> [--squash|--merge]   (default --squash)
+#   scripts/merge-pr.sh <PR> [--squash|--merge] [--justin]   (default --squash)
+#
+# Class (Valor-Core rules/base.md): a push to main deploys production unless every file is docs-only
+# (deploy.yml paths-ignore), so without --justin only *.md, Direction/, Blueprints/ and References/ merge,
+# and never the agent rule files. --justin is the founder's; the guard hook refuses it to agents.
 #
 # <PR> is a bare number (not #N, a URL or a branch). Exit 0 merged, 1 refused (not open/ready, no
 # checks, checks pending too long or failing), 2 usage error; a failing gh or git call exits with its
 # own code. Refusals go to stderr (STANDARDS card E, rule 7).
 set -euo pipefail
-usage() { echo "usage: scripts/merge-pr.sh <PR> [--squash|--merge]   (default --squash)"; }
+usage() { echo "usage: scripts/merge-pr.sh <PR> [--squash|--merge] [--justin]   (default --squash)"; }
 refuse() { echo "merge-pr: $*" >&2; exit 1; }
 case "${1:-}" in
-  -h|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   ''|*[!0-9]*) usage >&2; exit 2 ;;
 esac
-pr=$1
-mode=${2:---squash}
-case "$mode" in --squash|--merge) ;; *) usage >&2; exit 2 ;; esac
+pr=$1; shift
+mode=--squash; justin=0
+for arg in "$@"; do
+  case "$arg" in --squash|--merge) mode=$arg ;; --justin) justin=1 ;; *) usage >&2; exit 2 ;; esac
+done
 appear_timeout=${APPEAR_TIMEOUT:-300}   # seconds for the first check to show up
 finish_timeout=${FINISH_TIMEOUT:-3600}
 
 state=$(gh pr view "$pr" --json state,isDraft -q '.state + " " + (.isDraft|tostring)')
 [[ $state == "OPEN false" ]] || refuse "PR $pr is not an open, ready PR ($state)"
+
+if [[ $justin -ne 1 ]]; then
+  read -r listed total < <(gh pr view "$pr" --json files,changedFiles -q '"\(.files|length) \(.changedFiles)"')
+  [[ $listed == "$total" ]] || refuse "gh listed $listed of $total files on #$pr; it waits for Justin"
+  files=$(gh pr view "$pr" --json files -q '.files[].path')
+  unsafe=$( { grep -vE '\.md$|^(Direction|Blueprints|References)/' <<<"$files"; grep -iE '(^|/)(agents|claude|gemini)(\.local)?\.md$|^\.(claude|codex|agents)/' <<<"$files"; } | sort -u | head -5 | tr '\n' ' ' || true)
+  [[ -z $unsafe ]] || refuse "#$pr deploys or changes behaviour or rules ($unsafe); it waits for Justin (label needs-justin)"
+fi
 
 # 0. A build-package row may name the PR's branch instead of its number (an agent's first push can't
 #    know the number; Agent guards accepts either). Swap in #<PR> on the branch now, then let the
