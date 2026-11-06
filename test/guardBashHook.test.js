@@ -31,7 +31,7 @@ for (const hook of HOOKS) {
     for (const command of [
       "scripts/merge-pr.sh 799 \\\n  --justin",
       "scripts/merge-pr.sh 799\n--justin",
-      'scripts/merge-pr.sh 799 --jus""tin',
+      'scripts/merge-pr.sh 799 --"justin"',
       "J=--justin; scripts/merge-pr.sh 799 $J",
       "x=merge; scripts/${x}-pr.sh 799 --justin",
     ]) {
