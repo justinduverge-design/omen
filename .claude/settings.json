@@ -42,7 +42,9 @@
       "Bash(gh pr merge:*)",
       "Bash(git push origin main:*)",
       "Bash(supabase db push:*)",
-      "Bash(supabase db reset:*)"
+      "Bash(supabase db reset:*)",
+      "Read(~/.config/valor-core/**)",
+      "Read(~/.ssh/id_*)"
     ]
   },
   "hooks": {
@@ -53,6 +55,14 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-bash.sh\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/budget.py\""
           }
         ]
       }
@@ -72,7 +82,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-size\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/budget.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/report_gate.py\""
           }
         ]
       }

@@ -61,6 +61,7 @@ Add each PR here as it merges (number, area, title).
 | #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
 | #840 | Pi fleet | Sentinel `omen-host-posture.sh` into `ops/pi-fleet/sentinel-checks/`; a confirmed WARNING drift stays in `drift_pending` so it alerts every run instead of flapping. Repo only: deploy to Sentinel is the founder's |
 | #843 | Pi fleet | Constitution item 1 amended 2026-11-03 (option (a)): a signed `power_cycle` playbook is a bounded exception (allowlisted outlets, never its own, 30–60 s, 2/day then page, shadow until B13-HEAL-LIVE). Docs only |
+| #844 | Guards | Valor rules rewrite (Valor-Core `rules/base.md`): merge by class, `budget.py` replaces `session-size`, `report_gate.py` Stop hook; `merge-pr.sh` refuses deploying, rule and `.claude/` files without the founder's `--justin`, and `guard-bash.sh` refuses that flag to agents, line breaks and quotes included |
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
