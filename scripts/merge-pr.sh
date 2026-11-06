@@ -5,9 +5,11 @@
 #
 #   scripts/merge-pr.sh <PR> [--squash|--merge] [--justin]   (default --squash)
 #
-# Class (Valor-Core rules/base.md): a push to main deploys production unless every file is docs-only
-# (deploy.yml paths-ignore), so without --justin only *.md, Direction/, Blueprints/ and References/ merge,
-# and never the agent rule files. --justin is the founder's; the guard hook refuses it to agents.
+# Class (Valor-Core rules/base.md, rules/guards/classes.py): merging to main deploys nothing; Justin
+# merging the release PR into production does (deploy.yml, release-pr.yml). Without --justin only PRs into
+# main merge, and only docs (*.md, Direction/, Blueprints/, References/), tests-only changes, or a
+# Dependabot/Renovate patch or minor bump of package manifests and lockfiles; never the agent rule files.
+# --justin is the founder's; the guard hook refuses it to agents.
 #
 # <PR> is a bare number (not #N, a URL or a branch). Exit 0 merged, 1 refused (not open/ready, no
 # checks, checks pending too long or failing), 2 usage error; a failing gh or git call exits with its
@@ -15,8 +17,38 @@
 set -euo pipefail
 usage() { echo "usage: scripts/merge-pr.sh <PR> [--squash|--merge] [--justin]   (default --squash)"; }
 refuse() { echo "merge-pr: $*" >&2; exit 1; }
+# merge_class <author> <title>: prints the regex of paths an agent may merge for this PR, or refuses.
+# A dependency bot gets manifests and lockfiles, and only for patch/minor bumps (0.x minors are major);
+# anyone else gets docs and tests. Same rule as Valor-Core rules/guards/classes.py.
+merge_class() {
+  case $1 in
+    app/dependabot|dependabot|dependabot\[bot\]|app/renovate|renovate|renovate\[bot\]) ;;
+    *) echo '\.md$|^(Direction|Blueprints|References)/|(^|/)(tests?|__tests__)/|\.(test|spec)\.[a-z]+$|(^|/)test_[^/]*\.py$|_test\.py$'; return 0 ;;
+  esac
+  local bumps from to fa fb ta tb _
+  bumps=$(grep -oiE 'from v?[0-9]+\.[0-9]+[^ ]* to v?[0-9]+\.[0-9]+' <<<"$2" || true)
+  [[ -n $bumps ]] || refuse "dependency PR whose title shows no from/to version; it waits for Justin"
+  # Every "from" must be a pair read above, so "a from 1.0.0 to 1.1.0 and b from 1 to 2" can't pass on the first.
+  [[ $(grep -oiE '(^|[[:space:]])from[[:space:]]' <<<"$2" | wc -l) -eq $(wc -l <<<"$bumps") ]] \
+    || refuse "dependency PR title with a version pair it can't read; it waits for Justin"
+  while read -r _ from _ to; do
+    IFS=. read -r fa fb _ <<<"${from#[vV]}"; IFS=. read -r ta tb _ <<<"${to#[vV]}"
+    [[ $fa == "$ta" && ( $fa != 0 || $fb == "$tb" ) ]] || refuse "major bump ($from -> $to; 0.x minors count as major); it waits for Justin"
+  done <<<"$bumps"
+  echo '(^|/)(package(-lock)?\.json|Cargo\.(toml|lock)|pyproject\.toml|uv\.lock)$'
+}
+# Always Justin's, whatever class matched (Valor-Core classes.py JUSTIN and RISKY): agent rules, CI and
+# deploy config, migrations and SQL, the guard checks, and auth, payments or secrets in a code path.
+RULES='(^|/)(agents|claude|gemini)(\.local)?\.md$|^\.(claude|codex|agents|github)/|(^|/)(Dockerfile|docker-compose)[^/]*$|^(deploy|infra|sql|supabase)/|(^|/)migrations/|^scripts/(checks/|merge-pr\.sh$)'
+RISKY='(^|[/_.-])(o?auth|login|sign-?in|sign-?up|passwords?|billing|payments?|stripe|secrets?|infisical|credentials?|tokens?|jwt|api-?keys?|private-?keys?)([/_.-]|$)'
+# unsafe_files <ok-regex>: reads changed paths on stdin and prints each one an agent may not merge.
+unsafe_files() {
+  local files; files=$(cat)
+  { grep -vE "$1" <<<"$files"; grep -iE "$RULES" <<<"$files"; grep -vE '\.md$' <<<"$files" | grep -iE "$RISKY"; } | sort -u || true
+}
+[[ ${MERGE_PR_SOURCE_ONLY:-} == 1 ]] && return 0 2>/dev/null
 case "${1:-}" in
-  -h|--help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   ''|*[!0-9]*) usage >&2; exit 2 ;;
 esac
 pr=$1; shift
@@ -31,11 +63,19 @@ state=$(gh pr view "$pr" --json state,isDraft -q '.state + " " + (.isDraft|tostr
 [[ $state == "OPEN false" ]] || refuse "PR $pr is not an open, ready PR ($state)"
 
 if [[ $justin -ne 1 ]]; then
+  read -r base author < <(gh pr view "$pr" --json baseRefName,author -q '.baseRefName + " " + .author.login')
+  [[ $base == main ]] || refuse "#$pr goes into $base, not main; only Justin merges it (the release PR deploys production)"
   read -r listed total < <(gh pr view "$pr" --json files,changedFiles -q '"\(.files|length) \(.changedFiles)"')
   [[ $listed == "$total" ]] || refuse "gh listed $listed of $total files on #$pr; it waits for Justin"
   files=$(gh pr view "$pr" --json files -q '.files[].path')
-  unsafe=$( { grep -vE '\.md$|^(Direction|Blueprints|References)/' <<<"$files"; grep -iE '(^|/)(agents|claude|gemini)(\.local)?\.md$|^\.(claude|codex|agents)/' <<<"$files"; } | sort -u | head -5 | tr '\n' ' ' || true)
-  [[ -z $unsafe ]] || refuse "#$pr deploys or changes behaviour or rules ($unsafe); it waits for Justin (label needs-justin)"
+  # A bot's versions come from its own commit, not the PR title (anyone with write access can edit a title).
+  title=$(gh pr view "$pr" --json title -q .title)
+  if [[ $author == *dependabot* || $author == *renovate* ]]; then
+    title=$(gh pr view "$pr" --json commits -q '.commits[-1].messageHeadline')
+  fi
+  ok=$(merge_class "$author" "$title") || exit 1
+  unsafe=$(unsafe_files "$ok" <<<"$files" | head -5 | tr '\n' ' ')
+  [[ -z $unsafe ]] || refuse "#$pr changes behaviour, deploy config or rules ($unsafe); it waits for Justin (label needs-justin)"
 fi
 
 # 0. A build-package row may name the PR's branch instead of its number (an agent's first push can't

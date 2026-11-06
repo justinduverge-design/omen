@@ -102,4 +102,36 @@ for (const hook of HOOKS) {
       assert.equal(run(hook, call(command)).status, 0, command);
     }
   });
+
+  // production is what deploys (deploy.yml); only the founder's release-PR merge moves it.
+  test(`${name}: blocks pushes to production and manual deploy runs`, () => {
+    for (const command of [
+      "git push origin production",
+      "git push origin HEAD:production",
+      "bash -c 'git push origin production'",
+      "git push origin refs/heads/production",
+      'git push origin "production"',
+      "gh workflow run deploy.yml --ref production",
+      "gh workflow run deploy-kvm1-tailscale-fallback.yml",
+      "gh workflow run --ref main deploy.yml",
+      "gh workflow run 'Deploy to Hostinger KVM1 over Tailscale'",
+      "gh workflow run 123456",
+      "GH workflow run x",
+      "gh workflow run release-pr.yml; gh workflow run deploy.yml",
+      "gh api -X POST repos/o/omen/actions/workflows/deploy.yml/dispatches -f ref=production",
+      "gh api -X POST repos/o/omen/actions/workflows/123456/dispatches",
+    ]) {
+      assert.equal(run(hook, call(command)).status, 2, command);
+    }
+    for (const command of [
+      "gh workflow run release-pr.yml",
+      "gh workflow list",
+      "git push -u origin claude/deploy-on-release",
+      "git push -u origin claude/omen-production-notes",
+      "git push -u origin feature/main-menu",
+      "git log origin/production..origin/main",
+    ]) {
+      assert.equal(run(hook, call(command)).status, 0, command);
+    }
+  });
 }

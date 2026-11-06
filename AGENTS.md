@@ -27,9 +27,9 @@ The map's routing table says what else to read for what you touch. History comes
 3. **Self-check, then a fresh-agent review** ending in `Review verdict: pass|fail`. Ask Codex (`@codex
    review`) too for database, user-data deletion or exposure, auth, billing.
 4. **PR**, with one row in the open `Direction/release/builds/build-N.md` (the branch name until you know `#N`).
-5. **Merge by class.** Every push to `main` deploys production unless all files are `*.md`, `Direction/`,
-   `Blueprints/` or `References/`. Only those merge alone, through `scripts/merge-pr.sh`. Everything else,
-   tests and dependency bumps included, waits for the founder.
+5. **Merge by class**, through `scripts/merge-pr.sh`. Merging to `main` deploys nothing; the founder merging
+   the "Release to production" PR does. Docs, tests-only changes and Dependabot patch/minor bumps merge
+   alone; everything else, and anything into `production`, waits for the founder.
 6. **Close out:** `Status: VERIFIED` + `Evidence:`, decisions in `Direction/decision_log.md`, then
    `npm run closeout`. An unrun check is not a pass. End with `STATUS: done|blocked|budget`.
 
