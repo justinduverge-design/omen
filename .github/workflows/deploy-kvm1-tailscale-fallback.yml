@@ -33,6 +33,9 @@ env:
 
 jobs:
   quality:
+    # Only production is released (deploy.yml); a run on main or a branch would ship unreleased code.
+    # build and deploy need this job, so they skip too.
+    if: github.ref == 'refs/heads/production'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

@@ -65,6 +65,7 @@ Add each PR here as it merges (number, area, title).
 | `claude/guards-hookio` | Guards | Omen's `.claude/hooks` get Valor-Core's current `budget.py`, `report_gate.py` and their shared `hookio.py`, so the same guards read Claude, Codex and Antigravity hook input (#844 shipped the older copies). No wiring change |
 | `claude/guard-shell-wrappers` | Guards | `guard-bash.sh` blocks a merge typed inside a quoted shell wrapper or subshell (`zsh -lc 'gh pr merge 1'`, `$(gh pr merge 1)`, `/opt/homebrew/bin/gh`, `gh pr -R o/r merge`); tests prove the REST, GraphQL and push rules already catch wrapped forms. Valor-Core's `guard.py` gets the same fix |
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
+| `claude/deploy-on-release` | Guards | Merging to `main` no longer deploys: `deploy.yml` runs on `production`, and `release-pr.yml` keeps one "Release to production" PR open for the founder to merge (merge commit). Agents may merge tests-only changes and Dependabot patch/minor bumps; `merge-pr.sh` and `guard-bash.sh` refuse `production` and manual deploy runs to them |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 

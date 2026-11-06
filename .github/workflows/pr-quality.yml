@@ -1,8 +1,8 @@
 # Pull-request quality gate.
 #
 # Why this exists: until 2026-08-01 the backend had NO pull-request CI at all.
-# `deploy.yml` runs the real quality job, but it is `on: push: branches: [main]`,
-# so nothing gated a PR that touched `src/**`. `ui-quality.yml` only fires on
+# `deploy.yml` runs the real quality job, but only on a push (then `main`, now
+# `production`), so nothing gated a PR that touched `src/**`. `ui-quality.yml` only fires on
 # `frontend/src/**`, so a PR changing only `frontend/package.json` also ran
 # nothing. Two dependency PRs reached "green" that way and would have broken
 # production (see #206, #252) — this workflow closes those gaps.

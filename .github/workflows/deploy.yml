@@ -1,5 +1,5 @@
 # =================================================================
-# Slops Saloon - Auto-deploy to Hostinger KVM1 on push to main
+# Slops Saloon - Deploy to Hostinger KVM1 when Justin merges the release PR
 # -----------------------------------------------------------------
 # Required GitHub secrets (Settings -> Secrets and variables -> Actions):
 #   VITE_SUPABASE_URL       - public Vite build-time Supabase URL
@@ -10,6 +10,11 @@
 # Runtime env on KVM1 lives in /opt/omen/deploy/hostinger/.env.production,
 # loaded by the compose file's env_file directive. This workflow does NOT
 # touch that file — it stays on the VPS, off git, and is managed by hand.
+#
+# When: a merge to main deploys nothing. release-pr.yml keeps one PR open from main into
+# production ("Release to production"); Justin merging it pushes production and runs this workflow.
+# The production branch is protected (PR only, no bypass), and scripts/merge-pr.sh and the guard hook
+# refuse it to agents. Merge it with "Create a merge commit" so production stays an ancestor of main.
 #
 # Flow:
 #   1. Run backend tests, audit, and frontend build checks
@@ -22,14 +27,14 @@
 #   8. Fail the workflow if health/logo smoke fails so you get a red X on GitHub
 #
 # SY0-701 4.7 / 4.8: change-management with audit trail (git history +
-# Actions run logs) and rollback (revert commit -> auto-redeploy old).
+# Actions run logs) and rollback (revert on main, then merge the release PR).
 # =================================================================
 
 name: Deploy to Hostinger KVM1
 
 on:
   push:
-    branches: [main]
+    branches: [production]
     paths-ignore:
       # Doctrine/docs/CI-config-only pushes should not rebuild images or restart KVM1.
       - ".github/workflows/**"
@@ -55,15 +60,18 @@ on:
       - "Blueprints/**"
       - "Direction/**"
       - "References/**"
-  workflow_dispatch:   # manual trigger from the Actions tab
+      - "test/**"            # tests-only releases change nothing on KVM1 (release-pr.yml reads this list)
+  workflow_dispatch:   # manual re-deploy from the Actions tab; runs only when production is chosen
 
-# Don't run two deploys at once - serialize on main.
+# Don't run two deploys at once - serialize on production.
 concurrency:
   group: deploy-kvm1
   cancel-in-progress: false
 
 jobs:
   quality:
+    # A manual run on main would ship unreleased code; build and deploy need this job, so they skip too.
+    if: github.ref == 'refs/heads/production'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -82,7 +90,7 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      # Same recorder + drift check as pr-quality.yml, so a push straight to main cannot ship a public
+      # Same recorder + drift check as pr-quality.yml, so a release cannot ship a public
       # API change that no one re-recorded and reviewed.
       - name: Run backend tests
         run: npm test
