@@ -17,6 +17,12 @@ const EXEMPT = {
   ".github": "tests read only .github/workflows, which is listed",
   ".claude": "tests read only .claude/hooks, which is listed",
   "README.md": "only as nested paths such as infra/warehouse/backup/README.md",
+  // mergePrClass and releasePr pass these names to path classifiers as sample PR files; no test reads them.
+  "CLAUDE.md": "a sample PR path in mergePrClass.test.mjs, not a file read",
+  "Cargo.lock": "a sample PR path in mergePrClass.test.mjs, not a file read",
+  "Cargo.toml": "a sample PR path in mergePrClass.test.mjs, not a file read",
+  crates: "a sample PR path in mergePrClass.test.mjs, not a file read",
+  "uv.lock": "a glob sample in releasePr.test.mjs, not a file read",
 };
 
 function triggerPaths() {
