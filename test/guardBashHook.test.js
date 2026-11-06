@@ -63,4 +63,43 @@ for (const hook of HOOKS) {
     assert.equal(run(hook, call("gh api repos/o/r/pulls/799")).status, 0);
     assert.equal(run(hook, call("gh api repos/o/r/pulls/799/merges")).status, 0);
   });
+
+  // 2026-11-05: a merge typed inside a quoted shell wrapper passed, because the merge rule wanted a space
+  // or ;&| before "gh". The REST, GraphQL and push rules are unanchored; these lock that in.
+  test(`${name}: blocks merges and pushes inside a shell wrapper or subshell`, () => {
+    for (const command of [
+      "/bin/zsh -lc 'gh pr merge 1 --merge'",
+      'bash -c "gh pr merge 1"',
+      "(gh pr merge 2)",
+      "echo $(gh pr merge 3)",
+      "echo `gh pr merge 4`",
+      "/opt/homebrew/bin/gh pr merge 5",
+      "gh\tpr\tmerge 6",
+      "gh pr -R o/r merge 7",
+      "gh pr --repo o/r merge 8",
+      "gh pr --repo=o/r merge 9",
+      "gh pr -Ro/r merge 9",
+      "gh pr \\\n  merge 9",
+      "gh pr 'mer'ge 9",
+      "g''h pr merge 9",
+      "bash -c \"zsh -lc 'gh pr merge 10'\"",
+      "bash -c 'gh api -X PUT repos/o/r/pulls/1/merge'",
+      "zsh -lc 'gh api graphql -f query=\"mutation { mergePullRequest(input:{}) { clientMutationId } }\"'",
+      "bash -c 'git push origin main'",
+      "zsh -lc 'git push origin HEAD:main'",
+      "sh -c 'git push -f origin feat'",
+      "bash -c 'git push --force origin feat'",
+    ]) {
+      assert.equal(run(hook, call(command)).status, 2, command);
+    }
+    for (const command of [
+      "bash -c 'gh pr view 1'",
+      "zsh -lc 'git push -u origin feat/x'",
+      "bash -c 'scripts/merge-pr.sh 799'",
+      "ghpr merge-notes",
+      "gh pr view 1 --json mergeable",
+    ]) {
+      assert.equal(run(hook, call(command)).status, 0, command);
+    }
+  });
 }
