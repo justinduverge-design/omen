@@ -32,9 +32,20 @@ fi
 if grep -q -- '--justin' <<<"$flat" && grep -Eq 'merge|pr\.sh' <<<"$flat"; then
   block "--justin is the founder's flag; agents merge only docs-only PRs (rules/base.md)"
 fi
-# Map rule 10: never push to main.
-if grep -Eq 'git +push\b.*\b(main|HEAD:main)\b' <<<"$cmd"; then
-  block "no pushes to main; open a PR"
+# Map rule 10: never push to main. production is what deploys; only the founder's release-PR merge moves it.
+# The branch must stand alone (origin main, HEAD:production, refs/heads/main), so claude/omen-production-notes passes.
+if grep -Eq 'git +push\b.*[[:space:]:+](refs/heads/)?(main|production)([[:space:];&|)]|$)' <<<"$flat"; then
+  block "no pushes to main or production; open a PR"
+fi
+# A manual workflow run can deploy any ref it is given (by file name, display name or id), so an agent may
+# start only release-pr.yml. The REST dispatches endpoint is refused outright.
+runs=$(grep -Eio '(^|[^[:alnum:]_.-])gh[[:space:]]+workflow[[:space:]]+run([[:space:]]|$)' <<<"$flat" | wc -l)
+allowed=$(grep -Eo '(^|[^[:alnum:]_.-])gh[[:space:]]+workflow[[:space:]]+run[[:space:]]+release-pr\.yml[[:space:]]*($|[;&|)])' <<<"$flat" | wc -l)
+if (( runs > allowed )); then
+  block "manual workflow runs can deploy; only 'gh workflow run release-pr.yml' is an agent's (deploys are the founder's)"
+fi
+if grep -Eiq '/dispatches([^[:alnum:]_]|$)' <<<"$flat"; then
+  block "no workflow dispatch through the API; deploys are the founder's"
 fi
 if grep -Eq -- '--no-verify|--force([^-]|$)|push +-f\b' <<<"$cmd"; then
   block "no --no-verify or force-push; fix the failing check instead"

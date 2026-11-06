@@ -42,7 +42,7 @@ sudo docker compose -f docker-compose.prod.yml --project-name omen up -d --no-bu
 curl -s -o /dev/null -w "%{http_code}\n" https://slopssaloon.com/api/ready
 ```
 (If the pull is refused, the GHCR login on KVM1 must be repeated by the founder; never paste a token into chat.)
-The local `:main` tag is overwritten by the next deploy, so after a fast-path rollback **also revert the bad commit on `main`** (a revert commit auto-deploys the old behaviour, per the workflow note) before anything else merges.
+The local `:main` tag is overwritten by the next deploy, so after a fast-path rollback **also revert the bad commit on `main`** and merge the "Release to production" PR (a merge into `production` deploys, per the workflow note; a merge to `main` alone deploys nothing) before anything else ships.
 
 ## Step 2: confirm
 
