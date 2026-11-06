@@ -19,6 +19,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hookio  # noqa: E402
+
 STATUS = re.compile(r"^\W*STATUS:\s*(done|blocked|budget)\b", re.I | re.M)
 
 
@@ -35,6 +38,10 @@ def last_text(event):
             try:
                 m = json.loads(line).get("message") or {}
             except ValueError:
+                continue
+            obj = json.loads(line)
+            if obj.get("type") == "PLANNER_RESPONSE" and isinstance(obj.get("content"), str):   # Antigravity
+                text = obj["content"] or text
                 continue
             if m.get("role") == "assistant" and isinstance(m.get("content"), list):
                 t = "\n".join(c.get("text", "") for c in m["content"] if c.get("type") == "text")
@@ -55,9 +62,10 @@ def decide(event, env=os.environ):
 
 if __name__ == "__main__":
     try:
-        out = decide(json.load(sys.stdin))
+        ev = hookio.read_event()
+        out = decide(ev)
     except Exception:
-        out = None
+        ev, out = {}, None
     if out:
-        print(json.dumps(out))
+        hookio.keep_going(out["reason"], ev.get("runtime") == "antigravity")
     sys.exit(0)
