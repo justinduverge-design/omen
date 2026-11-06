@@ -18,6 +18,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import hookio  # noqa: E402
+
 UNIT = {"": 1, "k": 1_000, "m": 1_000_000}
 
 
@@ -44,11 +47,15 @@ def budget(env=os.environ):
 
 
 def usage(transcript):
-    """(turns, total tokens, last context size)."""
+    """(turns, total tokens, last context size). Antigravity transcripts carry no token counts, so there
+    a turn is one PLANNER_RESPONSE step and tokens stay 0 (its format is not in Google's docs: not verified)."""
     seen, total, ctx = set(), 0, 0
     try:
         with open(transcript) as f:
             for line in f:
+                if '"PLANNER_RESPONSE"' in line:
+                    seen.add(("agy", len(seen)))
+                    continue
                 if '"usage"' not in line:
                     continue
                 try:
@@ -73,9 +80,8 @@ def main(event, env=os.environ):
     spent += [f"{total:,} of {tok_cap:,} tokens"] if tok_cap and total >= tok_cap else []
     if event.get("hook_event_name") == "PreToolUse":
         if spent:
-            print("blocked: run budget spent (" + "; ".join(spent) + "). Start nothing new. End with the report: "
-                  "what is done, what is not, the next step, and `STATUS: budget`.", file=sys.stderr)
-            return 2
+            hookio.deny("run budget spent (" + "; ".join(spent) + "). Start nothing new. End with the report: "
+                        "what is done, what is not, the next step, and `STATUS: budget`.", event.get("runtime") == "antigravity")
         return 0
     if spent:
         print("Run budget spent (" + "; ".join(spent) + "). Write the report and stop.")
@@ -89,7 +95,7 @@ def main(event, env=os.environ):
 
 if __name__ == "__main__":
     try:
-        ev = json.load(sys.stdin)
+        ev = hookio.read_event()
     except Exception:
         sys.exit(0)
     sys.exit(main(ev))
