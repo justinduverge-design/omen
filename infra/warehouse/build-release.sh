@@ -65,6 +65,9 @@ paths=(
   warehouse/verify/production_readonly.sql
 )
 git archive --format=tar "$commit" -- "${paths[@]}" | tar -xf - -C "$stage"
+# Modes are part of the release contract; git archive defaults tar.umask to 0002 (664/775), so drop group write
+# explicitly rather than depend on the caller's umask.
+chmod -R go-w "$stage"
 printf '%s\n' "$commit" > "$stage/COMMIT"
 cat > "$stage/RELEASE-CONTRACT" <<EOF
 contract_version=omen-football-warehouse-release.v1
