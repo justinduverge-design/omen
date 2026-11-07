@@ -17,6 +17,7 @@ Add each PR here as it merges (number, area, title).
 
 | PR | Area | Title |
 |---|---|---|
+| `card/b13-sight-statline` | Sight | B13-SIGHT-STATLINE (#858): design note for per-stat, four-week forecasts (Sight v3) — model, held-out backtest, scorecard and forecast-authority extension, one `SIGHT_VERSION` switch, hardware cost, open questions; docs only, nothing computed or flagged |
 | #790 | Python | Lint: clear the ruff errors on `main` |
 | #778, #791 | Dependencies | Production bumps; #778 broke `npm ci` (OpenTelemetry exporter needs `sdk-trace` 3), #791 moved `sdk-trace` to 3 |
 | #792 | Config | Figma retired: design artifacts from any of our tools; config and the native read gate |
