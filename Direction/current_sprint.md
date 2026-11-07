@@ -6,58 +6,178 @@ closed when Build 12 shipped to TestFlight 0.1.0 (12) on 2026-10-25). States: `D
 A pin in `Direction/agent_inbox.md` wins. One lane per session, each in its own worktree. Build 13 goal:
 Sight forecasts the stat line and every decision screen shows it next to the league's projection.
 
+**Plan (founder, 2026-11-07; written by Vision):** a build ships Tuesday 2026-11-10 with what is ready (Lane T);
+no date pressure after that ("we'll ship when we ship"). Then Omen gets into fantasy football itself: one
+**plays** engine (start, sit, bench, add from waivers or free agency, drop, cut, trade) built on Sight's
+stat-line forecast scored by each league's rules (Lane 1). Backend cards run on Codex (`omen.backend`), iOS
+cards on Claude (`omen.native-ui`). Merging a behaviour change and the TestFlight upload stay the founder's.
+Valor-Core's umbrella: `briefs/build-13-plan.md` (Valor-Core#62). Priorities moved on purpose: B13-DESK-P2S
+to P1 (it ships Tuesday), B13-WIN-PROB to P2 (it rides the plays screens). Older READY cards in Lanes 2 to 4
+lack `Check` and `Run budget`, so the loop skips them until each is carded.
+
 ## Lane 0: unblock (small, do first)
 
 ### B13-RUFF — clear the Python lint on main
-- **Status:** IN_PROGRESS
-- **Claim:** Claude, 2026-10-26 (PR #790)
-- **Blocked by:** FOUNDER_APPROVAL — merge #790
-- **Priority:** P0
-- **Done when:** `ruff check` and `ruff format --check` are clean on `main`.
+- **Status:** VERIFIED
+- **Evidence:** #790 merged (`build-13.md`)
 
 ### B13-YAHOO-FIXTURE — fix the stale `empty_hold_noproj` Yahoo fixture
-- **Status:** READY
-- **Blocked by:** None
-- **Priority:** P0
-- **Why:** `npm run contracts:check` fails in the cloud on its wording (found by the first Codex cloud run).
-- **Done when:** `contracts:check` passes locally and in a cloud run.
+- **Status:** VERIFIED
+- **Evidence:** #794 merged (`build-13.md`)
 
 ### B13-RECORD — Build 12 shipped, Build 13 open
-- **Status:** IN_PROGRESS
-- **Claim:** Claude, 2026-10-26 (branch `records/build-12-shipped`)
-- **Blocked by:** FOUNDER_APPROVAL — merge the records PR
-- **Priority:** P0
-- **Done when:** `build-12.md` says Shipped 2026-10-25, TestFlight 0.1.0 (12); `build-13.md` is the open package.
+- **Status:** VERIFIED
+- **Evidence:** #793 merged (`build-13.md`)
 
-## Lane 1: Sight forecasts the stat line (the goal)
+### B13-CC-PORTABLE — Omen's tests pass on Command Center
+- **Status:** READY
+- **Task:** omen.backend
+- **Blocked by:** None
+- **Priority:** P0
+- **Goal:** `npm test` passes on cc as on the Mac and CI, so agents there can trust a red test.
+- **Context:** Valor-Core `inventory/2026-11-07-cc-readiness.md`: 2 of 2851 fail on cc only.
+  `test/mergePrClass.test.mjs:50` (cc's `en_GB.UTF-8` collation orders `sort -u` output differently from JS) and
+  `test/footballWarehouseReleaseArtifact.test.js:126` (cc's umask 0002 stages files as 664; `verify-release.sh`
+  says "release file mode is invalid").
+- **Constraints:** fix where the order and the modes are made (an explicit `chmod` when staging; the test may
+  compare as sets or sort with the same rule). `scripts/merge-pr.sh` is founder-merge: if it must change
+  (`LC_ALL=C sort`), split that into its own PR. Do not change cc.
+- **Done when:** both tests pass under `LC_ALL=en_GB.UTF-8` and `umask 0002`, and still pass on CI.
+- **Check:** `umask 0002; LC_ALL=en_GB.UTF-8 node --test test/mergePrClass.test.mjs test/footballWarehouseReleaseArtifact.test.js` → 0 fail; CI green.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 80 turns, 5M tokens
+
+## Lane T: Tuesday's build (2026-11-10)
+
+What merges by Monday night ships; the rest rides the next build. The founder merges behaviour changes,
+walks the build on his phone and uploads it.
+
+### B13-DESK-P2S — the Desk's Ledger line says so when the Ledger can't load; the Desk gets "Report a problem"
+- **Status:** READY
+- **Task:** omen.native-ui
+- **Blocked by:** None
+- **Priority:** P1
+- **Goal:** the Desk never hides a failure: a Ledger that can't load says so, and the Desk has its own "Report a problem".
+- **Context:** review P2s from #770 (`build-13.md`, "Carried from Build 12").
+- **Constraints:** iOS and the server contract only; behaviour change, so founder-merge.
+- **Done when:** both fixes are on the Desk with tests.
+- **Check:** `npm test` passes; the iOS unit tests for the Desk pass in the simulator; a screenshot of each state in the PR.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
+
+### B13-PLAIN-WORDS — the Omen grade and football terms explained where they appear
+- **Status:** READY
+- **Task:** omen.native-ui
+- **Blocked by:** None
+- **Priority:** P1
+- **Goal:** a user can tap the Omen grade or a term like EPA and read, in one or two plain sentences, what it means
+  and why this player got it.
+- **Context:** `build-13.md` device-walk follow-ups ("Explain football terms such as EPA"); roadmap step 6
+  ("explain the Omen grade better"). The grade comes from Sight (`src/services/sightEnrichment.js`).
+- **Constraints:** copy from what the server already sends; no new model. Behaviour change, so founder-merge.
+- **Done when:** the grade and every abbreviated stat on the decision screens have contextual help.
+- **Check:** `npm test` passes; the iOS unit tests pass; screenshots of the help on the grade and on EPA in the PR.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
+
+### B13-TUESDAY-RECORD — Tuesday's build package
+- **Status:** READY
+- **Task:** omen.release-record
+- **Blocked by:** None
+- **Priority:** P1
+- **Goal:** on Monday 2026-11-09 the build package lists what ships Tuesday and what moved to the next build.
+- **Context:** `Direction/release/builds/build-13.md`; this lane.
+- **Constraints:** records only.
+- **Done when:** `build-13.md` names the PRs in Tuesday's build, the founder's walk checklist, and what carries over.
+- **Check:** `grep -c '^| #' Direction/release/builds/build-13.md` grows by each PR merged since #856, and the file has a
+  "Tuesday 2026-11-10" section naming the walk checklist and what carries over; a fresh-agent review says pass.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 30 turns, 1.5M tokens
+
+## Lane 1: plays (the goal; after Tuesday)
+
+Omen recommends **plays**: start, sit, bench, add (waivers or free agency), drop, cut and trade. Each play is
+ranked by the points it gains the user's team over the coming weeks, scored by the league's own rules, with
+a confidence and a one-line reason. The order is forecast → scoring → plays → screens.
 
 ### B13-SIGHT-STATLINE — per-stat forecasts for the coming weeks
 - **Status:** READY
+- **Task:** omen.backend
 - **Blocked by:** None
 - **Priority:** P1
-- **First step:** a design note (model, features, held-out scorecard)
-- **Scope:** targets, catches, rec yards; carries, rush yards; pass yards; TDs by kind. QB/RB/WR/TE first,
-  K and DEF after. Built alongside current Sight, switched once via `SIGHT_VERSION`.
-- **Done when:** a held-out scorecard per stat exists and the forecast-authority block records where Omen's
-  error beats the provider's.
+- **Goal:** Sight forecasts each player's stat line (targets, catches, rec yards; carries, rush yards; pass
+  yards; TDs by kind) for each of the coming weeks, QB/RB/WR/TE first, K and DEF after.
+- **Context:** current Sight: `src/services/footballWarehouse/sightRun.js`, `derivedStages.js`; the warehouse
+  (`warehouse/`); `Blueprints/specs/football-data/`. Decision log 2026-10-25.
+- **Constraints:** first PR is a design note (model, features, held-out weeks, scorecard), then the code. Built
+  beside the current Sight and switched once through `SIGHT_VERSION`; production flags are the founder's. No
+  paid API; no user data leaves Valor hardware.
+- **Done when:** a backtest over held-out past weeks gives a scorecard per stat and position, and the
+  forecast-authority block records where Omen's error beats the provider's.
+- **Check:** `npm test` passes, including a new scorecard test on a fixture season; the design note is merged.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
 
 ### B13-LEAGUE-SCORING — score the stat line with each league's own rules
 - **Status:** READY
+- **Task:** omen.backend
 - **Blocked by:** TASK-B13-SIGHT-STATLINE — the stat-line forecast must exist
 - **Priority:** P1
-- **Done when:** Sleeper, ESPN (incl. custom) and Yahoo rules score the forecast; Yahoo's approximate scoring is retired.
+- **Goal:** one scorer turns a stat line into fantasy points under any Sleeper, ESPN (custom included) or Yahoo league's rules.
+- **Context:** `Blueprints/specs/a6-scoring-coverage-matrix.md`; the provider capability matrix (scoring rules row).
+- **Constraints:** retire Yahoo's approximate scoring; unknown rules say so instead of guessing.
+- **Done when:** fixture leagues from all three providers score to their own published totals.
+- **Check:** `npm test` passes, with fixture leagues for each provider and a custom ESPN league.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
 
-### B13-DECISION-TABLE — season so far / Omen expects / league projection on decision screens
+### B13-PLAYS-ENGINE — one engine ranks every kind of play
 - **Status:** READY
-- **Blocked by:** TASK-B13-LEAGUE-SCORING — scored forecasts must exist (server contract first, then iOS)
+- **Task:** omen.backend
+- **Blocked by:** TASK-B13-LEAGUE-SCORING — scored forecasts must exist
 - **Priority:** P1
-- **Done when:** trade, start/sit and waivers show the table for both players in the move, labelled honestly.
+- **Goal:** for a user's team, the server returns ranked plays of every kind (start, sit, bench, add, drop,
+  cut, trade), each with the points gained over the coming weeks, a confidence and a one-line reason, and for
+  both players in a move: season so far, Omen expects and the league's projection (the decision table's contract).
+- **Context:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`, `omen-decision-engine-v2.md`,
+  `league-aware-waiver-system-v1.md`; Find a Trade's fairness guard.
+- **Constraints:** design note first; the engine reads the user's roster, lineup slots, waiver rules and the
+  league's scoring; it never weakens the trade fairness guard to make a result. Behaviour change, so founder-merge.
+- **Done when:** one endpoint returns plays of all seven kinds, with the decision-table numbers for both
+  players, for fixture leagues on all three providers.
+- **Check:** `npm test` passes, with a fixture per play kind and a contract test for the endpoint.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
+
+### B13-PLAYS-SCREENS — the app shows the plays
+- **Status:** READY
+- **Task:** omen.native-ui
+- **Blocked by:** TASK-B13-PLAYS-ENGINE and TASK-B13-WIN-PROB — the endpoints must exist
+- **Priority:** P1
+- **Goal:** the Desk leads with the week's best plays and shows win probability on its matchup bar, and trade,
+  start/sit and waivers show "season so far / Omen expects / league projection" for both players in a move.
+- **Context:** this lane; foundation spec § 9 (what the server sends).
+- **Constraints:** labelled honestly: where Sight doesn't beat the provider, the provider's number leads.
+  Behaviour change, so founder-merge.
+- **Done when:** every play kind appears on its screen with its reason, the decision table is on all three
+  screens, and the Desk's bar shows win probability instead of share of projected points.
+- **Check:** `npm test` passes; the iOS unit tests pass; simulator screenshots of each screen in the PR; then
+  "ready for device" for the founder's walk.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
 
 ### B13-WIN-PROB — win probability on the Desk cards
 - **Status:** READY
+- **Task:** omen.backend
 - **Blocked by:** TASK-B13-LEAGUE-SCORING — scored forecasts must exist
-- **Priority:** P1
-- **Done when:** the Desk bar shows win probability from Omen's forecast, replacing "share of projected points".
+- **Priority:** P2
+- **Goal:** the Desk's matchup bar shows the chance of winning from Omen's forecast, replacing "share of projected points".
+- **Context:** Build 12's bar; founder 2026-10-25.
+- **Constraints:** server first, then iOS in B13-PLAYS-SCREENS. Behaviour change, so founder-merge.
+- **Done when:** the matchup endpoint returns a win probability with its method, tested on fixture matchups.
+- **Check:** `npm test` passes, with a calibration test on past weeks.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
 
 ## Lane 2: trust and proof
 
@@ -90,7 +210,7 @@ Sight forecasts the stat line and every decision screen shows it next to the lea
 - **Priority:** P1
 - **Done when:** a forced test crash on iOS and a server error each show up within minutes.
 
-## Lane 3: product follow-ups (1.0 must-haves; after Lane 1 starts)
+## Lane 3: product follow-ups (1.0 must-haves; they feed the plays)
 
 ### B13-BUILD-TRADE-OWN-ROSTER — server contract for the user's own roster + an explicit side selector
 - **Status:** READY
@@ -103,12 +223,6 @@ Sight forecasts the stat line and every decision screen shows it next to the lea
 - **Blocked by:** None
 - **Priority:** P2
 - **Done when:** both answers are saved and shown back on the Desk.
-
-### B13-DESK-P2S — the Desk's Ledger line says so when the Ledger can't load; the Desk gets "Report a problem"
-- **Status:** READY
-- **Blocked by:** None
-- **Priority:** P2
-- **Done when:** both fixes are on the Desk with tests.
 
 ### B13-FIND-TRADE-REALISM — candidate policy when no fair swap clears the guard, without weakening fairness
 - **Status:** READY

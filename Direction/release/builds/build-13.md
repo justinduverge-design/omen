@@ -72,6 +72,7 @@ Add each PR here as it merges (number, area, title).
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 | `claude/deploy-on-release` | Guards | Merging to `main` no longer deploys: `deploy.yml` runs on `production`, and `release-pr.yml` keeps one "Release to production" PR open for the founder to merge (merge commit). Agents may merge tests-only changes and Dependabot patch/minor bumps; `merge-pr.sh` and `guard-bash.sh` refuse `production` and manual deploy runs to them |
 | #849 | Guards | Fixes `main` after #847: `prQualityPaths` exempts the sample paths the new merge and release tests name, and biome formats `scripts/release-pr.mjs` and the two tests (no logic change). The first release (#848) waits on this |
+| #856 | Records | Build 13 plan (founder, 2026-11-07): a build ships Tuesday 2026-11-10 with what is ready (Lane T: B13-DESK-P2S, B13-PLAIN-WORDS, B13-TUESDAY-RECORD), then the plays engine (Lane 1: stat-line forecast → league scoring → B13-PLAYS-ENGINE → B13-PLAYS-SCREENS, B13-WIN-PROB); Lane 0 closed; B13-CC-PORTABLE added; every new card carries Task, Check and Run budget |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 
