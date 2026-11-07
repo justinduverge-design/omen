@@ -47,7 +47,8 @@ test("test-shaped paths that are CI, migrations, rules or auth still wait", () =
     "test/CLAUDE.md",
     "scripts/checks/test/x.test.js",
   ];
-  assert.deepEqual(check("someone", "Tests", files).unsafe, [...files].sort());
+  assert.deepEqual([...check("someone", "Tests", files).unsafe].sort(), [...files].sort());
+  // Compared as sorted sets: merge-pr.sh `sort -u` follows the locale, JS sort does not.
 });
 
 test("dependabot patch and minor bumps of manifests merge alone", () => {
