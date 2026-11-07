@@ -188,20 +188,26 @@ test("a deep league finishes on its merits rather than tripping the solve cap", 
     players: deepRoster(`opp${i}`),
   }));
 
-  const budget = createSearchBudget();
-  const startedAt = Date.now();
+  // The clock is frozen so only the solve cap can trip. This test is about the amount of work,
+  // which is the same on every machine; milliseconds are not (on the Pi the real clock tripped
+  // the 2s budget mid-search, so the test failed on hardware rather than on the code).
+  const budget = createSearchBudget({ now: () => 0 });
   findTradeCandidate({ ownTeam, opponentTeams, rosterPositions: OUTAGE_SLOTS, budget });
-  const elapsed = Date.now() - startedAt;
 
   // The assertion that matters: the search ran to completion. Whether these particular rosters
   // yield a trade is not the point — being cut off before the question is answered is.
   assert.equal(
     budget.stats.exceeded,
     false,
-    `budget tripped after ${budget.stats.solves} solves in ${elapsed}ms; a 16-team league must be searchable`,
+    `budget tripped after ${budget.stats.solves} solves; a 16-team league must be searchable`,
   );
-  // And it is still nowhere near the clock, which is the limit that protects the event loop.
-  assert.ok(elapsed < 5_000, `deep-league search took ${elapsed}ms`);
+  // And the work stays small: about 7,600 solves, far below the cap that protects the event
+  // loop. A change that multiplies the work fails here on any machine, fast or slow.
+  assert.ok(budget.stats.solves > 0, "the search ran no solves");
+  assert.ok(
+    budget.stats.solves <= 20_000,
+    `deep-league search ran ${budget.stats.solves} solves; expected about 7,600`,
+  );
 });
 
 test("the exhaustive solver still reports a truncated search honestly", () => {
