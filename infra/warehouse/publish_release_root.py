@@ -55,6 +55,8 @@ FILE_MODES = {
     "infra/warehouse/monitor/status-export": 0o755,
     "infra/warehouse/monitor/status.js": 0o755,
     "infra/warehouse/monitor/sight-status.js": 0o755,
+    "infra/warehouse/monitor/sight-status.sql": 0o644,
+    "infra/warehouse/monitor/sight-status-run": 0o755,
     "infra/warehouse/monitor/omen-sight-status.service": 0o644,
     "infra/warehouse/monitor/omen-sight-status.timer": 0o644,
     "warehouse/migrations/0001_football_warehouse.sql": 0o644,

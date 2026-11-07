@@ -15,7 +15,7 @@ password or root login (`passwordauthentication no`, `permitrootlogin no`, port 
 | Where | User | Purpose |
 |---|---|---|
 | KVM1 | `omen-backup-client` | warehouse backup client to KVM2's `omen-backup` repository (key file `/var/lib/omen-backup-client/.ssh/authorized_keys`, rotated 2026-10-09) |
-| KVM1 | `omen-football-status`, `steward-status`, `sentinel-status` | read-only status export to the Pi |
+| KVM1 | `omen-football-status`, `steward-status`, `sentinel-status` | read-only status export to the Pi. `omen-football-status` holds two cc keys (2026-11-07): the witness key and `valor-sight-status@comand-center` (Valor loop board, `sight-status` only), both forced to `omen-football-status-export` |
 | KVM2 | `omen-backup`, `sentinel-status` | restic repository, status export |
 
 ## Rules

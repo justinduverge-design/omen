@@ -95,8 +95,11 @@ switch (`GET /api/version` on 127.0.0.1). It reads `football_metric_runs` in a r
 read-only session, as `status-export` does) and the ingest's own summary line from the journal. It never
 reads `football_metric_values`, a player row, user data or the env file.
 
-It follows the A4-gates pattern: `monitor/omen-sight-status.timer` runs it hourly as root with
-`--out /var/lib/omen-sight-status/status.json`, and the existing read-only `omen-football-status` channel
+It follows the A4-gates pattern: `monitor/omen-sight-status.timer` runs `monitor/sight-status-run` hourly as root.
+KVM1 has no host Node, so the runner collects the raw inputs in sh (`docker exec … psql` in a read-only session,
+`journalctl`, `curl` of the local `/api/version`) and summarizes them with `sight-status.js from-dir` inside the
+release's own pinned ingest image (`worker_image` in `RELEASE-CONTRACT`; `--network none`, read-only, `--pull never`).
+It writes `/var/lib/omen-sight-status/status.json` (or the `checker_failure` line), and the existing read-only `omen-football-status` channel
 only `cat`s that file when asked for `sight-status` (`ops/football-data/kvm1/omen-football-status-export`).
 No SSH identity gains docker, journal or database access. Command Center pulls it hourly (Valor-Core
 `ops/sight-pull`, as its own user with its own key) for the loop board.
@@ -105,7 +108,8 @@ Founder-only host steps, after the release carrying it is selected:
 
 1. Copy `infra/warehouse/monitor/omen-sight-status.service` and `.timer` from
    `/opt/omen/warehouse/current` into `/etc/systemd/system/` (mode 0644), reload systemd, enable the timer
-   and start the service once. Check: `/var/lib/omen-sight-status/status.json` is one JSON line with
+   and start the service once. Preflight: the release's `worker_image` is already pulled (the daily ingest uses
+   it; `docker image inspect` on it succeeds), since the runner never pulls. Check: `/var/lib/omen-sight-status/status.json` is one JSON line with
    `"checker_completed":true` (`"served"` stays null until the API image carrying `/api/version`'s `sight`
    block is serving).
 2. Replace the installed `omen-football-status-export` (the `command=` path in `omen-football-status`'s

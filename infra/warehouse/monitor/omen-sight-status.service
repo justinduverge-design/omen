@@ -9,7 +9,8 @@ User=root
 Group=root
 # Reads football_metric_runs read-only, the ingest's journal line, the release's compose and the API's public
 # /api/version; writes one aggregate file. The omen-football-status channel serves it as `sight-status`.
-ExecStart=/opt/omen/warehouse/current/infra/warehouse/monitor/sight-status.js --out /var/lib/omen-sight-status/status.json
+# KVM1 has no host Node: the runner summarizes inside the release's pinned ingest image (no network).
+ExecStart=/opt/omen/warehouse/current/infra/warehouse/monitor/sight-status-run
 StateDirectory=omen-sight-status
 StateDirectoryMode=0755
 TimeoutStartSec=2min

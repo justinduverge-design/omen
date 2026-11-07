@@ -1,0 +1,62 @@
+#!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+sight-status-run (KVM1, as root, by omen-sight-status.timer)
+Writes Sight's aggregate for the Valor loop board to /var/lib/omen-sight-status/status.json
+(omen-sight-status.v1). KVM1 has no host Node, so this collects the raw inputs in sh, then runs
+sight-status.js from-dir inside the release's own pinned ingest image with no network. Reads only;
+never the env file, never football_metric_values. No arguments. Exit 0 when the file is written.
+USAGE
+    exit 0 ;;
+esac
+set -eu
+
+release="${OMEN_WAREHOUSE_RELEASE:-/opt/omen/warehouse/current}"
+state_dir="${OMEN_SIGHT_STATE_DIR:-/var/lib/omen-sight-status}"
+warehouse="$release/infra/warehouse"
+failure='{"contract_version":"omen-sight-status.v1","checker_completed":false,"code":"checker_failure"}'
+
+mkdir -p "$state_dir"
+# Under the state dir, not /tmp: the unit's PrivateTmp hides /tmp from the docker daemon that mounts it.
+inputs="$(mktemp -d "$state_dir/.inputs.XXXXXX")"
+tmp="$(mktemp "$state_dir/.status.XXXXXX")"
+trap 'rm -rf "$inputs"; rm -f "$tmp"' EXIT HUP INT TERM
+
+# Each source fails on its own: a missing input file is that source failing, and the report says so.
+docker exec -i -e PGOPTIONS='-c default_transaction_read_only=on' omen_football_warehouse \
+  psql -U postgres -d omen_football -Atq < "$warehouse/monitor/sight-status.sql" > "$inputs/runs" 2>/dev/null ||
+  rm -f "$inputs/runs"
+journalctl -u omen-warehouse-ingest.service --since "-3 days" -o json \
+  --output-fields=MESSAGE,__REALTIME_TIMESTAMP --no-pager > "$inputs/journal" 2>/dev/null ||
+  rm -f "$inputs/journal"
+curl -fsS --max-time 5 http://127.0.0.1:3000/api/version > "$inputs/version" 2>/dev/null ||
+  rm -f "$inputs/version"
+
+# The release pins the image (RELEASE-CONTRACT's worker_image): the ingest's own node, already on this host.
+image="$(sed -n 's/^worker_image=//p' "$release/RELEASE-CONTRACT")"
+case "$image" in
+  ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:*) ;;
+  *) image="" ;;
+esac
+report=""
+if [ -n "$image" ]; then
+  chmod 0755 "$inputs"
+  chmod 0644 "$inputs"/* 2>/dev/null || true
+  report="$(docker run --rm --pull never --network none --read-only --cap-drop ALL \
+    --security-opt no-new-privileges --user 65534:65534 --entrypoint node \
+    -v "$warehouse:/w:ro" -v "$inputs:/in:ro" "$image" /w/monitor/sight-status.js from-dir /in 2>/dev/null)" || true
+fi
+
+# Publish only a report that is one JSON object of this contract; anything else is the failure line.
+if printf '%s' "$report" | python3 -c 'import json,sys
+r=json.loads(sys.stdin.read())
+sys.exit(0 if isinstance(r,dict) and r.get("contract_version")=="omen-sight-status.v1" and "\n" not in json.dumps(r) else 1)' 2>/dev/null; then
+  printf '%s\n' "$report" > "$tmp"
+else
+  printf '%s\n' "$failure" > "$tmp"
+fi
+chmod 0644 "$tmp"
+mv "$tmp" "$state_dir/status.json"
+trap - EXIT HUP INT TERM
+rm -rf "$inputs"

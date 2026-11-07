@@ -59,6 +59,8 @@ paths=(
   infra/warehouse/monitor/status-export
   infra/warehouse/monitor/status.js
   infra/warehouse/monitor/sight-status.js
+  infra/warehouse/monitor/sight-status.sql
+  infra/warehouse/monitor/sight-status-run
   infra/warehouse/monitor/omen-sight-status.service
   infra/warehouse/monitor/omen-sight-status.timer
   warehouse/migrations/0001_football_warehouse.sql

@@ -141,7 +141,7 @@ test("the last finished ingest comes from the journal; other lines are ignored",
 });
 
 test("collector: read-only SQL, local API only, no env file, and each source fails on its own", async () => {
-  assert.match(SQL, /^begin transaction read only;/);
+  assert.match(SQL.replace(/^--.*\n/gm, ""), /^begin transaction read only;/);
   assert.doesNotMatch(SQL, /football_metric_values|insert|update|delete/i);
   const calls = [];
   const urls = [];
@@ -261,10 +261,7 @@ test("the timer's unit runs the release's script as root into its own state dir;
   const dir = path.join(__dirname, "..", "infra", "warehouse", "monitor");
   const unit = fs.readFileSync(path.join(dir, "omen-sight-status.service"), "utf8");
   const timer = fs.readFileSync(path.join(dir, "omen-sight-status.timer"), "utf8");
-  assert.match(
-    unit,
-    /^ExecStart=\/opt\/omen\/warehouse\/current\/infra\/warehouse\/monitor\/sight-status\.js --out \/var\/lib\/omen-sight-status\/status\.json$/m,
-  );
+  assert.match(unit, /^ExecStart=\/opt\/omen\/warehouse\/current\/infra\/warehouse\/monitor\/sight-status-run$/m);
   assert.match(unit, /^StateDirectory=omen-sight-status$/m);
   assert.match(unit, /^ProtectSystem=strict$/m);
   assert.doesNotMatch(unit, /EnvironmentFile|\.env/);
@@ -274,4 +271,64 @@ test("the timer's unit runs the release's script as root into its own state dir;
   assert.match(text, /^ {2}sight-status\) exec cat \/var\/lib\/omen-sight-status\/status\.json ;;$/m);
   const refused = spawnSync("sh", [exporter], { env: { PATH: process.env.PATH, SSH_ORIGINAL_COMMAND: "sight-status; id" } });
   assert.equal(refused.status, 64);
+});
+
+// KVM1 has no host Node: the runner collects in sh and summarizes in the release's ingest image. Stub docker,
+// journalctl and curl on PATH; the stub's `docker run` maps the two read-only mounts and runs this node.
+function runner({ dockerExec = "ok", image = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:${"b".repeat(64)}`, nodeOut } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "sight-run-"));
+  const bin = path.join(root, "bin");
+  const release = path.join(root, "release");
+  const state = path.join(root, "state");
+  fs.mkdirSync(bin);
+  fs.mkdirSync(path.join(release, "infra"), { recursive: true });
+  fs.symlinkSync(path.join(__dirname, "..", "infra", "warehouse"), path.join(release, "infra", "warehouse"));
+  fs.writeFileSync(path.join(release, "RELEASE-CONTRACT"), `contract_version=x\nworker_image=${image}\n`);
+  const log = path.join(root, "calls");
+  const runs = path.join(root, "runs.json");
+  fs.writeFileSync(runs, JSON.stringify(evidence().runs));
+  const stub = (name, body) => fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
+  stub(
+    "docker",
+    `case "$1" in
+  exec) cat > /dev/null; ${dockerExec === "ok" ? `cat "${runs}"` : "exit 1"} ;;
+  run) ${nodeOut ? `printf '%s\\n' '${nodeOut}'` : `w=""; i=""; while [ $# -gt 0 ]; do case "$1" in -v) case "$2" in *:/w:ro) w="\${2%:/w:ro}";; *:/in:ro) i="\${2%:/in:ro}";; esac; shift;; esac; shift; done
+       exec "${process.execPath}" "$w/monitor/sight-status.js" from-dir "$i"`} ;;
+esac`,
+  );
+  stub("journalctl", "exit 1");
+  stub("curl", `echo '{"contract_version":"system-version.v1","sight":{"enabled":true,"version":"v2"}}'`);
+  const res = spawnSync("sh", [path.join(__dirname, "..", "infra", "warehouse", "monitor", "sight-status-run")], {
+    encoding: "utf8",
+    env: { PATH: `${bin}:${process.env.PATH}`, OMEN_WAREHOUSE_RELEASE: release, OMEN_SIGHT_STATE_DIR: state },
+  });
+  const out = { res, calls: fs.readFileSync(log, "utf8"), files: fs.readdirSync(state) };
+  out.report = JSON.parse(fs.readFileSync(path.join(state, "status.json"), "utf8"));
+  out.mode = fs.statSync(path.join(state, "status.json")).mode & 0o777;
+  fs.rmSync(root, { recursive: true, force: true });
+  return out;
+}
+
+test("runner: collects on the host, summarizes in the pinned image with no network, publishes atomically", () => {
+  const ok = runner();
+  assert.equal(ok.res.status, 0, ok.res.stderr);
+  assert.equal(ok.report.checker_completed, true);
+  assert.equal(ok.report.versions.v1.graded.season.weeks_beat, 1);
+  assert.deepEqual(ok.report.switch.served, { enabled: true, version: "v2" });
+  assert.equal(ok.report.job_error, "journal_unreadable");
+  assert.equal(ok.mode, 0o644);
+  assert.deepEqual(ok.files, ["status.json"]);
+  const run = ok.calls.split("\n").find((l) => l.startsWith("docker run"));
+  for (const flag of ["--network none", "--read-only", "--pull never", "--cap-drop ALL", "/w:ro", "/in:ro"]) assert.ok(run.includes(flag), flag);
+  assert.match(ok.calls, /docker exec -i -e PGOPTIONS=-c default_transaction_read_only=on omen_football_warehouse psql/);
+  assert.doesNotMatch(ok.calls, /\.env/);
+
+  const noDb = runner({ dockerExec: "fail" });
+  assert.equal(noDb.report.checker_completed, false);
+  assert.equal(noDb.report.db_error, "db_unreadable");
+
+  const failure = { contract_version: VERSION, checker_completed: false, code: "checker_failure" };
+  assert.deepEqual(runner({ image: "evil/image:latest" }).report, failure);
+  assert.deepEqual(runner({ nodeOut: '{"contract_version":"other"}' }).report, failure);
+  assert.deepEqual(runner({ nodeOut: "not json" }).report, failure);
 });

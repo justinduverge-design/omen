@@ -5,12 +5,15 @@
  * Sight in shadow, as one small aggregate JSON for the Valor loop board (Valor-Core ops/sight-pull).
  *
  *   sight-status.js                        collect on KVM1 and print omen-sight-status.v1
- *   sight-status.js --out FILE             collect and write it to FILE atomically (omen-sight-status.service)
+ *   sight-status.js --out FILE             collect and write it to FILE atomically
+ *   sight-status.js from-dir DIR           build the report from raw inputs sight-status-run collected into DIR
  *   sight-status.js summarize FILE NOW     summarize already-collected evidence (tests, replays)
  *
- * omen-sight-status.timer runs it as root, hourly, with --out /var/lib/omen-sight-status/status.json; the
- * read-only `omen-football-status` forced-command channel only `cat`s that file (`sight-status`), so the SSH
- * identity never gets docker, journal or database access. It reads, and only reads:
+ * KVM1 has no host Node, so on the host omen-sight-status.timer runs sight-status-run (sh, as root): it
+ * collects the raw inputs, then runs `from-dir` inside the release's own pinned ingest image with no network.
+ * It writes /var/lib/omen-sight-status/status.json; the read-only `omen-football-status` forced-command channel
+ * only `cat`s that file (`sight-status`), so no SSH identity gets docker, journal or database access.
+ * The inputs, and all it reads:
  *   - football.football_metric_runs (omen_sight, omen_sight_accuracy) in a read-only transaction, with
  *     default_transaction_read_only on for the session (as monitor/status-export does): states,
  *     weeks, error codes and the graders' per-position summaries. Never football_metric_values, never a player.
@@ -35,17 +38,8 @@ const SIGHT_VERSION = /^v[0-9]{1,3}$/;
 const POSITION = /^[A-Z]{1,4}$/;
 const MAX_WEEKS = 23;
 
-// Sight's rows for the latest season it has computed. Only run metadata and the graders' summaries leave.
-const SQL = `begin transaction read only;
-with season as (select max(season) as s from football.football_metric_runs where metric_name = 'omen_sight')
-select coalesce(json_agg(json_build_object(
-  'metric', r.metric_name, 'version', r.formula_version, 'season', r.season, 'week', r.week, 'state', r.state,
-  'finished_at', r.finished_at, 'error_code', r.error_code,
-  'positions', case when r.metric_name = 'omen_sight_accuracy' then r.parameters->'summary'->'positions' end
-) order by r.metric_name, r.formula_version, r.week), '[]'::json)
-from football.football_metric_runs r, season
-where r.metric_name in ('omen_sight', 'omen_sight_accuracy') and r.season = season.s;
-commit;`;
+// Sight's rows for the latest season it has computed (sight-status.sql, shared with sight-status-run).
+const SQL = fs.readFileSync(path.join(__dirname, "sight-status.sql"), "utf8");
 
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const int = (v) => (Number.isSafeInteger(v) ? v : null);
@@ -286,13 +280,28 @@ function writeAtomic(file, text) {
   }
 }
 
+/** collectEvidence's sources, answered from the files sight-status-run wrote; a missing file is a failed source. */
+function fromDir(dir) {
+  const read = (name) => fs.readFileSync(path.join(dir, name), "utf8");
+  return {
+    run: (cmd) => read(cmd === "docker" ? "runs" : cmd === "journalctl" ? "journal" : "unknown"),
+    fetchImpl: async () => {
+      const text = read("version");
+      return { ok: true, json: async () => JSON.parse(text) };
+    },
+  };
+}
+
 async function main(argv = process.argv.slice(2), { collect = collectEvidence } = {}) {
   let out = null;
   let line;
   try {
     let evidence;
     let options = {};
-    if (argv.length === 2 && argv[0] === "--out") {
+    if (argv.length === 2 && argv[0] === "from-dir") {
+      if (!path.isAbsolute(argv[1])) throw new Error("usage");
+      evidence = await collect(fromDir(argv[1]));
+    } else if (argv.length === 2 && argv[0] === "--out") {
       if (!path.isAbsolute(argv[1])) throw new Error("usage");
       out = argv[1];
       evidence = await collect();
@@ -325,4 +334,4 @@ async function main(argv = process.argv.slice(2), { collect = collectEvidence } 
 
 if (require.main === module) main();
 
-module.exports = { VERSION, SQL, summarize, collectEvidence, gradingSwitch, lastJob, weekGrade, main };
+module.exports = { VERSION, SQL, summarize, collectEvidence, gradingSwitch, lastJob, weekGrade, fromDir, main };
