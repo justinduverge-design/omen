@@ -132,7 +132,9 @@ be used only if the primary KVM1 runner is offline or stuck.
 - It then SSHes to KVM1 over MagicDNS/private Tailscale networking and runs the
   same pull + restart commands.
 
-Required GitHub secrets for fallback:
+Required secrets for fallback, in the GitHub `production` environment (not repo
+secrets). Only the `production` branch may use that environment, so dispatch the
+fallback from `production`:
 
 - `TS_OAUTH_CLIENT_ID`
 - `TS_OAUTH_SECRET`

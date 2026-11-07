@@ -5,8 +5,9 @@
 # unavailable. The normal path is `.github/workflows/deploy.yml`.
 #
 # Secrets of the `production` environment. Only the `production` branch
-# may use it, so dispatch this from `production`; a run from any other
-# branch stops at the deploy job and never sees them:
+# may use it, so dispatch this from `production`. A run from any other
+# branch already stops at the quality job; the environment is a second
+# barrier, so no other branch's workflow can read these:
 #   TS_OAUTH_CLIENT_ID    - Tailscale OAuth client id for GitHub Actions
 #   TS_OAUTH_SECRET       - Tailscale OAuth client secret for GitHub Actions
 #   KVM1_USER             - SSH user on KVM1, currently `justin`
