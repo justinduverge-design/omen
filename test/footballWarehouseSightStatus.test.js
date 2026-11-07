@@ -1,0 +1,204 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const test = require("node:test");
+const {
+  VERSION,
+  SQL,
+  summarize,
+  collectEvidence,
+  gradingSwitch,
+  lastJob,
+} = require("../infra/warehouse/monitor/sight-status");
+
+const NOW = Date.parse("2026-11-07T15:00:00Z");
+const SCRIPT = path.join(__dirname, "..", "infra", "warehouse", "monitor", "sight-status.js");
+
+const pos = (n, sightSame, provider) => ({
+  n: n + 4,
+  sight: { corr: 0.5, mae: 6 },
+  ppg_to_date: { corr: 0.4, mae: 7 },
+  provider: { n, corr: 0.6, mae: provider, sight_corr_same_players: 0.5, sight_mae_same_players: sightSame },
+});
+
+function evidence() {
+  return {
+    runs: [
+      { metric: "omen_sight", version: "v1", season: 2026, week: 8, state: "succeeded", finished_at: "2026-11-01T12:20:00Z" },
+      { metric: "omen_sight", version: "v1", season: 2026, week: 9, state: "succeeded", finished_at: "2026-11-06T12:21:00Z" },
+      { metric: "omen_sight", version: "v2", season: 2026, week: 9, state: "failed", finished_at: "2026-11-06T12:22:00Z", error_code: "values_invalid" },
+      {
+        metric: "omen_sight_accuracy", version: "v1", season: 2026, week: 9, state: "succeeded",
+        finished_at: "2026-11-05T12:30:00Z",
+        // 10 RBs: Sight 5 vs provider 6; 30 WRs: Sight 7 vs provider 6. Weighted: 6.5 vs 6.0.
+        positions: { RB: pos(10, 5, 6), WR: pos(30, 7, 6), player_id: { provider: { n: 1, mae: 1, sight_mae_same_players: 1 } } },
+      },
+      {
+        metric: "omen_sight_accuracy", version: "v1", season: 2026, week: 10, state: "succeeded",
+        finished_at: "2026-11-06T12:30:00Z",
+        positions: { RB: pos(10, 4, 6), QB: { n: 3, provider: { n: 2, reason: "no_stored_provider_projections" } } },
+      },
+      { metric: "omen_sight_accuracy", version: "v2", season: 2026, week: 10, state: "failed", finished_at: "2026-11-06T12:31:00Z", error_code: "Bad Code; DROP" },
+    ],
+    job: { finished_at: "2026-11-06T12:35:00.000Z", state: "succeeded", code: null, sight: { state: "succeeded", values: 900, code: null }, grading: null },
+    grading: { enabled: true, version: "v2" },
+    served: { enabled: false, version: "v1" },
+  };
+}
+
+test("summary: computed and graded weeks per version, Sight against the provider on the same players", () => {
+  const out = summarize(evidence(), { nowMs: NOW });
+  assert.equal(out.contract_version, VERSION);
+  assert.equal(out.checker_completed, true);
+  assert.equal(out.generated_at, "2026-11-07T15:00:00.000Z");
+  assert.equal(out.season, 2026);
+  assert.deepEqual(out.switch, { grading: { enabled: true, version: "v2" }, served: { enabled: false, version: "v1" }, served_error: null });
+
+  const v1 = out.versions.v1;
+  assert.deepEqual(v1.computed, { weeks: 2, latest_week: 9, latest_change_at: "2026-11-06T12:21:00.000Z", failed: [] });
+  assert.deepEqual(v1.graded.weeks, [
+    { week: 9, n: 40, sight_mae: 6.5, provider_mae: 6, beat: false },
+    { week: 10, n: 10, sight_mae: 4, provider_mae: 6, beat: true },
+  ]);
+  // (40*6.5 + 10*4) / 50 = 6.0 against (40*6 + 10*6) / 50 = 6.0
+  assert.deepEqual(v1.graded.season, { n: 50, sight_mae: 6, provider_mae: 6, weeks_compared: 2, weeks_beat: 1 });
+  assert.deepEqual(v1.graded.by_position, {
+    RB: { n: 20, sight_mae: 4.5, provider_mae: 6 },
+    WR: { n: 30, sight_mae: 7, provider_mae: 6 },
+  });
+
+  const v2 = out.versions.v2;
+  assert.deepEqual(v2.computed.failed, [{ week: 9, code: "values_invalid" }]);
+  assert.deepEqual(v2.graded.failed, [{ week: 10, code: "unrecognized" }]);
+  assert.equal(v2.graded.season, null);
+});
+
+test("summary carries no entity ids, no free text and no keys a grader didn't vouch for", () => {
+  const e = evidence();
+  e.runs.push({ metric: "omen_sight", version: "../etc", season: 2026, week: 9, state: "succeeded" });
+  e.runs.push({ metric: "omen_sight", version: "v1", season: 2026, week: 99, state: "succeeded" });
+  const text = JSON.stringify(summarize(e, { nowMs: NOW }));
+  assert.doesNotMatch(text, /player_id|DROP|\.\.\/etc|sight_corr/);
+  assert.equal(summarize(e, { nowMs: NOW }).versions.v1.computed.weeks, 2);
+});
+
+test("each missing source says so instead of passing", () => {
+  const out = summarize({ db_error: "db_unreadable", job_error: "journal_unreadable" }, { nowMs: NOW });
+  assert.equal(out.checker_completed, false);
+  assert.equal(out.db_error, "db_unreadable");
+  assert.equal(out.job, null);
+  assert.equal(out.job_error, "journal_unreadable");
+  assert.equal(out.switch.grading, null);
+  assert.equal(out.switch.served, null);
+  assert.equal(out.switch.served_error, "not_reported");
+  assert.deepEqual(out.versions, {});
+});
+
+test("the grading switch is read from this release's compose file", () => {
+  const compose = fs.readFileSync(path.join(__dirname, "..", "infra", "warehouse", "docker-compose.yml"), "utf8");
+  const parsed = gradingSwitch(compose);
+  assert.equal(typeof parsed.enabled, "boolean");
+  assert.match(parsed.version, /^v[0-9]+$/);
+  assert.deepEqual(gradingSwitch('      SIGHT_ENABLED: "false"\n'), { enabled: false, version: "v1" });
+  assert.deepEqual(gradingSwitch(""), { enabled: false, version: "v1" });
+});
+
+test("the last finished ingest comes from the journal; other lines are ignored", () => {
+  const line = (us, message) => JSON.stringify({ __REALTIME_TIMESTAMP: String(us), MESSAGE: message });
+  const job = (state, extra = {}) => JSON.stringify({ job: "football-warehouse-current-season", state, ...extra });
+  const journal = [
+    line(1762430000000000, job("succeeded", { derived: { sight: { state: "unchanged", valueCount: 0 } } })),
+    line(1762440000000000, "Starting omen-warehouse-ingest.service"),
+    line(1762450000000000, job("started")),
+    line(
+      1762516800000000,
+      job("succeeded", {
+        derived: {
+          sight: { state: "succeeded", valueCount: 812 },
+          sightAccuracy: { state: "unchanged", version: "v2", versions: { v1: { state: "unchanged", gradedWeeks: 0 }, v2: { state: "succeeded", gradedWeeks: 1 }, "x;y": {} } },
+        },
+      }),
+    ),
+    "not json",
+  ].join("\n");
+  assert.deepEqual(lastJob(journal), {
+    finished_at: "2025-11-07T12:00:00.000Z",
+    state: "succeeded",
+    code: null,
+    sight: { state: "succeeded", values: 812, code: null },
+    grading: {
+      state: "unchanged",
+      code: null,
+      versions: { v1: { state: "unchanged", graded_weeks: 0 }, v2: { state: "succeeded", graded_weeks: 1 } },
+    },
+  });
+  assert.equal(lastJob(line(1, job("failed", { code: "ingest_disabled" }))).code, "ingest_disabled");
+  assert.equal(lastJob(""), null);
+});
+
+test("collector: read-only SQL, local API only, no env file, and each source fails on its own", async () => {
+  assert.match(SQL, /^begin transaction read only;/);
+  assert.doesNotMatch(SQL, /football_metric_values|insert|update|delete/i);
+  const calls = [];
+  const urls = [];
+  const files = [];
+  const evidenceOk = await collectEvidence({
+    run: (cmd, args) => {
+      calls.push([cmd, args]);
+      if (cmd === "docker") return JSON.stringify(evidence().runs);
+      return "";
+    },
+    fetchImpl: async (url) => {
+      urls.push(url);
+      return { json: async () => ({ contract_version: "system-version.v1", sight: { enabled: true, version: "v2" } }) };
+    },
+    readFile: (p) => {
+      files.push(p);
+      return 'SIGHT_ENABLED: "true"\nSIGHT_VERSION: "v2"\n';
+    },
+  });
+  assert.equal(evidenceOk.runs.length, 6);
+  assert.equal(evidenceOk.job_error, "no_finished_ingest_in_3_days");
+  assert.deepEqual(evidenceOk.served, { enabled: true, version: "v2" });
+  assert.deepEqual(urls, ["http://127.0.0.1:3000/api/version"]);
+  assert.equal(files.length, 1);
+  assert.match(files[0], /infra[/\\]warehouse[/\\]docker-compose\.yml$/);
+  assert.deepEqual(calls.map(([c]) => c), ["docker", "journalctl"]);
+  assert.doesNotMatch(JSON.stringify([calls, files]), /\.env|password|secret|PGPASSWORD/i);
+
+  const broken = await collectEvidence({
+    run: () => {
+      throw new Error("nope");
+    },
+    fetchImpl: async () => {
+      throw new Error("down");
+    },
+    readFile: () => {
+      throw new Error("missing");
+    },
+  });
+  assert.deepEqual(broken, {
+    db_error: "db_unreadable",
+    job_error: "journal_unreadable",
+    grading: null,
+    served_error: "api_unreachable",
+  });
+  assert.equal(summarize(broken, { nowMs: NOW }).checker_completed, false);
+});
+
+test("CLI summarizes collected evidence, and fails closed on bad usage", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sight-status-"));
+  const file = path.join(dir, "evidence.json");
+  fs.writeFileSync(file, JSON.stringify(evidence()));
+  const ok = spawnSync(process.execPath, [SCRIPT, "summarize", file, "2026-11-07T15:00:00Z"], { encoding: "utf8" });
+  assert.equal(ok.status, 0);
+  assert.equal(JSON.parse(ok.stdout).versions.v1.graded.season.weeks_beat, 1);
+  const bad = spawnSync(process.execPath, [SCRIPT, "summarize", "relative.json", "now"], { encoding: "utf8" });
+  assert.equal(bad.status, 1);
+  assert.deepEqual(JSON.parse(bad.stdout), { contract_version: VERSION, checker_completed: false, code: "checker_failure" });
+  fs.rmSync(dir, { recursive: true, force: true });
+});

@@ -86,6 +86,26 @@ status-export and dispatcher patterns. A passing gate requires:
 - schema, count, receipt-chain and representative-query verification;
 - an independent Steward freshness result and Command Center alert/recovery exercise.
 
+## Sight status export (the Valor loop board)
+
+`monitor/sight-status.js` prints `omen-sight-status.v1`: per Sight version, the weeks computed and graded,
+failed runs with their codes, and Sight's error against the provider's on the same players (per graded
+week, season to date, per position), plus the grading switch (this release's compose) and the served
+switch (`GET /api/version` on 127.0.0.1). It reads `football_metric_runs` in a read-only transaction and the
+ingest's own summary line from the journal. It never reads `football_metric_values`, a player row, user
+data or the env file. Command Center pulls it hourly (Valor-Core `ops/sight-pull`) for the loop board.
+
+Founder-only host steps, after the release carrying it is selected:
+
+1. In `/usr/local/sbin/omen-status-dispatch`, add one allow-list entry beside the football status one, run
+   the same way (same user, same docker and journal access):
+   `sight-status) exec /usr/bin/node /opt/omen/warehouse/current/infra/warehouse/monitor/sight-status.js ;;`
+2. In `steward-status`'s `authorized_keys`, add Command Center's dedicated key (public half only, from
+   `~/.ssh/valor_sight_status.pub` on cc):
+   `from="100.98.81.0",restrict,command="/usr/local/sbin/omen-status-dispatch" ssh-ed25519 AAAA… valor-sight-status@comand-center`
+3. Prove: `sudo -u steward-status env SSH_ORIGINAL_COMMAND=sight-status /usr/local/sbin/omen-status-dispatch`
+   prints one JSON line with `"checker_completed":true`, and any other `SSH_ORIGINAL_COMMAND` is refused.
+
 ## Safe rollback
 
 Before read cutover, rollback means stop new warehouse work, preserve the container volume and evidence,

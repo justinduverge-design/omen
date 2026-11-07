@@ -54,6 +54,7 @@ FILE_MODES = {
     "infra/warehouse/backup/run-weekly-restore-proof.sh": 0o755,
     "infra/warehouse/monitor/status-export": 0o755,
     "infra/warehouse/monitor/status.js": 0o755,
+    "infra/warehouse/monitor/sight-status.js": 0o755,
     "warehouse/migrations/0001_football_warehouse.sql": 0o644,
     "warehouse/migrations/0002_record_migration.sh": 0o755,
     "warehouse/migrations/0003_warehouse_access_policy.sql": 0o644,
