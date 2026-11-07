@@ -4,11 +4,15 @@
 # Use this only when the primary self-hosted KVM1 deploy runner is
 # unavailable. The normal path is `.github/workflows/deploy.yml`.
 #
-# Required GitHub secrets:
+# Secrets of the `production` environment. Only the `production` branch
+# may use it, so dispatch this from `production`. A run from any other
+# branch already stops at the quality job; the environment is a second
+# barrier, so no other branch's workflow can read these:
 #   TS_OAUTH_CLIENT_ID    - Tailscale OAuth client id for GitHub Actions
 #   TS_OAUTH_SECRET       - Tailscale OAuth client secret for GitHub Actions
 #   KVM1_USER             - SSH user on KVM1, currently `justin`
 #   KVM1_SSH_KEY          - Deploy private key accepted by KVM1 sshd
+# Repo secrets (build-time values, public in the shipped bundle):
 #   VITE_SUPABASE_URL     - public Vite build-time Supabase URL
 #   VITE_SUPABASE_ANON_KEY- public Vite build-time Supabase anon key
 #   VITE_API_BASE_URL     - optional Vite API base URL override
@@ -119,6 +123,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    # The SSH key and Tailscale OAuth secrets live only in this environment.
+    environment: production
     timeout-minutes: 15
     permissions:
       contents: read

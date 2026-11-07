@@ -26,6 +26,7 @@ Add each PR here as it merges (number, area, title).
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
 | #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
+| #852 | CI | Environments card 3: the fallback deploy job reads the Tailscale and deploy-key secrets from a `production` environment limited to the `production` branch, not repo secrets; Justin creates the environment |
 | #814 | Fleet | B13-HEAL-CONSTITUTION: fleet Constitution item 1 amended per Valor-Core decision 0003 — a separate remediator may run only signed, pre-approved playbook actions; the dispatcher stays notification-only; shadow mode before live |
 | #827 | Fleet | B13-HEAL-SIGNING: the sign step strips CR, checks the secret is an OpenSSH private key and says why when it is not, and prints the signing key's fingerprint (public) |
 | #826 | Fleet | B13-HEAL-SIGNING: README records the secret's real date (the first add missed the Actions tab); this merge produces the first signed bundle |
