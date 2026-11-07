@@ -88,23 +88,36 @@ status-export and dispatcher patterns. A passing gate requires:
 
 ## Sight status export (the Valor loop board)
 
-`monitor/sight-status.js` prints `omen-sight-status.v1`: per Sight version, the weeks computed and graded,
+`monitor/sight-status.js` builds `omen-sight-status.v1`: per Sight version, the weeks computed and graded,
 failed runs with their codes, and Sight's error against the provider's on the same players (per graded
 week, season to date, per position), plus the grading switch (this release's compose) and the served
-switch (`GET /api/version` on 127.0.0.1). It reads `football_metric_runs` in a read-only transaction and the
-ingest's own summary line from the journal. It never reads `football_metric_values`, a player row, user
-data or the env file. Command Center pulls it hourly (Valor-Core `ops/sight-pull`) for the loop board.
+switch (`GET /api/version` on 127.0.0.1). It reads `football_metric_runs` in a read-only transaction (and a
+read-only session, as `status-export` does) and the ingest's own summary line from the journal. It never
+reads `football_metric_values`, a player row, user data or the env file.
+
+It follows the A4-gates pattern: `monitor/omen-sight-status.timer` runs it hourly as root with
+`--out /var/lib/omen-sight-status/status.json`, and the existing read-only `omen-football-status` channel
+only `cat`s that file when asked for `sight-status` (`ops/football-data/kvm1/omen-football-status-export`).
+No SSH identity gains docker, journal or database access. Command Center pulls it hourly (Valor-Core
+`ops/sight-pull`, as its own user with its own key) for the loop board.
 
 Founder-only host steps, after the release carrying it is selected:
 
-1. In `/usr/local/sbin/omen-status-dispatch`, add one allow-list entry beside the football status one, run
-   the same way (same user, same docker and journal access):
-   `sight-status) exec /usr/bin/node /opt/omen/warehouse/current/infra/warehouse/monitor/sight-status.js ;;`
-2. In `steward-status`'s `authorized_keys`, add Command Center's dedicated key (public half only, from
-   `~/.ssh/valor_sight_status.pub` on cc):
-   `from="100.98.81.0",restrict,command="/usr/local/sbin/omen-status-dispatch" ssh-ed25519 AAAA… valor-sight-status@comand-center`
-3. Prove: `sudo -u steward-status env SSH_ORIGINAL_COMMAND=sight-status /usr/local/sbin/omen-status-dispatch`
-   prints one JSON line with `"checker_completed":true`, and any other `SSH_ORIGINAL_COMMAND` is refused.
+1. Copy `infra/warehouse/monitor/omen-sight-status.service` and `.timer` from
+   `/opt/omen/warehouse/current` into `/etc/systemd/system/` (mode 0644), reload systemd, enable the timer
+   and start the service once. Check: `/var/lib/omen-sight-status/status.json` is one JSON line with
+   `"checker_completed":true` (`"served"` stays null until the API image carrying `/api/version`'s `sight`
+   block is serving).
+2. Replace the installed `omen-football-status-export` (the `command=` path in `omen-football-status`'s
+   `authorized_keys`) with this repo's `ops/football-data/kvm1/omen-football-status-export`, keeping its owner
+   and mode. It gains one arm: `sight-status) exec cat /var/lib/omen-sight-status/status.json ;;`.
+3. In `omen-football-status`'s `authorized_keys`, add Command Center's Valor-loop key (public half only;
+   cc's `ops/deploy/install-loop.sh` makes `~/.ssh/valor_sight_status` and prints the line) with the **same**
+   `command=` path as the existing Command Center line, plus `from="100.98.81.0"` and `restrict`:
+   `from="100.98.81.0",restrict,command="<same export path>" ssh-ed25519 AAAA… valor-sight-status@comand-center`.
+   Sentinel's `authorized_keys` posture baseline changes with it: expect one CRITICAL, then re-baseline.
+4. Prove from cc: `ssh -i ~/.ssh/valor_sight_status omen-football-status@omen-prod sight-status` prints the
+   same line, and asking for any other name exits 64.
 
 ## Safe rollback
 

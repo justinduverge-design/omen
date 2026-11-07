@@ -1,0 +1,23 @@
+[Unit]
+Description=Omen Sight status for the Valor loop board (read-only aggregate)
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+# Reads football_metric_runs read-only, the ingest's journal line, the release's compose and the API's public
+# /api/version; writes one aggregate file. The omen-football-status channel serves it as `sight-status`.
+ExecStart=/opt/omen/warehouse/current/infra/warehouse/monitor/sight-status.js --out /var/lib/omen-sight-status/status.json
+StateDirectory=omen-sight-status
+StateDirectoryMode=0755
+TimeoutStartSec=2min
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true

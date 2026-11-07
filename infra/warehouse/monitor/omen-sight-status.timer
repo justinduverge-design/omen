@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Omen Sight status for the Valor loop board
+
+[Timer]
+# Sight is computed and graded once a day by omen-warehouse-ingest (07:15 ET); hourly keeps the report's
+# generated_at fresh, so a stopped timer shows as STALE on the board instead of an old report looking current.
+OnCalendar=*-*-* *:20:00
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

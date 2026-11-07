@@ -5,10 +5,14 @@
  * Sight in shadow, as one small aggregate JSON for the Valor loop board (Valor-Core ops/sight-pull).
  *
  *   sight-status.js                        collect on KVM1 and print omen-sight-status.v1
+ *   sight-status.js --out FILE             collect and write it to FILE atomically (omen-sight-status.service)
  *   sight-status.js summarize FILE NOW     summarize already-collected evidence (tests, replays)
  *
- * The host's forced-command status dispatcher runs it as the `sight-status` export. It reads, and only reads:
- *   - football.football_metric_runs (omen_sight, omen_sight_accuracy) in a read-only transaction: states,
+ * omen-sight-status.timer runs it as root, hourly, with --out /var/lib/omen-sight-status/status.json; the
+ * read-only `omen-football-status` forced-command channel only `cat`s that file (`sight-status`), so the SSH
+ * identity never gets docker, journal or database access. It reads, and only reads:
+ *   - football.football_metric_runs (omen_sight, omen_sight_accuracy) in a read-only transaction, with
+ *     default_transaction_read_only on for the session (as monitor/status-export does): states,
  *     weeks, error codes and the graders' per-position summaries. Never football_metric_values, never a player.
  *   - the daily ingest's own summary line from the journal (derived.sight, derived.sightAccuracy: states, counts)
  *   - the grading switch from this release's docker-compose.yml (in git, not a secret)
@@ -224,7 +228,7 @@ async function collectEvidence({
   const evidence = {};
   try {
     evidence.runs = JSON.parse(
-      command(run, "docker", ["exec", CONTAINER, "psql", "-U", "postgres", "-d", "omen_football", "-Atq", "-c", SQL]),
+      command(run, "docker", ["exec", "-e", "PGOPTIONS=-c default_transaction_read_only=on", CONTAINER, "psql", "-U", "postgres", "-d", "omen_football", "-Atq", "-c", SQL]),
     );
   } catch {
     evidence.db_error = "db_unreadable";
@@ -251,37 +255,74 @@ async function collectEvidence({
   } catch {
     evidence.grading = null;
   }
+  let res;
   try {
-    const res = await fetchImpl(API_VERSION_URL, { signal: AbortSignal.timeout(5000) });
-    const body = await res.json();
-    if (body?.sight) evidence.served = body.sight;
-    else evidence.served_error = "api_does_not_report_sight";
+    res = await fetchImpl(API_VERSION_URL, { signal: AbortSignal.timeout(5000) });
   } catch {
     evidence.served_error = "api_unreachable";
+  }
+  if (res) {
+    try {
+      if (res.ok === false) throw new Error("status");
+      const body = await res.json();
+      if (body?.sight) evidence.served = body.sight;
+      else evidence.served_error = "api_does_not_report_sight";
+    } catch {
+      evidence.served_error = "api_bad_reply";
+    }
   }
   return evidence;
 }
 
-async function main(argv = process.argv.slice(2)) {
+/** Write the report beside FILE, then rename over it: a reader never sees half a report. */
+function writeAtomic(file, text) {
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}`);
+  try {
+    fs.writeFileSync(tmp, text, { mode: 0o644 });
+    fs.chmodSync(tmp, 0o644);
+    fs.renameSync(tmp, file);
+  } finally {
+    fs.rmSync(tmp, { force: true });
+  }
+}
+
+async function main(argv = process.argv.slice(2), { collect = collectEvidence } = {}) {
+  let out = null;
+  let line;
   try {
     let evidence;
     let options = {};
-    if (argv.length) {
+    if (argv.length === 2 && argv[0] === "--out") {
+      if (!path.isAbsolute(argv[1])) throw new Error("usage");
+      out = argv[1];
+      evidence = await collect();
+    } else if (argv.length) {
       if (argv.length !== 3 || argv[0] !== "summarize" || !path.isAbsolute(argv[1])) throw new Error("usage");
       const nowMs = Date.parse(argv[2]);
       if (!Number.isFinite(nowMs)) throw new Error("usage");
       evidence = JSON.parse(fs.readFileSync(argv[1], "utf8"));
       options = { nowMs };
     } else {
-      evidence = await collectEvidence();
+      evidence = await collect();
     }
-    process.stdout.write(`${JSON.stringify(summarize(evidence, options))}\n`);
+    line = `${JSON.stringify(summarize(evidence, options))}\n`;
   } catch {
-    process.stdout.write(`${JSON.stringify({ contract_version: VERSION, checker_completed: false, code: "checker_failure" })}\n`);
+    line = `${JSON.stringify({ contract_version: VERSION, checker_completed: false, code: "checker_failure" })}\n`;
+    process.exitCode = 1;
+  }
+  if (!out) {
+    process.stdout.write(line);
+    return;
+  }
+  // The failure line is written too, so the pull says "checker_failure" instead of serving an old report.
+  try {
+    writeAtomic(out, line);
+  } catch {
+    process.stderr.write("sight-status: cannot write the report\n");
     process.exitCode = 1;
   }
 }
 
 if (require.main === module) main();
 
-module.exports = { VERSION, SQL, summarize, collectEvidence, gradingSwitch, lastJob, weekGrade };
+module.exports = { VERSION, SQL, summarize, collectEvidence, gradingSwitch, lastJob, weekGrade, main };

@@ -202,3 +202,76 @@ test("CLI summarizes collected evidence, and fails closed on bad usage", () => {
   assert.deepEqual(JSON.parse(bad.stdout), { contract_version: VERSION, checker_completed: false, code: "checker_failure" });
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test("--out writes the report atomically for the timer, and writes the failure line too", async () => {
+  const { main } = require("../infra/warehouse/monitor/sight-status");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sight-out-"));
+  const file = path.join(dir, "status.json");
+  const before = process.exitCode;
+  try {
+    await main(["--out", file], { collect: async () => evidence() });
+    const report = JSON.parse(fs.readFileSync(file, "utf8"));
+    assert.equal(report.contract_version, VERSION);
+    assert.equal(report.checker_completed, true);
+    assert.equal(fs.statSync(file).mode & 0o777, 0o644);
+    assert.deepEqual(fs.readdirSync(dir), ["status.json"]);
+    await main(["--out", file], {
+      collect: async () => {
+        throw new Error("boom");
+      },
+    });
+    assert.equal(process.exitCode, 1);
+    assert.deepEqual(JSON.parse(fs.readFileSync(file, "utf8")), {
+      contract_version: VERSION,
+      checker_completed: false,
+      code: "checker_failure",
+    });
+    process.exitCode = before;
+    await main(["--out", "relative.json"], { collect: async () => evidence() });
+    assert.equal(process.exitCode, 1);
+    assert.equal(fs.existsSync("relative.json"), false);
+  } finally {
+    process.exitCode = before;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("collector: psql runs in a read-only session, and a bad API reply is not 'unreachable'", async () => {
+  const calls = [];
+  const e = await collectEvidence({
+    run: (cmd, args) => {
+      calls.push([cmd, args]);
+      return cmd === "docker" ? "[]" : "";
+    },
+    fetchImpl: async () => ({ ok: false, json: async () => ({ sight: { enabled: true, version: "v2" } }) }),
+    readFile: () => "",
+  });
+  const docker = calls.find(([c]) => c === "docker")[1];
+  assert.deepEqual(docker.slice(0, 3), ["exec", "-e", "PGOPTIONS=-c default_transaction_read_only=on"]);
+  assert.equal(e.served_error, "api_bad_reply");
+  const notJson = await collectEvidence({
+    run: () => "[]",
+    fetchImpl: async () => ({ ok: true, json: async () => JSON.parse("<html>") }),
+    readFile: () => "",
+  });
+  assert.equal(notJson.served_error, "api_bad_reply");
+});
+
+test("the timer's unit runs the release's script as root into its own state dir; the channel only cats it", () => {
+  const dir = path.join(__dirname, "..", "infra", "warehouse", "monitor");
+  const unit = fs.readFileSync(path.join(dir, "omen-sight-status.service"), "utf8");
+  const timer = fs.readFileSync(path.join(dir, "omen-sight-status.timer"), "utf8");
+  assert.match(
+    unit,
+    /^ExecStart=\/opt\/omen\/warehouse\/current\/infra\/warehouse\/monitor\/sight-status\.js --out \/var\/lib\/omen-sight-status\/status\.json$/m,
+  );
+  assert.match(unit, /^StateDirectory=omen-sight-status$/m);
+  assert.match(unit, /^ProtectSystem=strict$/m);
+  assert.doesNotMatch(unit, /EnvironmentFile|\.env/);
+  assert.match(timer, /^OnCalendar=\*-\*-\* \*:20:00$/m);
+  const exporter = path.join(__dirname, "..", "ops", "football-data", "kvm1", "omen-football-status-export");
+  const text = fs.readFileSync(exporter, "utf8");
+  assert.match(text, /^ {2}sight-status\) exec cat \/var\/lib\/omen-sight-status\/status\.json ;;$/m);
+  const refused = spawnSync("sh", [exporter], { env: { PATH: process.env.PATH, SSH_ORIGINAL_COMMAND: "sight-status; id" } });
+  assert.equal(refused.status, 64);
+});

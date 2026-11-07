@@ -3,8 +3,9 @@
 case "${1:-}" in
   -h|--help) cat <<'USAGE'
 omen-football-status-export (KVM1, forced command on the read-only status SSH key)
-Prints one state file, chosen by SSH_ORIGINAL_COMMAND: "status" (default, football status) or
-"a4-gates" (A4 gate state). Exit 0 on success, 64 for any other command.
+Prints one state file, chosen by SSH_ORIGINAL_COMMAND: "status" (default, football status),
+"a4-gates" (A4 gate state) or "sight-status" (Sight's aggregate for the Valor loop board, written
+hourly by omen-sight-status.timer). Exit 0 on success, 64 for any other command.
 USAGE
     exit 0 ;;
 esac
@@ -15,5 +16,6 @@ set -eu
 case "${SSH_ORIGINAL_COMMAND:-status}" in
   status)   exec cat /var/lib/omen-football-data/exports/status.json ;;
   a4-gates) exec cat /var/lib/omen-a4-gates/state.json ;;
+  sight-status) exec cat /var/lib/omen-sight-status/status.json ;;
   *)        exit 64 ;;
 esac
