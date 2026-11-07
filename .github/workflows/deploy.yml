@@ -174,8 +174,7 @@ jobs:
     runs-on: [self-hosted, kvm1, omen-deploy]
     needs: build
     # Only the production branch may deploy to this environment (its branch policy), so a
-    # workflow on any other branch can't get this job past GitHub. This job reads no secrets from
-    # it; the fallback workflow's SSH and Tailscale secrets live there.
+    # workflow on any other branch can't get this job past GitHub. The environment holds no secrets.
     environment: production
     timeout-minutes: 15
     permissions:
