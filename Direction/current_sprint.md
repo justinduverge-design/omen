@@ -11,7 +11,9 @@ no date pressure after that ("we'll ship when we ship"). Then Omen gets into fan
 **plays** engine (start, sit, bench, add from waivers or free agency, drop, cut, trade) built on Sight's
 stat-line forecast scored by each league's rules (Lane 1). Backend cards run on Codex (`omen.backend`), iOS
 cards on Claude (`omen.native-ui`). Merging a behaviour change and the TestFlight upload stay the founder's.
-Valor-Core's umbrella: `briefs/build-13-plan.md`.
+Valor-Core's umbrella: `briefs/build-13-plan.md` (Valor-Core#62). Priorities moved on purpose: B13-DESK-P2S
+to P1 (it ships Tuesday), B13-WIN-PROB to P2 (it rides the plays screens). Older READY cards in Lanes 2 to 4
+lack `Check` and `Run budget`, so the loop skips them until each is carded.
 
 ## Lane 0: unblock (small, do first)
 
@@ -87,7 +89,8 @@ walks the build on his phone and uploads it.
 - **Context:** `Direction/release/builds/build-13.md`; this lane.
 - **Constraints:** records only.
 - **Done when:** `build-13.md` names the PRs in Tuesday's build, the founder's walk checklist, and what carries over.
-- **Check:** `npm test` passes (the build-package tests read it).
+- **Check:** `grep -c '^| #' Direction/release/builds/build-13.md` grows by each PR merged since #856, and the file has a
+  "Tuesday 2026-11-10" section naming the walk checklist and what carries over; a fresh-agent review says pass.
 - **Stop when:** done, blocked (say why), or the budget is spent.
 - **Run budget:** 30 turns, 1.5M tokens
 
@@ -134,12 +137,14 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Blocked by:** TASK-B13-LEAGUE-SCORING — scored forecasts must exist
 - **Priority:** P1
 - **Goal:** for a user's team, the server returns ranked plays of every kind (start, sit, bench, add, drop,
-  cut, trade), each with the points gained over the coming weeks, a confidence and a one-line reason.
+  cut, trade), each with the points gained over the coming weeks, a confidence and a one-line reason, and for
+  both players in a move: season so far, Omen expects and the league's projection (the decision table's contract).
 - **Context:** `Blueprints/specs/b2-unified-omen-recommendation-layer.md`, `omen-decision-engine-v2.md`,
   `league-aware-waiver-system-v1.md`; Find a Trade's fairness guard.
 - **Constraints:** design note first; the engine reads the user's roster, lineup slots, waiver rules and the
   league's scoring; it never weakens the trade fairness guard to make a result. Behaviour change, so founder-merge.
-- **Done when:** one endpoint returns plays of all seven kinds for fixture leagues on all three providers.
+- **Done when:** one endpoint returns plays of all seven kinds, with the decision-table numbers for both
+  players, for fixture leagues on all three providers.
 - **Check:** `npm test` passes, with a fixture per play kind and a contract test for the endpoint.
 - **Stop when:** done, blocked (say why), or the budget is spent.
 - **Run budget:** 150 turns, 10M tokens
@@ -147,14 +152,15 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 ### B13-PLAYS-SCREENS — the app shows the plays
 - **Status:** READY
 - **Task:** omen.native-ui
-- **Blocked by:** TASK-B13-PLAYS-ENGINE — the endpoint must exist
+- **Blocked by:** TASK-B13-PLAYS-ENGINE and TASK-B13-WIN-PROB — the endpoints must exist
 - **Priority:** P1
-- **Goal:** the Desk leads with the week's best plays, and trade, start/sit and waivers show "season so far /
-  Omen expects / league projection" for both players in a move.
+- **Goal:** the Desk leads with the week's best plays and shows win probability on its matchup bar, and trade,
+  start/sit and waivers show "season so far / Omen expects / league projection" for both players in a move.
 - **Context:** this lane; foundation spec § 9 (what the server sends).
 - **Constraints:** labelled honestly: where Sight doesn't beat the provider, the provider's number leads.
   Behaviour change, so founder-merge.
-- **Done when:** every play kind appears on its screen with its reason, and the decision table is on all three screens.
+- **Done when:** every play kind appears on its screen with its reason, the decision table is on all three
+  screens, and the Desk's bar shows win probability instead of share of projected points.
 - **Check:** `npm test` passes; the iOS unit tests pass; simulator screenshots of each screen in the PR; then
   "ready for device" for the founder's walk.
 - **Stop when:** done, blocked (say why), or the budget is spent.
