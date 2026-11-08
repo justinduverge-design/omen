@@ -98,9 +98,9 @@ Use a GitHub Personal Access Token scoped to `read:packages`.
 
 ## Operating Mode
 
-Use the KVM1 self-hosted GitHub runner as the normal release path. Use the
-Tailscale workflow only as the manual backup path when the self-hosted runner is
-offline, stuck, or being repaired.
+Use the KVM1 self-hosted GitHub runner as the only release path. If it is
+offline or stuck, fix the runner (see "If The Runner Is Down" below); GitHub has
+no other way into KVM1.
 
 Do not go back to GitHub-hosted runner SSH over the public internet unless this
 operating mode is explicitly changed in `Direction/decision_log.md`.
@@ -122,32 +122,16 @@ operating mode is explicitly changed in `Direction/decision_log.md`.
 The deploy job does not SSH into KVM1. It is already running on KVM1 and runs
 Docker Compose locally from `/opt/omen/deploy/hostinger`.
 
-## Tailscale Fallback
+## If The Runner Is Down
 
-`.github/workflows/deploy-kvm1-tailscale-fallback.yml` is manual-only and should
-be used only if the primary KVM1 runner is offline or stuck.
+The Tailscale fallback workflow was removed on 2026-11-06 (decision log, same
+date): it kept an SSH key for KVM1 and a tailnet OAuth client in GitHub, and was
+last used on 2026-06-23. Justin reaches KVM1 from his Mac over the tailnet (his
+SSH alias `omen-prod`; Valor-Core `company/map.md` lists it), so:
 
-- KVM1 is already joined to the tailnet and has Tailscale running.
-- The fallback GitHub runner joins the tailnet using `tailscale/github-action@v4`.
-- It then SSHes to KVM1 over MagicDNS/private Tailscale networking and runs the
-  same pull + restart commands.
-
-Required GitHub secrets for fallback:
-
-- `TS_OAUTH_CLIENT_ID`
-- `TS_OAUTH_SECRET`
-- `KVM1_USER`
-- `KVM1_SSH_KEY`
-
-Required tailnet setup for fallback:
-
-- A tag such as `tag:github` owned by an admin.
-- ACLs allowing `tag:github` to reach KVM1 over SSH.
-
-Optional GitHub variable:
-
-- `KVM1_TAILSCALE_HOST` — defaults to KVM1's current MagicDNS name in the
-  fallback workflow.
+1. SSH in and restart the runner (the `@reboot` crontab entry shows the command).
+2. Re-run the failed deploy from GitHub, or follow "Manual Release Pull And
+   Restart" below.
 
 ## Manual Release Pull And Restart
 
@@ -179,8 +163,7 @@ adds HTTPS and HTTP -> HTTPS redirect behavior.
 - Public hostnames: `slopssaloon.com` and `www.slopssaloon.com`.
 - Off-box backup target for the VPS-only `.env.production` file: handled by Justin.
 - Tuesday scoring stays disabled for launch with `OMEN_CRON_SCORING_ENABLED=false`.
-- Tailscale fallback OAuth secrets are configured in GitHub repo secrets.
-- Manual Tailscale fallback deploy passed end to end on 2026-06-17.
+- 2026-11-06: the Tailscale fallback workflow is retired; its GitHub secrets get deleted.
 
 ## Remaining Guided Ops
 

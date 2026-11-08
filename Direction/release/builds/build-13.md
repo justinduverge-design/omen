@@ -17,6 +17,7 @@ Add each PR here as it merges (number, area, title).
 
 | PR | Area | Title |
 |---|---|---|
+| `card/b13-sight-statline` | Sight | B13-SIGHT-STATLINE (#858): design note for per-stat, four-week forecasts (Sight v3) — model, held-out backtest, scorecard and forecast-authority extension, one `SIGHT_VERSION` switch, hardware cost, open questions; docs only, nothing computed or flagged |
 | #790 | Python | Lint: clear the ruff errors on `main` |
 | #778, #791 | Dependencies | Production bumps; #778 broke `npm ci` (OpenTelemetry exporter needs `sdk-trace` 3), #791 moved `sdk-trace` to 3 |
 | #792 | Config | Figma retired: design artifacts from any of our tools; config and the native read gate |
@@ -26,6 +27,9 @@ Add each PR here as it merges (number, area, title).
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
 | #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
+| #852 | CI | Environments card 3: the fallback deploy job reads the Tailscale and deploy-key secrets from a `production` environment limited to the `production` branch, not repo secrets; Justin creates the environment |
+| #854 | CI | Environments card 3: the primary deploy job (KVM1 self-hosted runner) also runs in the `production` environment, so GitHub refuses it from any branch but `production`; no secret moves |
+| `claude/remove-tailscale-fallback` | CI | Environments card 3: the manual Tailscale fallback deploy workflow is removed (last used 2026-06-23), so GitHub holds no SSH key for KVM1 and no tailnet OAuth client; if the runner is down, Justin restarts it over `ssh omen-prod`. A test keeps any workflow from bringing them back |
 | #814 | Fleet | B13-HEAL-CONSTITUTION: fleet Constitution item 1 amended per Valor-Core decision 0003 — a separate remediator may run only signed, pre-approved playbook actions; the dispatcher stays notification-only; shadow mode before live |
 | #827 | Fleet | B13-HEAL-SIGNING: the sign step strips CR, checks the secret is an OpenSSH private key and says why when it is not, and prints the signing key's fingerprint (public) |
 | #826 | Fleet | B13-HEAL-SIGNING: README records the secret's real date (the first add missed the Actions tab); this merge produces the first signed bundle |
@@ -44,6 +48,7 @@ Add each PR here as it merges (number, area, title).
 | #842 | Records | POWER-PLUGS becomes one Tapo P316M strip paired over Matter (decision and playbook plan on the card); PARTS-LIST VERIFIED now that all four hardware alerts are live; hub chipset recorded |
 | #813 | Docs | Session outputs kept on record: the 2026-10-29 standards-cards handoff, the family brief draft (to move to Valor-Core), Tailwind 3→4 landing screenshots |
 | #811 | Docs | AGENTS.md drops Jules from the runtime list and the dispatched-cloud-run rule: Google ends Jules 2026-12-31 (Valor-Core #12) |
+| #851 | Config | Environments card 7: `.gitignore` also ignores lowercase `.codex/`, so Linux checkouts (cc, WSL2) ignore the local Codex hooks without an exclude line |
 | #807 | Agent guards | STANDARDS card F: CI fails a script under `scripts/` or `ops/` that does not open with a header (`scripts/checks/script-headers.js`); headers on the 29 that lacked one; stacked on card E, whose `--help` block counts as the ops scripts' header |
 | #810 | Scripts | Valor-Core `ops/refresh` lessons 1 and 2: preview-android.sh drops the dead Windows SDK and JDK defaults (set ANDROID_SDK_ROOT and JAVA_HOME), the SessionStart workspace check no longer hides its findings behind `| tail -3 \|\| true`; AGENTS.md points at Valor's fundamentals |
 | #809 | Ops | Why the Command Center Discord alerts repeat: GlitchTip stack down 9 days, posture reason text churning the signature, recall monitors flapping when the Mac sleeps; Lane 4 proposes owners, a stable signature, ack/snooze and a weekly review, all notification-only |
@@ -58,6 +63,7 @@ Add each PR here as it merges (number, area, title).
 | #799 | Guards | STANDARDS card G: the Bash guard hook fails closed when it can't read the command, and blocks merges through the REST merge endpoint (gh api, curl) and the GraphQL mutation, with a test |
 | #821 | Pi fleet | B13-HEAL-WATCHDOG: `RuntimeWatchdogSec=15s` / `RebootWatchdogSec=2min` drop-in for all three Pis, and `slops-power-check` reports `get_throttled` under-voltage bits (Command Center through the dispatcher, Steward and Sentinel through a state file) |
 | #839 | Pi fleet | B13-HEAL-SD-SYNC: weekly `rpi-clone` SSD→SD copy on Command Center that checks the SD boot line keeps `cgroup_enable=memory`; the dispatcher reports `booted-from-sd`, `ssd-missing` (the last parts-list producer) and a failed or stale copy. Repo only: deploy and the test boot from SD are the founder's |
+| #853 | Tests | Environments card 6: the deep-league trade-search test counts solves instead of milliseconds (clock frozen, ≤ 20,000 solves), so it passes on the Pi (cc) too; tests only |
 | #818 | Pi fleet | B13-HEAL-OUTSIDE-HEARTBEAT: Command Center pings a free Healthchecks.io check every 5 minutes; silence posts to Discord from outside the house. The ping URL stays on the Pi |
 | #840 | Pi fleet | Sentinel `omen-host-posture.sh` into `ops/pi-fleet/sentinel-checks/`; a confirmed WARNING drift stays in `drift_pending` so it alerts every run instead of flapping. Repo only: deploy to Sentinel is the founder's |
 | #843 | Pi fleet | Constitution item 1 amended 2026-11-03 (option (a)): a signed `power_cycle` playbook is a bounded exception (allowlisted outlets, never its own, 30–60 s, 2/day then page, shadow until B13-HEAL-LIVE). Docs only |
@@ -66,7 +72,9 @@ Add each PR here as it merges (number, area, title).
 | `claude/guard-shell-wrappers` | Guards | `guard-bash.sh` blocks a merge typed inside a quoted shell wrapper or subshell (`zsh -lc 'gh pr merge 1'`, `$(gh pr merge 1)`, `/opt/homebrew/bin/gh`, `gh pr -R o/r merge`); tests prove the REST, GraphQL and push rules already catch wrapped forms. Valor-Core's `guard.py` gets the same fix |
 | #816 | Pi fleet | B13-HEAL-PARTS-LIST: `ops/pi-fleet/PARTS.md` lists the exact power supply, SSD, SD card and cable per Pi with store options; the dispatcher appends its link to `under-voltage`, `ssd-missing` and `booted-from-sd` alerts |
 | `claude/deploy-on-release` | Guards | Merging to `main` no longer deploys: `deploy.yml` runs on `production`, and `release-pr.yml` keeps one "Release to production" PR open for the founder to merge (merge commit). Agents may merge tests-only changes and Dependabot patch/minor bumps; `merge-pr.sh` and `guard-bash.sh` refuse `production` and manual deploy runs to them |
+| #860 | Tests | B13-CC-PORTABLE: `npm test` passes on Command Center (umask 0002, en_GB.UTF-8): release builder sets umask 022, merge-class test compares sorted sets |
 | #849 | Guards | Fixes `main` after #847: `prQualityPaths` exempts the sample paths the new merge and release tests name, and biome formats `scripts/release-pr.mjs` and the two tests (no logic change). The first release (#848) waits on this |
+| #856 | Records | Build 13 plan (founder, 2026-11-07): a build ships Tuesday 2026-11-10 with what is ready (Lane T: B13-DESK-P2S, B13-PLAIN-WORDS, B13-TUESDAY-RECORD), then the plays engine (Lane 1: stat-line forecast → league scoring → B13-PLAYS-ENGINE → B13-PLAYS-SCREENS, B13-WIN-PROB); Lane 0 closed; B13-CC-PORTABLE added; every new card carries Task, Check and Run budget |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.
 

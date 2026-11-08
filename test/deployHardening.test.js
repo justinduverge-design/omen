@@ -58,18 +58,21 @@ test("deploy workflow runs a public-route visual smoke for logo regressions", ()
   assert.match(workflow, /grep -Fq "omen-horizontal-lockup-transparent\.png"/);
 });
 
-test("deploy workflows use sudo only when Compose must read the root-owned production env", () => {
-  const workflows = [
-    read(".github", "workflows", "deploy.yml"),
-    read(".github", "workflows", "deploy-kvm1-tailscale-fallback.yml"),
-  ];
+test("the deploy workflow uses sudo only when Compose must read the root-owned production env", () => {
+  const workflow = read(".github", "workflows", "deploy.yml");
 
-  for (const workflow of workflows) {
-    assert.match(
-      workflow,
-      /sudo docker compose -f docker-compose\.prod\.yml --project-name omen up -d --no-build api cron/,
-    );
-    assert.doesNotMatch(workflow, /sudo docker compose -f docker-compose\.prod\.yml --project-name omen pull api cron/);
+  assert.match(
+    workflow,
+    /sudo docker compose -f docker-compose\.prod\.yml --project-name omen up -d --no-build api cron/,
+  );
+  assert.doesNotMatch(workflow, /sudo docker compose -f docker-compose\.prod\.yml --project-name omen pull api cron/);
+});
+
+test("no workflow joins the tailnet or holds an SSH key for KVM1", () => {
+  const dir = path.join(root, ".github", "workflows");
+  for (const name of fs.readdirSync(dir)) {
+    const workflow = fs.readFileSync(path.join(dir, name), "utf8");
+    assert.doesNotMatch(workflow, /tailscale\/github-action|TS_OAUTH_|KVM1_SSH_KEY/, name);
   }
 });
 

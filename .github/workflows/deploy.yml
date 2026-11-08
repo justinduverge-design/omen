@@ -6,6 +6,7 @@
 #   VITE_SUPABASE_ANON_KEY  - public Vite build-time Supabase anon key
 #   VITE_API_BASE_URL       - optional Vite API base URL override; blank uses same-origin /api
 #   VITE_ESPN_ENABLED       - build-time flag that shows the ESPN connection UI
+# The deploy job runs in the `production` environment, which only the production branch may use.
 #
 # Runtime env on KVM1 lives in /opt/omen/deploy/hostinger/.env.production,
 # loaded by the compose file's env_file directive. This workflow does NOT
@@ -172,6 +173,9 @@ jobs:
   deploy:
     runs-on: [self-hosted, kvm1, omen-deploy]
     needs: build
+    # Only the production branch may deploy to this environment (its branch policy), so a
+    # workflow on any other branch can't get this job past GitHub. The environment holds no secrets.
+    environment: production
     timeout-minutes: 15
     permissions:
       contents: read

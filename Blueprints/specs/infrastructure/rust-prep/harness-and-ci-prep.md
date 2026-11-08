@@ -175,7 +175,6 @@ Add next to the `slops-tdd` row (line ~102) in `Slops-OS/Blueprints/skills/SKILL
 | `ai-evals.yml` | PR, dispatch | ubuntu-latest | `npm run evals:validate`, `evals:mock` | — |
 | `android-ci.yml` | push, PR | ubuntu-latest | Java, Gradle tests | UniFFI Android bindings (later) |
 | `dependency-health.yml` | schedule, dispatch, PR | ubuntu-latest | `npm audit` root and `frontend/`, prod and dev; dependency inbox | **cargo-deny, cargo-audit**; `uv` lock audit |
-| `deploy-kvm1-tailscale-fallback.yml` | dispatch | ubuntu-latest | quality (npm ci, test, audit), build, deploy over Tailscale SSH | mirror of deploy.yml changes |
 | `deploy.yml` | push to main | quality and build on ubuntu-latest; deploy on `[self-hosted, kvm1, omen-deploy]` | npm ci, test, contract compare, npm audit, image build/push, deploy | napi-rs build stage in Dockerfile (Phase 5) |
 | `docs-quality.yml` | PR | ubuntu-latest | kickoff drift, valor-brain, sprint staleness | **typos** |
 | `ios-ci.yml` | push, PR | macos-14 | Xcode tests | UniFFI Swift bindings (Phase 5) |
