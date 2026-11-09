@@ -43,5 +43,5 @@ restriction prevented this evaluation from obtaining model output. No quality, l
 
 The narration run produced three `request_failed` receipts and zero model responses. The focused shadow test
 passed. `npm test` showed failures before it stalled, and `npm run contracts:check` did not finish; both were
-interrupted in this runner and are not passes. Independent review: pass for the experiment and its documented
-blocked status; a live model evaluation is still required.
+interrupted in this runner and are not passes. A fresh review and every required CI check must pass before this
+experiment is considered ready for a live local evaluation.
