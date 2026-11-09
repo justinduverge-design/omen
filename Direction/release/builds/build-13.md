@@ -167,6 +167,8 @@ Validate this list against current source before implementation:
 
 ### Small-model work
 
+- `card/b13-small-models`: synthetic shadow receipt worker; held-out model run blocked by runner loopback `EPERM` (see `scripts/research/small-model-shadow/README.md`). No production activation.
+
 - Keep production on the currently proven model until a separate activation decision.
 - Evaluate `qwen3:1.7b`, already proven through Omen's native Ollama chat path with thinking disabled, on
   narration quality, latency, memory and failure behavior using held-out Omen prompts.
