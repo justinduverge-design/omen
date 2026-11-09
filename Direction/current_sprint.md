@@ -231,6 +231,8 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Done when:** an approved policy and Find a Trade follows it.
 
 ### B13-SMALL-MODELS — `qwen3:1.7b` narration eval + small-model background workers with shadow receipts; no production change
+- **Claim:** Codex, branch `card/b13-small-models`, 2026-11-09
+- **Evidence:** synthetic receipt worker and blocked local-host evaluation in `scripts/research/small-model-shadow/README.md`; model evaluation remains blocked by runner network sandbox (`EPERM`).
 - **Status:** READY
 - **Blocked by:** None
 - **Priority:** P2
