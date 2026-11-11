@@ -203,6 +203,8 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Priority:** P1
 - **Note:** #769 added the local Ollama summary email; prove it end to end
 - **Done when:** a report from the app arrives, privacy-safe, and the founder can close it.
+- **Check:** Run `env -u SUPPORT_NOTIFY_EMAIL -u RESEND_API_KEY node --test test/betaReports.test.js` with the mail transport stubbed. Submit a synthetic, privacy-safe in-app report through the approved support path, match its receipt to the item the founder receives, close it, and verify the same item shows closed. Record only redacted evidence.
+- **Run budget:** 150 turns, 10M tokens
 
 ### B13-ERROR-TRACKING — crashes and server errors visible again
 - **Status:** READY
@@ -216,13 +218,19 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Status:** READY
 - **Blocked by:** None
 - **Priority:** P2
+- **Evidence:** Build 12 shipped opponent-roster reads for Sleeper, ESPN and Yahoo. The Build 13 release record still calls for own-roster selection.
 - **Done when:** the user can build a trade from their own roster on all three providers.
+- **Check:** Run `node --test test/tradeRosterProviderAdapters.test.js test/tradeRosterRoute.test.js` with own-team and opponent fixtures for all three providers, then `npm run contracts:check`. In the iOS simulator, select each side explicitly and verify the offered players belong to the selected team.
+- **Run budget:** 150 turns, 10M tokens
 
 ### B13-MOVE-FOLLOWTHROUGH — "I made the move / Not this week" write route
 - **Status:** READY
 - **Blocked by:** None
 - **Priority:** P2
+- **Evidence:** The existing feedback route accepts both followed values (see `test/omenFeedbackRoute.test.js`). Build 12 deferred the Desk write and readback flow.
 - **Done when:** both answers are saved and shown back on the Desk.
+- **Check:** Run `node --test test/omenFeedbackRoute.test.js` with write/readback coverage. In the iOS simulator choose each answer on a separate fixture move, reopen the Desk, and verify each saved answer appears on its original move.
+- **Run budget:** 150 turns, 10M tokens
 
 ### B13-FIND-TRADE-REALISM — candidate policy when no fair swap clears the guard, without weakening fairness
 - **Status:** READY
@@ -231,12 +239,14 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Done when:** an approved policy and Find a Trade follows it.
 
 ### B13-SMALL-MODELS — `qwen3:1.7b` narration eval + small-model background workers with shadow receipts; no production change
-- **Claim:** Codex, branch `card/b13-small-models`, 2026-11-09
-- **Evidence:** synthetic receipt worker and blocked local-host evaluation in `scripts/research/small-model-shadow/README.md`; model evaluation remains blocked by runner network sandbox (`EPERM`).
+- **Handoff:** Codex’s `card/b13-small-models` branch landed in #871. The remaining evaluation is a manual rerun on the authorized model host.
+- **Evidence:** Merged #871 landed the synthetic shadow worker and evaluation harness. The recorded run obtained zero model responses (five host-unavailable worker receipts and three failed narration requests). Held-out model evaluation remains outstanding.
 - **Status:** READY
-- **Blocked by:** None
+- **Blocked by:** EXTERNAL — requires an authorized host with the local model reachable; the previous runner returned `EPERM`.
 - **Priority:** P2
 - **Done when:** a held-out eval and one shadow-receipt worker are recorded.
+- **Check:** On an authorized host with loopback Ollama serving `qwen3:1.7b`, run `node --test test/smallModelShadow.test.js`, then the worker and narration commands in `scripts/research/small-model-shadow/README.md`. Inspect all five classification and three narration receipts for actual model responses, record grounding, failures and latency, measure the local model runner’s memory on the host during evaluation, and have a human assess narration agreement. Keep the evaluation open if memory is unmeasured. A transport-only run leaves the evaluation open.
+- **Run budget:** 60 turns, 4M tokens
 
 ## Lane 4: alert maintenance loop (proposed 2026-10-29; findings `Direction/reviews/2026-10-29-pi-alert-repeats.md`)
 
@@ -266,25 +276,34 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Status:** READY
 - **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
 - **Priority:** P1
+- **Evidence:** #809 recorded the repeat-alert causes. The dispatcher still builds its signature from rendered lines.
 - **Done when:** the signature keys on each line's identity only (`check` + `result` for Steward/Sentinel, monitor
   name + status for Kuma, issue short_id for GlitchTip, a fixed key for stale), with reason, hours or other values shown in the body
   but not compared. The stale line no longer re-alerts hourly. A fixture test replays today's posture reason
   changes and gets one alert, not several.
+- **Check:** Run `node --test test/alertDispatcherParts.test.js` with new fixture replays for each source named above. Vary reason text and elapsed hours and expect one change alert, then change the identity or result and expect a second.
+- **Run budget:** 80 turns, 5M tokens
 
 ### B13-ALERT-SEVERITY — WARNING is not sent as CRITICAL
 - **Status:** READY
 - **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
 - **Priority:** P2
+- **Evidence:** #817 landed the owner map. The dispatcher still emits a fixed CRITICAL change header.
 - **Done when:** the header names the highest severity present. WARNING-only changes go out without the CRITICAL
   header, and appear only in the daily digest unless new.
+- **Check:** Run `node --test test/alertDispatcherParts.test.js` with new offline fixtures. A new warning sends a WARNING header, an unchanged warning appears only in the daily digest, and a mixed batch uses the highest severity.
+- **Run budget:** 80 turns, 5M tokens
 
 ### B13-ALERT-ACK — ack/snooze file the founder edits; quiet until expiry, then loud again
 - **Status:** READY
 - **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
 - **Priority:** P1
+- **Evidence:** #817 added owner and runbook annotations. The dispatcher still needs ack-file handling.
 - **Done when:** `/etc/slops-alerting/acks` (check, expiry, note) mutes a line from alerts and reminders until the
   expiry. Expired acks re-alert. The daily reminder lists acked items in one short "acknowledged" footer so nothing
   vanishes. The dispatcher only reads the file. A test covers mute, expiry, and the footer.
+- **Check:** Run `node --test test/alertDispatcherParts.test.js` with new offline dispatcher fixtures. An active ack suppresses alerts and reminders, appears once in the acknowledged footer, and re-alerts after expiry. Verify the ack file is unchanged.
+- **Run budget:** 80 turns, 5M tokens
 
 ### B13-ALERT-RECALL-SLEEP — the Mac's recall monitors stop paging every night
 - **Status:** READY
