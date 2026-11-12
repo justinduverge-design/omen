@@ -5,14 +5,14 @@
 
 ## No active pin (2026-11-12)
 
-The active queue is Build 13 in `Direction/current_sprint.md`. The founder's direction is Build 13 first
-(Valor-Core `briefs/omen-dedicated-runs.md`). Pull from the sprint.
+The active queue is Build 13 in `Direction/current_sprint.md`, as recorded in Valor-Core
+`briefs/omen-dedicated-runs.md` ("Put Build 13 first"). The founder confirms or replaces this with a new pin.
 
 ## Parked: football intelligence for the whole league (was the 2026-10-03 pin)
 
 Parked by Vision on 2026-11-12, because the pin pointed to `FI-LEAGUE` in `Direction/current_sprint.md` and that item is
-no longer there. The work is not finished: the checklist ticks A1, A2 and the first League Scheme DNA run, and
-its "Next, in order" steps and open founder questions remain. Whether to re-card it into a sprint is the
+no longer there. The work is nearly finished: the checklist's build steps 1–8 are ticked. Step 9 (phone check with the founder,
+then the beta decision) and the open founder questions remain. Whether to re-card it into a sprint is the
 founder's call. Until then, do not start it from this inbox.
 
 **Founder, 2026-10-03:** "Football intelligence should be built for the whole game so all coaches and
