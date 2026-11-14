@@ -28,23 +28,71 @@ const pos = (n, sightSame, provider) => ({
 function evidence() {
   return {
     runs: [
-      { metric: "omen_sight", version: "v1", season: 2026, week: 8, state: "succeeded", finished_at: "2026-11-01T12:20:00Z" },
-      { metric: "omen_sight", version: "v1", season: 2026, week: 9, state: "succeeded", finished_at: "2026-11-06T12:21:00Z" },
-      { metric: "omen_sight", version: "v2", season: 2026, week: 9, state: "failed", finished_at: "2026-11-06T12:22:00Z", error_code: "values_invalid" },
       {
-        metric: "omen_sight_accuracy", version: "v1", season: 2026, week: 9, state: "succeeded",
-        finished_at: "2026-11-05T12:30:00Z",
-        // 10 RBs: Sight 5 vs provider 6; 30 WRs: Sight 7 vs provider 6. Weighted: 6.5 vs 6.0.
-        positions: { RB: pos(10, 5, 6), WR: pos(30, 7, 6), player_id: { provider: { n: 1, mae: 1, sight_mae_same_players: 1 } } },
+        metric: "omen_sight",
+        version: "v1",
+        season: 2026,
+        week: 8,
+        state: "succeeded",
+        finished_at: "2026-11-01T12:20:00Z",
       },
       {
-        metric: "omen_sight_accuracy", version: "v1", season: 2026, week: 10, state: "succeeded",
+        metric: "omen_sight",
+        version: "v1",
+        season: 2026,
+        week: 9,
+        state: "succeeded",
+        finished_at: "2026-11-06T12:21:00Z",
+      },
+      {
+        metric: "omen_sight",
+        version: "v2",
+        season: 2026,
+        week: 9,
+        state: "failed",
+        finished_at: "2026-11-06T12:22:00Z",
+        error_code: "values_invalid",
+      },
+      {
+        metric: "omen_sight_accuracy",
+        version: "v1",
+        season: 2026,
+        week: 9,
+        state: "succeeded",
+        finished_at: "2026-11-05T12:30:00Z",
+        // 10 RBs: Sight 5 vs provider 6; 30 WRs: Sight 7 vs provider 6. Weighted: 6.5 vs 6.0.
+        positions: {
+          RB: pos(10, 5, 6),
+          WR: pos(30, 7, 6),
+          player_id: { provider: { n: 1, mae: 1, sight_mae_same_players: 1 } },
+        },
+      },
+      {
+        metric: "omen_sight_accuracy",
+        version: "v1",
+        season: 2026,
+        week: 10,
+        state: "succeeded",
         finished_at: "2026-11-06T12:30:00Z",
         positions: { RB: pos(10, 4, 6), QB: { n: 3, provider: { n: 2, reason: "no_stored_provider_projections" } } },
       },
-      { metric: "omen_sight_accuracy", version: "v2", season: 2026, week: 10, state: "failed", finished_at: "2026-11-06T12:31:00Z", error_code: "Bad Code; DROP" },
+      {
+        metric: "omen_sight_accuracy",
+        version: "v2",
+        season: 2026,
+        week: 10,
+        state: "failed",
+        finished_at: "2026-11-06T12:31:00Z",
+        error_code: "Bad Code; DROP",
+      },
     ],
-    job: { finished_at: "2026-11-06T12:35:00.000Z", state: "succeeded", code: null, sight: { state: "succeeded", values: 900, code: null }, grading: null },
+    job: {
+      finished_at: "2026-11-06T12:35:00.000Z",
+      state: "succeeded",
+      code: null,
+      sight: { state: "succeeded", values: 900, code: null },
+      grading: null,
+    },
     grading: { enabled: true, version: "v2" },
     served: { enabled: false, version: "v1" },
   };
@@ -56,7 +104,11 @@ test("summary: computed and graded weeks per version, Sight against the provider
   assert.equal(out.checker_completed, true);
   assert.equal(out.generated_at, "2026-11-07T15:00:00.000Z");
   assert.equal(out.season, 2026);
-  assert.deepEqual(out.switch, { grading: { enabled: true, version: "v2" }, served: { enabled: false, version: "v1" }, served_error: null });
+  assert.deepEqual(out.switch, {
+    grading: { enabled: true, version: "v2" },
+    served: { enabled: false, version: "v1" },
+    served_error: null,
+  });
 
   const v1 = out.versions.v1;
   assert.deepEqual(v1.computed, { weeks: 2, latest_week: 9, latest_change_at: "2026-11-06T12:21:00.000Z", failed: [] });
@@ -119,7 +171,15 @@ test("the last finished ingest comes from the journal; other lines are ignored",
       job("succeeded", {
         derived: {
           sight: { state: "succeeded", valueCount: 812 },
-          sightAccuracy: { state: "unchanged", version: "v2", versions: { v1: { state: "unchanged", gradedWeeks: 0 }, v2: { state: "succeeded", gradedWeeks: 1 }, "x;y": {} } },
+          sightAccuracy: {
+            state: "unchanged",
+            version: "v2",
+            versions: {
+              v1: { state: "unchanged", gradedWeeks: 0 },
+              v2: { state: "succeeded", gradedWeeks: 1 },
+              "x;y": {},
+            },
+          },
         },
       }),
     ),
@@ -167,7 +227,10 @@ test("collector: read-only SQL, local API only, no env file, and each source fai
   assert.deepEqual(urls, ["http://127.0.0.1:3000/api/version"]);
   assert.equal(files.length, 1);
   assert.match(files[0], /infra[/\\]warehouse[/\\]docker-compose\.yml$/);
-  assert.deepEqual(calls.map(([c]) => c), ["docker", "journalctl"]);
+  assert.deepEqual(
+    calls.map(([c]) => c),
+    ["docker", "journalctl"],
+  );
   assert.doesNotMatch(JSON.stringify([calls, files]), /\.env|password|secret|PGPASSWORD/i);
 
   const broken = await collectEvidence({
@@ -199,7 +262,11 @@ test("CLI summarizes collected evidence, and fails closed on bad usage", () => {
   assert.equal(JSON.parse(ok.stdout).versions.v1.graded.season.weeks_beat, 1);
   const bad = spawnSync(process.execPath, [SCRIPT, "summarize", "relative.json", "now"], { encoding: "utf8" });
   assert.equal(bad.status, 1);
-  assert.deepEqual(JSON.parse(bad.stdout), { contract_version: VERSION, checker_completed: false, code: "checker_failure" });
+  assert.deepEqual(JSON.parse(bad.stdout), {
+    contract_version: VERSION,
+    checker_completed: false,
+    code: "checker_failure",
+  });
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -269,7 +336,9 @@ test("the timer's unit runs the release's script as root into its own state dir;
   const exporter = path.join(__dirname, "..", "ops", "football-data", "kvm1", "omen-football-status-export");
   const text = fs.readFileSync(exporter, "utf8");
   assert.match(text, /^ {2}sight-status\) exec cat \/var\/lib\/omen-sight-status\/status\.json ;;$/m);
-  const refused = spawnSync("sh", [exporter], { env: { PATH: process.env.PATH, SSH_ORIGINAL_COMMAND: "sight-status; id" } });
+  const refused = spawnSync("sh", [exporter], {
+    env: { PATH: process.env.PATH, SSH_ORIGINAL_COMMAND: "sight-status; id" },
+  });
   assert.equal(refused.status, 64);
 });
 
@@ -279,8 +348,13 @@ test("the timer's unit runs the release's script as root into its own state dir;
 function exportCall(args, env = {}) {
   const exporter = path.join(__dirname, "..", "ops", "football-data", "kvm1", "omen-football-status-export");
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "status-export-"));
-  fs.writeFileSync(path.join(bin, "cat"), '#!/bin/sh\n[ "$#" -eq 0 ] && exec /bin/cat\nprintf "served %s\\n" "$*"\n', { mode: 0o755 });
-  const res = spawnSync("sh", [exporter, ...args], { encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, ...env } });
+  fs.writeFileSync(path.join(bin, "cat"), '#!/bin/sh\n[ "$#" -eq 0 ] && exec /bin/cat\nprintf "served %s\\n" "$*"\n', {
+    mode: 0o755,
+  });
+  const res = spawnSync("sh", [exporter, ...args], {
+    encoding: "utf8",
+    env: { PATH: `${bin}:${process.env.PATH}`, ...env },
+  });
   fs.rmSync(bin, { recursive: true, force: true });
   return res;
 }
@@ -299,7 +373,10 @@ test("status export: login shell takes -c, forced command takes SSH_ORIGINAL_COM
   }
   assert.equal(exportCall([]).stdout, `served ${files.status}\n`);
   // -c wins over a stray SSH_ORIGINAL_COMMAND; the login-shell path never reads it.
-  assert.equal(exportCall(["-c", "sight-status"], { SSH_ORIGINAL_COMMAND: "status" }).stdout, `served ${files["sight-status"]}\n`);
+  assert.equal(
+    exportCall(["-c", "sight-status"], { SSH_ORIGINAL_COMMAND: "status" }).stdout,
+    `served ${files["sight-status"]}\n`,
+  );
   assert.match(exportCall(["--help"]).stdout, /login shell/);
   assert.equal(exportCall(["--help"]).status, 0);
 });
@@ -333,7 +410,11 @@ test("status export: anything but exactly one known name exits 64 and serves not
 
 // KVM1 has no host Node: the runner collects in sh and summarizes in the release's ingest image. Stub docker,
 // journalctl and curl on PATH; the stub's `docker run` maps the two read-only mounts and runs this node.
-function runner({ dockerExec = "ok", image = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:${"b".repeat(64)}`, nodeOut } = {}) {
+function runner({
+  dockerExec = "ok",
+  image = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:${"b".repeat(64)}`,
+  nodeOut,
+} = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "sight-run-"));
   const bin = path.join(root, "bin");
   const release = path.join(root, "release");
@@ -345,13 +426,18 @@ function runner({ dockerExec = "ok", image = `ghcr.io/justinduverge-design/omen-
   const log = path.join(root, "calls");
   const runs = path.join(root, "runs.json");
   fs.writeFileSync(runs, JSON.stringify(evidence().runs));
-  const stub = (name, body) => fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
+  const stub = (name, body) =>
+    fs.writeFileSync(path.join(bin, name), `#!/bin/sh\necho "${name} $*" >> "${log}"\n${body}\n`, { mode: 0o755 });
   stub(
     "docker",
     `case "$1" in
   exec) cat > /dev/null; ${dockerExec === "ok" ? `cat "${runs}"` : "exit 1"} ;;
-  run) ${nodeOut ? `printf '%s\\n' '${nodeOut}'` : `w=""; i=""; while [ $# -gt 0 ]; do case "$1" in -v) case "$2" in *:/w:ro) w="\${2%:/w:ro}";; *:/in:ro) i="\${2%:/in:ro}";; esac; shift;; esac; shift; done
-       exec "${process.execPath}" "$w/monitor/sight-status.js" from-dir "$i"`} ;;
+  run) ${
+    nodeOut
+      ? `printf '%s\\n' '${nodeOut}'`
+      : `w=""; i=""; while [ $# -gt 0 ]; do case "$1" in -v) case "$2" in *:/w:ro) w="\${2%:/w:ro}";; *:/in:ro) i="\${2%:/in:ro}";; esac; shift;; esac; shift; done
+       exec "${process.execPath}" "$w/monitor/sight-status.js" from-dir "$i"`
+  } ;;
 esac`,
   );
   stub("journalctl", "exit 1");
@@ -377,8 +463,12 @@ test("runner: collects on the host, summarizes in the pinned image with no netwo
   assert.equal(ok.mode, 0o644);
   assert.deepEqual(ok.files, ["status.json"]);
   const run = ok.calls.split("\n").find((l) => l.startsWith("docker run"));
-  for (const flag of ["--network none", "--read-only", "--pull never", "--cap-drop ALL", "/w:ro", "/in:ro"]) assert.ok(run.includes(flag), flag);
-  assert.match(ok.calls, /docker exec -i -e PGOPTIONS=-c default_transaction_read_only=on omen_football_warehouse psql/);
+  for (const flag of ["--network none", "--read-only", "--pull never", "--cap-drop ALL", "/w:ro", "/in:ro"])
+    assert.ok(run.includes(flag), flag);
+  assert.match(
+    ok.calls,
+    /docker exec -i -e PGOPTIONS=-c default_transaction_read_only=on omen_football_warehouse psql/,
+  );
   assert.doesNotMatch(ok.calls, /\.env/);
 
   const noDb = runner({ dockerExec: "fail" });
