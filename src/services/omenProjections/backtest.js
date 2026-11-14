@@ -184,7 +184,8 @@ async function walkForward({
   const tests = [...new Set(testSeasons)].sort((a, b) => a - b);
   if (!tests.length) throw new TypeError("testSeasons is empty");
   const hs = [...new Set(horizons)].sort((a, b) => a - b);
-  if (!hs.length || hs.some((h) => !Number.isInteger(h) || h < 1)) throw new TypeError("horizons must be integers >= 1");
+  if (!hs.length || hs.some((h) => !Number.isInteger(h) || h < 1))
+    throw new TypeError("horizons must be integers >= 1");
   const first = tests[0] - Math.max(0, warmupSeasons);
   const last = tests[tests.length - 1];
 
@@ -734,7 +735,8 @@ function statScorecard(records, { positions = POSITIONS } = {}) {
     labels: {
       version: "statline-scorecard-v1",
       key: ["position", "stat", "horizon", "universe", "season"],
-      metrics: "mae; rmse = sqrt(mean squared error); bias = mean(predicted - actual), positive means the forecast ran high",
+      metrics:
+        "mae; rmse = sqrt(mean squared error); bias = mean(predicted - actual), positive means the forecast ran high",
       units: "the stat's own units (yards, catches, touchdowns), not fantasy points",
       conditional_on_playing: true,
       universes: {
