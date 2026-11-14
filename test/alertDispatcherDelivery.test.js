@@ -13,10 +13,17 @@ const DISPATCHER = fs.readFileSync(path.join(__dirname, "..", "ops/command-cente
 function split(message) {
   const start = DISPATCHER.indexOf("split_message() {");
   const end = DISPATCHER.indexOf("\n}\n", start) + 3;
-  const out = execFileSync("sh", ["-c", `${DISPATCHER.slice(start, end)}printf '%s' "$1" | split_message`, "sh", message], {
-    encoding: "utf8",
-  });
-  return out.trim().split("\n").map((l) => JSON.parse(l).content);
+  const out = execFileSync(
+    "sh",
+    ["-c", `${DISPATCHER.slice(start, end)}printf '%s' "$1" | split_message`, "sh", message],
+    {
+      encoding: "utf8",
+    },
+  );
+  return out
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l).content);
 }
 
 test("a short alert is one message, unchanged", () => {

@@ -61,9 +61,22 @@ for (const [shell, routes] of Object.entries(SHELLS)) {
   test(`${shell}: anything but exactly one known name exits 64 and runs nothing`, () => {
     const run = harness(shell);
     const refusedArgs = [
-      ["-c"], ["-c", ""], ["-c", "status", "extra"], ["-l"], ["-i"], ["status"], ["--login"],
-      ["-c", "status extra"], ["-c", "status; id"], ["-c", "id"], ["-c", " status"], ["-c", "status\n"],
-      ["-c", "internal-sftp"], ["-c", "/usr/lib/openssh/sftp-server"], ["-c", "scp -t /tmp"], ["-c", "bash"],
+      ["-c"],
+      ["-c", ""],
+      ["-c", "status", "extra"],
+      ["-l"],
+      ["-i"],
+      ["status"],
+      ["--login"],
+      ["-c", "status extra"],
+      ["-c", "status; id"],
+      ["-c", "id"],
+      ["-c", " status"],
+      ["-c", "status\n"],
+      ["-c", "internal-sftp"],
+      ["-c", "/usr/lib/openssh/sftp-server"],
+      ["-c", "scp -t /tmp"],
+      ["-c", "bash"],
     ];
     for (const args of refusedArgs) {
       const res = run(args);
