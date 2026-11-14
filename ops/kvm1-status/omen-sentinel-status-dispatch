@@ -1,0 +1,29 @@
+#!/bin/sh
+# --help prints this and exits before anything runs (STANDARDS card E, rule 7).
+case "${1:-}" in
+  -h|--help) cat <<'USAGE'
+omen-sentinel-status-dispatch (KVM1, login shell of the read-only sentinel-status user)
+Runs one read-only status export for Sentinel: "posture" (host posture) or "status"
+(patch state). The request comes from `-c <command>` when run as a login shell (Tailscale SSH
+runs `<shell> -c "<command>"` and sets no SSH_ORIGINAL_COMMAND), else from SSH_ORIGINAL_COMMAND
+(when run directly with no arguments), else "status". Exit 64 for anything else: another name,
+extra words, `-c` with no command, other arguments, sftp or scp.
+USAGE
+    exit 0 ;;
+esac
+set -eu
+if [ "${1:-}" = "-c" ]; then
+  # Exactly `-c <one command string>`; the string is matched whole below, never run.
+  [ "$#" -eq 2 ] && [ -n "$2" ] || exit 64
+  request="$2"
+elif [ "$#" -eq 0 ]; then
+  request="${SSH_ORIGINAL_COMMAND:-status}"
+else
+  exit 64
+fi
+dir=/usr/local/sbin
+case "$request" in
+  posture) exec "$dir/omen-host-posture-status-export" ;;
+  status)  exec "$dir/omen-host-patch-status-export" ;;
+  *)       exit 64 ;;
+esac
