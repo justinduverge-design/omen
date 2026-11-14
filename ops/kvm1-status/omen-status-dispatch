@@ -6,8 +6,8 @@ omen-status-dispatch (KVM1, login shell of the read-only steward-status user)
 Runs one read-only status export for Steward: "status" (Supabase backup freshness),
 "football-status" (football backup freshness) or "restic-status" (restic check freshness).
 The request comes from `-c <command>` when run as a login shell (Tailscale SSH runs
-`<shell> -c "<command>"` and sets no SSH_ORIGINAL_COMMAND), else from SSH_ORIGINAL_COMMAND (an
-authorized_keys forced command), else "status". Exit 64 for anything else: another name, extra
+`<shell> -c "<command>"` and sets no SSH_ORIGINAL_COMMAND), else from SSH_ORIGINAL_COMMAND (when
+run directly with no arguments), else "status". Exit 64 for anything else: another name, extra
 words, `-c` with no command, other arguments, sftp or scp.
 USAGE
     exit 0 ;;
