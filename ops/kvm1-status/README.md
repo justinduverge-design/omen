@@ -32,8 +32,11 @@ Tests: `node --test test/kvm1StatusShells.test.js`.
 
    ```bash
    cd ~/Documents/GitHub/Valor-Core/Slops-OS/slops-saloon/omen
-   scp ops/kvm1-status/omen-status-dispatch ops/kvm1-status/omen-sentinel-status-dispatch justin@omen-prod:/tmp/
+   ssh justin@omen-prod 'mkdir -m 700 -p ~/kvm1-status-stage'
+   scp ops/kvm1-status/omen-status-dispatch ops/kvm1-status/omen-sentinel-status-dispatch justin@omen-prod:kvm1-status-stage/
    ```
+
+   The files are staged in a private folder, not world-writable `/tmp`, because they become login shells.
 
 2. On omen-prod, back up and replace each dispatcher in place, keeping owner and mode, then lock each user's login
    shell to it:
@@ -42,9 +45,9 @@ Tests: `node --test test/kvm1StatusShells.test.js`.
    ssh justin@omen-prod 'set -e
    for pair in steward-status:omen-status-dispatch sentinel-status:omen-sentinel-status-dispatch; do
      u=${pair%%:*}; f=/usr/local/sbin/${pair#*:}
-     sudo cp -p "$f" "/var/backups/${pair#*:}.bak"
-     sudo install -o "$(stat -c %U "$f")" -g "$(stat -c %G "$f")" -m "$(stat -c %a "$f")" "/tmp/${pair#*:}" "$f.new"
-     sudo mv "$f.new" "$f" && rm "/tmp/${pair#*:}"
+     [ -e "/var/backups/${pair#*:}.bak" ] || sudo cp -p "$f" "/var/backups/${pair#*:}.bak"   # keep the original on a rerun
+     sudo install -o "$(stat -c %U "$f")" -g "$(stat -c %G "$f")" -m "$(stat -c %a "$f")" "$HOME/kvm1-status-stage/${pair#*:}" "$f.new"
+     sudo mv "$f.new" "$f" && rm "$HOME/kvm1-status-stage/${pair#*:}"
      grep -qx "$f" /etc/shells || echo "$f" | sudo tee -a /etc/shells >/dev/null
      sudo usermod -s "$f" "$u"
      echo "$u $(getent passwd "$u" | cut -d: -f7)"
