@@ -127,7 +127,7 @@ interactive login with arguments). There is no `authorized_keys` step.
    sudo install -o "$(stat -c %U "$f")" -g "$(stat -c %G "$f")" -m "$(stat -c %a "$f")" /tmp/omen-football-status-export.new "$f.new"
    sudo mv "$f.new" "$f" && rm /tmp/omen-football-status-export.new
    getent passwd omen-football-status | cut -d: -f7                     # expect the same path as $f
-   grep -qx "$f" /etc/shells && echo listed                             # expect: listed
+   grep -qx "$f" /etc/shells && echo listed                             # expect: listed (if not: echo "$f" | sudo tee -a /etc/shells)
    sudo -u omen-football-status "$f" -c status | head -c 80; echo       # expect the start of status.json
    sudo -u omen-football-status "$f" -c 'status; id'; echo "exit $?"    # expect: exit 64
    ```
@@ -151,7 +151,9 @@ interactive login with arguments). There is no `authorized_keys` step.
 
 4. Prove from Command Center: `ssh -i ~/.ssh/valor_sight_status omen-football-status@omen-prod sight-status`
    prints the same one line, the same call with `'sight-status extra'` exits 64, and
-   `ssh cc '~/Valor-Core/ops/sight-pull'` succeeds. The `a4-gates` reader works over the same `-c` path.
+   `ssh cc '~/Valor-Core/ops/sight-pull'` succeeds. Tailscale SSH ignores the `-i` key and admits cc by its
+   tailnet identity, so a refusal here is the tailnet policy, not the key. The `a4-gates` reader works over
+   the same `-c` path.
 5. On Sentinel, refresh omen-prod's posture baseline: the export's hash changed (expect one finding, then
    re-baseline).
 
