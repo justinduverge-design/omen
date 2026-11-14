@@ -273,6 +273,64 @@ test("the timer's unit runs the release's script as root into its own state dir;
   assert.equal(refused.status, 64);
 });
 
+// omen-prod runs Tailscale SSH, which ignores authorized_keys: the export is omen-football-status's login shell,
+// run as `<export> -c "<cmd>"` with no SSH_ORIGINAL_COMMAND. A stub `cat` on PATH reports which file it would serve
+// (with no arguments it is the real cat, for --help's heredoc).
+function exportCall(args, env = {}) {
+  const exporter = path.join(__dirname, "..", "ops", "football-data", "kvm1", "omen-football-status-export");
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), "status-export-"));
+  fs.writeFileSync(path.join(bin, "cat"), '#!/bin/sh\n[ "$#" -eq 0 ] && exec /bin/cat\nprintf "served %s\\n" "$*"\n', { mode: 0o755 });
+  const res = spawnSync("sh", [exporter, ...args], { encoding: "utf8", env: { PATH: `${bin}:${process.env.PATH}`, ...env } });
+  fs.rmSync(bin, { recursive: true, force: true });
+  return res;
+}
+
+test("status export: login shell takes -c, forced command takes SSH_ORIGINAL_COMMAND, default is status", () => {
+  const files = {
+    status: "/var/lib/omen-football-data/exports/status.json",
+    "a4-gates": "/var/lib/omen-a4-gates/state.json",
+    "sight-status": "/var/lib/omen-sight-status/status.json",
+  };
+  for (const [name, file] of Object.entries(files)) {
+    for (const res of [exportCall(["-c", name]), exportCall([], { SSH_ORIGINAL_COMMAND: name })]) {
+      assert.equal(res.status, 0, `${name}: ${res.stderr}`);
+      assert.equal(res.stdout, `served ${file}\n`);
+    }
+  }
+  assert.equal(exportCall([]).stdout, `served ${files.status}\n`);
+  // -c wins over a stray SSH_ORIGINAL_COMMAND; the login-shell path never reads it.
+  assert.equal(exportCall(["-c", "sight-status"], { SSH_ORIGINAL_COMMAND: "status" }).stdout, `served ${files["sight-status"]}\n`);
+  assert.match(exportCall(["--help"]).stdout, /login shell/);
+  assert.equal(exportCall(["--help"]).status, 0);
+});
+
+test("status export: anything but exactly one known name exits 64 and serves nothing", () => {
+  const refusals = [
+    ["-c", "sight-status extra"],
+    ["-c", "status; id"],
+    ["-c", "id"],
+    ["-c", ""],
+    ["-c"],
+    ["-c", "status", "a4-gates"],
+    ["-c", "/usr/lib/openssh/sftp-server"],
+    ["-c", "internal-sftp"],
+    ["-c", "scp -f /etc/passwd"],
+    ["-c", "scp -t /tmp"],
+    ["-l"],
+    ["status"],
+  ];
+  for (const args of refusals) {
+    const res = exportCall(args);
+    assert.equal(res.status, 64, JSON.stringify(args));
+    assert.equal(res.stdout, "", JSON.stringify(args));
+  }
+  for (const cmd of ["sight-status extra", "internal-sftp", "scp -f x", "other"]) {
+    const res = exportCall([], { SSH_ORIGINAL_COMMAND: cmd });
+    assert.equal(res.status, 64, cmd);
+    assert.equal(res.stdout, "", cmd);
+  }
+});
+
 // KVM1 has no host Node: the runner collects in sh and summarizes in the release's ingest image. Stub docker,
 // journalctl and curl on PATH; the stub's `docker run` maps the two read-only mounts and runs this node.
 function runner({ dockerExec = "ok", image = `ghcr.io/justinduverge-design/omen-warehouse-ingest@sha256:${"b".repeat(64)}`, nodeOut } = {}) {
