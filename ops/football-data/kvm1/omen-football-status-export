@@ -2,18 +2,32 @@
 # --help prints this and exits before anything runs (STANDARDS card E, rule 7).
 case "${1:-}" in
   -h|--help) cat <<'USAGE'
-omen-football-status-export (KVM1, forced command on the read-only status SSH key)
-Prints one state file, chosen by SSH_ORIGINAL_COMMAND: "status" (default, football status) or
-"a4-gates" (A4 gate state). Exit 0 on success, 64 for any other command.
+omen-football-status-export (KVM1, login shell of the read-only omen-football-status user)
+Prints one state file: "status" (default, football status), "a4-gates" (A4 gate state) or
+"sight-status" (Sight's aggregate for the Valor loop board, written hourly by omen-sight-status.timer).
+The request comes from `-c <command>` when run as a login shell (Tailscale SSH runs
+`<shell> -c "<command>"` and sets no SSH_ORIGINAL_COMMAND), else from SSH_ORIGINAL_COMMAND (an
+authorized_keys forced command), else "status". Exit 0 on success, 64 for anything else: another
+name, extra words, `-c` with no command, other arguments, sftp or scp.
 USAGE
     exit 0 ;;
 esac
 set -eu
 # Two read-only subcommands over one restricted channel. A4 gate state reuses this key,
 # user and known-hosts entry rather than provisioning a second SSH identity for one small
-# JSON file — less new surface, and the channel is already forced-command and read-only.
-case "${SSH_ORIGINAL_COMMAND:-status}" in
+# JSON file — less new surface, and the channel is read-only.
+if [ "${1:-}" = "-c" ]; then
+  # Exactly `-c <one command string>`; the string is matched whole below, never run.
+  [ "$#" -eq 2 ] && [ -n "$2" ] || exit 64
+  request="$2"
+elif [ "$#" -eq 0 ]; then
+  request="${SSH_ORIGINAL_COMMAND:-status}"
+else
+  exit 64
+fi
+case "$request" in
   status)   exec cat /var/lib/omen-football-data/exports/status.json ;;
   a4-gates) exec cat /var/lib/omen-a4-gates/state.json ;;
+  sight-status) exec cat /var/lib/omen-sight-status/status.json ;;
   *)        exit 64 ;;
 esac

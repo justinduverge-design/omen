@@ -15,7 +15,7 @@ password or root login (`passwordauthentication no`, `permitrootlogin no`, port 
 | Where | User | Purpose |
 |---|---|---|
 | KVM1 | `omen-backup-client` | warehouse backup client to KVM2's `omen-backup` repository (key file `/var/lib/omen-backup-client/.ssh/authorized_keys`, rotated 2026-10-09) |
-| KVM1 | `omen-football-status`, `steward-status`, `sentinel-status` | read-only status export to the Pi |
+| KVM1 | `omen-football-status`, `steward-status`, `sentinel-status` | read-only status export to the Pi. omen-prod runs Tailscale SSH, which ignores `authorized_keys`: the tailnet SSH policy admits `omen-football-status` (2026-11-13) and its login shell is `/usr/local/libexec/omen-football-status-export`, which serves only `status`, `a4-gates` or `sight-status` (Valor loop board). `steward-status` and `sentinel-status` still have `/bin/bash` and are not in the SSH rule |
 | KVM2 | `omen-backup`, `sentinel-status` | restic repository, status export |
 
 ## Rules

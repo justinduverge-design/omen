@@ -51,6 +51,7 @@ Backfill (`omen-warehouse-backfill*`, transient units) is manual and never overl
 | `omen-football-retry-0615` / `0645` / `0730` | Tue 06:15 / 06:45 / 07:30 ET | retry only after source loss | Pi witness monitor |
 | `omen-football-backup` | Tue 07:45 ET | football-data encrypted backup | Pi witness monitor |
 | `omen-a4-gates` | daily 09:40 UTC | evaluate Tuesday-scoring enablement gates | Pi `omen-a4-gates-pull` |
+| `omen-sight-status` | hourly at :20 | Sight's read-only aggregate for the Valor loop board (`/var/lib/omen-sight-status`) | Valor cc `valor-sight-pull`: the board turns STALE when the report is over 26 h old (no Kuma push: the board is its watcher) |
 | `omen-host-posture-collect` | every 5 min | host posture (hashes and counts only) | Pi |
 | `omen-watchdog` | every minute | restarts wedged-but-running containers | journal |
 | `omen-maintenance` | Fri 06:00 UTC | weekly updates / reboot-if-required | Beszel + Kuma |
@@ -73,6 +74,7 @@ Backfill (`omen-warehouse-backfill*`, transient units) is manual and never overl
 | `omen-football-witness-monitor` | every few minutes | compare KVM1 football-data status with the independent witness |
 | `omen-football-witness` | Tue 05:45 ET | independent football-data capture (witness) |
 | `omen-a4-gates-pull` | daily 09:55 UTC | pull scoring-gate state from KVM1 |
+| `valor-sight-pull` (user timer, Valor-Core) | hourly | pull Sight's aggregate from KVM1 for the loop board |
 | `slops-glitchtip-autoresolve` | daily 22:17 ET | auto-resolve GlitchTip issues that stopped happening |
 | `omen-maintenance` | Fri 07:00 UTC | weekly updates / reboot-if-required (last: it hosts the alerting) |
 | OS timers | OS-managed | patching and housekeeping |

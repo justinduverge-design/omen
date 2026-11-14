@@ -9,6 +9,7 @@ const { getLlmBridgeStatus } = require("../services/llm");
 const { describeSentryDsn } = require("../middleware/sentry");
 const { authenticateOmenRequest } = require("../services/omen");
 const { getCurrentNflWeekContext } = require("../services/nflSchedule");
+const { sightSettings } = require("../services/sightEnrichment");
 
 const router = express.Router();
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceKey);
@@ -66,6 +67,11 @@ router.get("/ready", async (_req, res) => {
   });
 });
 
+function publicSight() {
+  const { enabled, version } = sightSettings();
+  return { enabled, version: /^v[0-9]{1,3}$/.test(version) ? version : "unrecognized" };
+}
+
 router.get("/version", (_req, res) => {
   res.json({
     contract_version: "system-version.v1",
@@ -81,6 +87,9 @@ router.get("/version", (_req, res) => {
       null,
     build_id: process.env.GITHUB_RUN_ID || process.env.BUILD_ID || process.env.RENDER_SERVICE_ID || null,
     image_tag: process.env.IMAGE_TAG || process.env.GHCR_IMAGE_TAG || null,
+    // Which Sight the API serves: a product switch, not a secret. The Valor loop board reads it through the
+    // host's sight-status export (infra/warehouse/monitor/sight-status.js), so the env file is never read.
+    sight: publicSight(),
     generated_at: new Date().toISOString(),
   });
 });
