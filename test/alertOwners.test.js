@@ -110,7 +110,7 @@ test("headers and blanks pass through; an unknown line is tagged unmapped, never
 
 test("the dispatcher annotates at delivery only, with a bare-text fallback", () => {
   const d = fs.readFileSync(path.join(dir, "slops-alert-dispatcher"), "utf8");
-  assert.match(d, /printf '%s' "\$1" \| annotate "\$1" \| python3/);
+  assert.match(d, /printf '%s' "\$1" \| annotate "\$1" \| split_message/);   // annotated text is what gets split and sent
   assert.match(d, /slops-alert-annotate [^\n]*alert-owners\.tsv 2>\/dev\/null \|\| printf '%s' "\$1"/);
   assert.doesNotMatch(d.match(/sig="\$\(printf[^\n]+/)[0], /annotate/);
 });

@@ -37,9 +37,26 @@ webhook=/etc/slops-alerting/discord-webhook-url
 annotate() {
   /usr/local/lib/slops-alerting/slops-alert-annotate /usr/local/lib/slops-alerting/alert-owners.tsv 2>/dev/null || printf '%s' "$1"
 }
+# Discord refuses a message over 2000 characters with a 400, so every alert from 2026-11-10 failed once many
+# monitors were down (VC-ALERT-DISPATCHER-SILENT). split_message prints one JSON body per line, each at most
+# 1900 characters of text plus an "(i/n) " prefix; send posts them in order and fails if any part fails.
+split_message() {
+  python3 -c 'import json,sys
+t=sys.stdin.read(); parts=[]; cur=""
+for line in t.splitlines(True):
+    while len(line) > 1900:
+        if cur: parts.append(cur); cur=""
+        parts.append(line[:1900]); line=line[1900:]
+    if len(cur) + len(line) > 1900: parts.append(cur); cur=""
+    cur += line
+if cur or not parts: parts.append(cur)
+n=len(parts)
+for i,p in enumerate(parts): print(json.dumps({"content": ("(%d/%d) " % (i+1, n) if n > 1 else "") + p}))'
+}
 send() {
-  printf '%s' "$1" | annotate "$1" | python3 -c 'import json,sys; sys.stdout.write(json.dumps({"content": sys.stdin.read()}))' \
-    | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null
+  printf '%s' "$1" | annotate "$1" | split_message | while IFS= read -r body; do
+    printf '%s' "$body" | curl -fsS --max-time 15 -H 'Content-Type: application/json' --data-binary @- "$(cat "$webhook")" >/dev/null || exit 1
+  done
 }
 # Hardware alerts carry a link to the parts list (B13-HEAL-PARTS-LIST). Only the message gets the line;
 # the signature stays the same, so adding the link never re-sends an alert.
@@ -50,11 +67,12 @@ with_parts() {
 }
 if [ "${1:-}" = --test ]; then send 'SLOPS ALERT TEST: Discord delivery is working. No infrastructure fault was created.'; exit 0; fi
 mkdir -p /var/lib/slops-alerting
-# Read one host's state. A host that stays unreachable for 10+ minutes is reported instead of silently reading as
+# Read one host's state. The command is named explicitly: under Tailscale SSH the key's forced command is
+# ignored and a bare ssh returned nothing, so every host read as empty (2026-11-14). A host that stays unreachable for 10+ minutes is reported instead of silently reading as
 # "no data" (which looks healthy); the 10-minute grace keeps an ordinary ~90s reboot from alerting.
 read_host() {
   local h="$1" out f="/var/lib/slops-alerting/unreachable-$1"
-  out="$(sudo -u darthslops ssh -i "$key" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes darthslops@"$h" 2>/dev/null </dev/null || true)"
+  out="$(sudo -u darthslops ssh -i "$key" -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes darthslops@"$h" /usr/local/lib/slops-alerting/read-state 2>/dev/null </dev/null || true)"
   if [ -n "$out" ]; then rm -f "$f"; printf '%s\n' "$out" | awk -f /usr/local/lib/slops-alerting/label-steward-state.awk; return 0; fi
   [ -e "$f" ] || date +%s > "$f"
   if [ $(( $(date +%s) - $(cat "$f") )) -ge 600 ]; then echo "result=DOWN check=$h-unreachable reason=no_response_over_ssh_10min"; fi
