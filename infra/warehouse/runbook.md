@@ -86,6 +86,80 @@ status-export and dispatcher patterns. A passing gate requires:
 - schema, count, receipt-chain and representative-query verification;
 - an independent Steward freshness result and Command Center alert/recovery exercise.
 
+## Sight status export (the Valor loop board)
+
+`monitor/sight-status.js` builds `omen-sight-status.v1`: per Sight version, the weeks computed and graded,
+failed runs with their codes, and Sight's error against the provider's on the same players (per graded
+week, season to date, per position), plus the grading switch (this release's compose) and the served
+switch (`GET /api/version` on 127.0.0.1). It reads `football_metric_runs` in a read-only transaction (and a
+read-only session, as `status-export` does) and the ingest's own summary line from the journal. It never
+reads `football_metric_values`, a player row, user data or the env file.
+
+It follows the A4-gates pattern: `monitor/omen-sight-status.timer` runs `monitor/sight-status-run` hourly as root.
+KVM1 has no host Node, so the runner collects the raw inputs in sh (`docker exec … psql` in a read-only session,
+`journalctl`, `curl` of the local `/api/version`) and summarizes them with `sight-status.js from-dir` inside the
+release's own pinned ingest image (`worker_image` in `RELEASE-CONTRACT`; `--network none`, read-only, `--pull never`).
+It writes `/var/lib/omen-sight-status/status.json` (or the `checker_failure` line), and the existing read-only `omen-football-status` channel
+only `cat`s that file when asked for `sight-status` (`ops/football-data/kvm1/omen-football-status-export`).
+No SSH identity gains docker, journal or database access. Command Center pulls it hourly (Valor-Core
+`ops/sight-pull`, as its own user with its own key) for the loop board.
+
+Founder-only host steps, after the release carrying it is selected. omen-prod runs Tailscale SSH, which never
+reads `authorized_keys`: who may log in as `omen-football-status` is the tailnet SSH policy (Command Center's
+access was added on 2026-11-13), and what that user can do is its **login shell**, which is the export
+(`/usr/local/libexec/omen-football-status-export`), not an `authorized_keys` forced command. Tailscale SSH runs
+it as `<export> -c "<command>"` without `SSH_ORIGINAL_COMMAND`; the export takes the command from `-c`, accepts
+exactly `status`, `a4-gates` or `sight-status`, and exits 64 for anything else (extra words, sftp, scp, an
+interactive login with arguments). There is no `authorized_keys` step.
+
+1. From the Mac, at the merged commit, copy the export to the host (it is not in the release root):
+
+   ```bash
+   cd ~/Documents/GitHub/Valor-Core/Slops-OS/slops-saloon/omen
+   scp ops/football-data/kvm1/omen-football-status-export justin@omen-prod:/tmp/omen-football-status-export.new
+   ```
+
+2. On omen-prod (`ssh justin@omen-prod`), replace the installed export atomically, keeping its owner and mode,
+   and confirm the login shell still points at it:
+
+   ```bash
+   f=/usr/local/libexec/omen-football-status-export
+   sudo install -o "$(stat -c %U "$f")" -g "$(stat -c %G "$f")" -m "$(stat -c %a "$f")" /tmp/omen-football-status-export.new "$f.new"
+   sudo mv "$f.new" "$f" && rm /tmp/omen-football-status-export.new
+   getent passwd omen-football-status | cut -d: -f7                     # expect the same path as $f
+   grep -qx "$f" /etc/shells && echo listed                             # expect: listed (if not: echo "$f" | sudo tee -a /etc/shells)
+   sudo -u omen-football-status "$f" -c status | head -c 80; echo       # expect the start of status.json
+   sudo -u omen-football-status "$f" -c 'status; id'; echo "exit $?"    # expect: exit 64
+   ```
+
+3. Still on omen-prod, install the Sight timer and service from the selected release. Preflight: the release's
+   `worker_image` is already pulled (the daily ingest uses it), since the runner never pulls.
+
+   ```bash
+   r=/opt/omen/warehouse/current
+   sudo docker image inspect "$(sed -n 's/^worker_image=//p' "$r/RELEASE-CONTRACT")" > /dev/null && echo image-present
+   sudo install -o root -g root -m 0644 "$r/infra/warehouse/monitor/omen-sight-status.service" "$r/infra/warehouse/monitor/omen-sight-status.timer" /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now omen-sight-status.timer
+   sudo systemctl start omen-sight-status.service
+   wc -l < /var/lib/omen-sight-status/status.json                               # expect 1
+   grep -c '"checker_completed":true' /var/lib/omen-sight-status/status.json    # expect 1
+   systemctl list-timers omen-sight-status.timer --no-pager
+   ```
+
+   `"served"` stays null until the API image carrying `/api/version`'s `sight` block is serving.
+
+4. Prove from Command Center: `ssh -i ~/.ssh/valor_sight_status omen-football-status@omen-prod sight-status`
+   prints the same one line, the same call with `'sight-status extra'` exits 64, and
+   `ssh cc '~/Valor-Core/ops/sight-pull'` succeeds. Tailscale SSH ignores the `-i` key and admits cc by its
+   tailnet identity, so a refusal here is the tailnet policy, not the key. The `a4-gates` reader works over
+   the same `-c` path.
+5. On Sentinel, refresh omen-prod's posture baseline: the export's hash changed (expect one finding, then
+   re-baseline).
+
+`steward-status` and `sentinel-status` still have `/bin/bash` as their login shell. They are not in the tailnet
+SSH rule today; lock each to its own export the same way before adding it, or the rule grants a full shell.
+
 ## Safe rollback
 
 Before read cutover, rollback means stop new warehouse work, preserve the container volume and evidence,

@@ -17,6 +17,8 @@ Add each PR here as it merges (number, area, title).
 
 | PR | Area | Title |
 |---|---|---|
+| #873 | Sprint | Reconciled seven Build 13 cards and recorded their acceptance checks and run budgets. |
+| #874 | Inbox | Parked the stale FI-LEAGUE pin (its sprint item was gone) so the Build 13 sprint is the queue; re-carding is the founder's call. |
 | `card/b13-sight-statline` | Sight | B13-SIGHT-STATLINE (#858): design note for per-stat, four-week forecasts (Sight v3) — model, held-out backtest, scorecard and forecast-authority extension, one `SIGHT_VERSION` switch, hardware cost, open questions; docs only, nothing computed or flagged |
 | #790 | Python | Lint: clear the ruff errors on `main` |
 | #778, #791 | Dependencies | Production bumps; #778 broke `npm ci` (OpenTelemetry exporter needs `sdk-trace` 3), #791 moved `sdk-trace` to 3 |
@@ -30,6 +32,7 @@ Add each PR here as it merges (number, area, title).
 | #852 | CI | Environments card 3: the fallback deploy job reads the Tailscale and deploy-key secrets from a `production` environment limited to the `production` branch, not repo secrets; Justin creates the environment |
 | #854 | CI | Environments card 3: the primary deploy job (KVM1 self-hosted runner) also runs in the `production` environment, so GitHub refuses it from any branch but `production`; no secret moves |
 | `claude/remove-tailscale-fallback` | CI | Environments card 3: the manual Tailscale fallback deploy workflow is removed (last used 2026-06-23), so GitHub holds no SSH key for KVM1 and no tailnet OAuth client; if the runner is down, Justin restarts it over `ssh omen-prod`. A test keeps any workflow from bringing them back |
+| `claude/sight-status-export` | Warehouse | Sight in shadow on the Valor loop board: `monitor/sight-status.js` (read-only aggregate of Sight runs and grades, no player rows) written hourly by `omen-sight-status.timer` and served as `sight-status` by the existing read-only `omen-football-status` channel (no SSH identity gains docker or journal access); the export now works as that user's login shell under Tailscale SSH (`-c <cmd>`, exactly three names, anything else exits 64); and `GET /api/version` reports which Sight the API serves; host steps in `infra/warehouse/runbook.md` are Justin's |
 | #814 | Fleet | B13-HEAL-CONSTITUTION: fleet Constitution item 1 amended per Valor-Core decision 0003 — a separate remediator may run only signed, pre-approved playbook actions; the dispatcher stays notification-only; shadow mode before live |
 | #827 | Fleet | B13-HEAL-SIGNING: the sign step strips CR, checks the secret is an OpenSSH private key and says why when it is not, and prints the signing key's fingerprint (public) |
 | #826 | Fleet | B13-HEAL-SIGNING: README records the secret's real date (the first add missed the Actions tab); this merge produces the first signed bundle |

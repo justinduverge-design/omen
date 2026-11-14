@@ -149,6 +149,8 @@ test("GET /api/version returns safe deploy metadata", async () => {
     assert.equal(res.body.git_sha, "abc123");
     assert.equal(res.body.build_id, "98765");
     assert.equal(typeof res.body.generated_at, "string");
+    assert.deepEqual(Object.keys(res.body.sight).sort(), ["enabled", "version"]);
+    assert.equal(typeof res.body.sight.enabled, "boolean");
 
     const serialized = JSON.stringify(res.body).toLowerCase();
     assert.equal(serialized.includes("service_key"), false);
@@ -158,6 +160,29 @@ test("GET /api/version returns safe deploy metadata", async () => {
     else process.env.GITHUB_SHA = oldGithubSha;
     if (oldGithubRunId == null) delete process.env.GITHUB_RUN_ID;
     else process.env.GITHUB_RUN_ID = oldGithubRunId;
+  }
+});
+
+test("GET /api/version reports which Sight the API serves, and nothing else of the env", async () => {
+  const saved = { SIGHT_ENABLED: process.env.SIGHT_ENABLED, SIGHT_VERSION: process.env.SIGHT_VERSION };
+  const restore = () => {
+    for (const [k, v] of Object.entries(saved)) {
+      if (v == null) delete process.env[k];
+      else process.env[k] = v;
+    }
+  };
+  try {
+    const app = buildApp();
+    process.env.SIGHT_ENABLED = "true";
+    process.env.SIGHT_VERSION = "v2";
+    assert.deepEqual((await request(app, "/api/version")).body.sight, { enabled: true, version: "v2" });
+    delete process.env.SIGHT_ENABLED;
+    delete process.env.SIGHT_VERSION;
+    assert.deepEqual((await request(app, "/api/version")).body.sight, { enabled: false, version: "v1" });
+    process.env.SIGHT_VERSION = "postgres://user:pw@host/db";
+    assert.deepEqual((await request(app, "/api/version")).body.sight, { enabled: false, version: "unrecognized" });
+  } finally {
+    restore();
   }
 });
 
