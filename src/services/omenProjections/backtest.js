@@ -24,6 +24,7 @@ const {
   POSITIONS,
   SEASON_DECAY,
   SHRINKAGE,
+  STAT_KEYS,
 } = require("./constants");
 const { buildPriors } = require("./priors");
 const { projectPlayerWeek } = require("./projectPlayerWeek");
@@ -37,6 +38,35 @@ const RELEVANCE_POLICY = Object.freeze({
   version: "preweek-opportunity-v1",
   window_games: 3,
   minimum_average_opportunities: Object.freeze({ QB: 20, RB: 8, WR: 4, TE: 3 }),
+});
+const HORIZONS = Object.freeze([1, 2, 3, 4]);
+const STAT_PREDICTORS = Object.freeze(["model", "model_no_context", "last3", "season_avg"]);
+const NON_QB_STATS = Object.freeze([
+  "carries",
+  "rushing_yards",
+  "rushing_tds",
+  "targets",
+  "receptions",
+  "receiving_yards",
+  "receiving_tds",
+  "fumbles_lost",
+]);
+// Stats projectPlayerWeek fills per position: QBs passing and rushing, the rest rushing and receiving.
+const STATS_BY_POSITION = Object.freeze({
+  QB: Object.freeze([
+    "attempts",
+    "completions",
+    "passing_yards",
+    "passing_tds",
+    "passing_interceptions",
+    "carries",
+    "rushing_yards",
+    "rushing_tds",
+    "fumbles_lost",
+  ]),
+  RB: NON_QB_STATS,
+  WR: NON_QB_STATS,
+  TE: NON_QB_STATS,
 });
 const MIN_RESIDUALS_FOR_INTERVAL = 100;
 const Z_80 = 1.2815515655446004;
@@ -91,6 +121,16 @@ function relevanceFromHistory(position, history) {
   };
 }
 
+function statLine(stats) {
+  return Object.fromEntries(STAT_KEYS.map((key) => [key, Number(stats?.[key]) || 0]));
+}
+
+function meanStatLine(rows) {
+  return rows.length
+    ? Object.fromEntries(STAT_KEYS.map((key) => [key, mean(rows.map((h) => Number(h.stats?.[key]) || 0))]))
+    : null;
+}
+
 function ranks(values) {
   const order = values.map((value, index) => ({ value, index })).sort((a, b) => a.value - b.value);
   const out = new Array(values.length);
@@ -132,17 +172,31 @@ function round(value, digits = 4) {
 }
 
 /** Walk every test season week by week. Returns per-player-week records and run metadata. */
-async function walkForward({ source, testSeasons, warmupSeasons = 2, positions = POSITIONS, onProgress = () => {} }) {
+async function walkForward({
+  source,
+  testSeasons,
+  warmupSeasons = 2,
+  positions = POSITIONS,
+  horizons = [1],
+  onProgress = () => {},
+}) {
   if (!source || typeof source.loadSeason !== "function") throw new TypeError("source.loadSeason is required");
   const tests = [...new Set(testSeasons)].sort((a, b) => a - b);
   if (!tests.length) throw new TypeError("testSeasons is empty");
+  const hs = [...new Set(horizons)].sort((a, b) => a - b);
+  if (!hs.length || hs.some((h) => !Number.isInteger(h) || h < 1))
+    throw new TypeError("horizons must be integers >= 1");
   const first = tests[0] - Math.max(0, warmupSeasons);
   const last = tests[tests.length - 1];
 
   const histories = new Map(); // player_id -> rows already played, oldest first
   const trainRows = []; // every normalized row of seasons already finished
   const records = [];
-  const residuals = new Map(); // "POS|band" -> { n, sum, sumsq } of (actual ppr - model ppr), earlier weeks only
+  // "h|POS|band" -> { n, sum, sumsq } of (actual ppr - model ppr). A forecast of horizon h made at origin L only
+  // sees residuals of target weeks <= L; later ones wait in `pendingResiduals` until the walk reaches them.
+  const residuals = new Map();
+  const pendingResiduals = new Map(hs.map((h) => [h, []]));
+  let ordinal = 0; // position of the week in the whole walk, warm-up included; the origin of horizon h is ordinal - h
   const meta = {
     seasons: {},
     scoring_check: { n: 0, abs_diff_sum: 0, within_half_point: 0, max_abs_diff: 0 },
@@ -195,78 +249,109 @@ async function walkForward({ source, testSeasons, warmupSeasons = 2, positions =
     for (const week of weeks) {
       const target = byWeek.get(week);
       const weekRecords = [];
+      ordinal += 1;
       if (testSet.has(season)) {
-        for (const row of target) {
-          const history = histories.get(row.player_id) || [];
-          const common = {
-            player_id: row.player_id,
-            position: row.position,
-            season,
-            week,
-            team: row.team,
-            priors,
-            history,
-            game: row.game ? { implied_points: row.implied_points } : null,
-          };
-          const model = projectPlayerWeek(common, { useGameContext: true });
-          const noContext = projectPlayerWeek(common, { useGameContext: false });
-          const recent = history.slice(-3);
-          const relevance = relevanceFromHistory(row.position, history);
-          const sameSeason = history.filter((h) => h.season === season);
-          const seasonRows = sameSeason.length ? sameSeason : history.filter((h) => h.season === season - 1);
-          const baselineScores = (selected) =>
-            selected.length
-              ? Object.fromEntries(SCORINGS.map((s) => [s, mean(selected.map((h) => scoreStatLine(h.stats, s)))]))
-              : null;
-          const sleeperLine = sleeper ? sleeper.get(`${week}|${row.player_id}`) : null;
-          const last3 = baselineScores(recent);
-          const record = {
-            season,
-            week,
-            player_id: row.player_id,
-            position: row.position,
-            prior_games: history.length,
-            bucket: bucketFor(history.length),
-            band: model.confidence.band,
-            flags: model.flags,
-            actual: scoreAll(row.stats),
-            pred: {
-              model: scoreAll(model.stat_line),
-              model_no_context: scoreAll(noContext.stat_line),
-              last3,
-              season_avg: baselineScores(seasonRows),
-              sleeper: sleeperLine
-                ? Object.fromEntries(SCORINGS.map((s) => [s, scoreSleeperStatLine(sleeperLine, s)]))
-                : null,
-            },
-            relevance_eligible: relevance.eligible,
-            relevance_opportunities: relevance.average_opportunities,
-            relevance_games: relevance.games,
-            sd_hat_ppr: null,
-          };
-          const acc = residuals.get(`${row.position}|${record.band}`);
-          if (acc && acc.n >= MIN_RESIDUALS_FOR_INTERVAL) {
-            const meanRes = acc.sum / acc.n;
-            record.sd_hat_ppr = Math.sqrt(Math.max(0, acc.sumsq / acc.n - meanRes * meanRes));
-          }
-          weekRecords.push(record);
-
-          if (Number.isFinite(row.reported_ppr)) {
-            const diff = Math.abs(record.actual.ppr - row.reported_ppr);
-            meta.scoring_check.n += 1;
-            meta.scoring_check.abs_diff_sum += diff;
-            if (diff <= 0.5) meta.scoring_check.within_half_point += 1;
-            meta.scoring_check.max_abs_diff = Math.max(meta.scoring_check.max_abs_diff, diff);
+        for (const h of hs) {
+          const queue = pendingResiduals.get(h);
+          while (queue.length && queue[0].ordinal <= ordinal - h) {
+            for (const [key, delta] of queue.shift().byKey) {
+              const acc = residuals.get(`${h}|${key}`) || { n: 0, sum: 0, sumsq: 0 };
+              acc.n += delta.n;
+              acc.sum += delta.sum;
+              acc.sumsq += delta.sumsq;
+              residuals.set(`${h}|${key}`, acc);
+            }
           }
         }
-        for (const record of weekRecords) {
-          const key = `${record.position}|${record.band}`;
-          const acc = residuals.get(key) || { n: 0, sum: 0, sumsq: 0 };
-          const residual = record.actual.ppr - record.pred.model.ppr;
-          acc.n += 1;
-          acc.sum += residual;
-          acc.sumsq += residual * residual;
-          residuals.set(key, acc);
+        for (const row of target) {
+          const fullHistory = histories.get(row.player_id) || [];
+          for (const horizon of hs) {
+            // Facts through the forecast origin only: the walk's weeks up to `ordinal - horizon`.
+            const history = horizon === 1 ? fullHistory : fullHistory.filter((h) => h.ordinal <= ordinal - horizon);
+            const common = {
+              player_id: row.player_id,
+              position: row.position,
+              season,
+              week,
+              team: row.team,
+              priors,
+              history,
+              game: row.game ? { implied_points: row.implied_points } : null,
+            };
+            const model = projectPlayerWeek(common, { useGameContext: true });
+            const noContext = projectPlayerWeek(common, { useGameContext: false });
+            const recent = history.slice(-3);
+            const relevance = relevanceFromHistory(row.position, history);
+            const sameSeason = history.filter((h) => h.season === season);
+            const seasonRows = sameSeason.length ? sameSeason : history.filter((h) => h.season === season - 1);
+            const baselineScores = (selected) =>
+              selected.length
+                ? Object.fromEntries(SCORINGS.map((s) => [s, mean(selected.map((h) => scoreStatLine(h.stats, s)))]))
+                : null;
+            const sleeperLine = sleeper ? sleeper.get(`${week}|${row.player_id}`) : null;
+            const last3 = baselineScores(recent);
+            const record = {
+              season,
+              week,
+              horizon,
+              player_id: row.player_id,
+              position: row.position,
+              prior_games: history.length,
+              bucket: bucketFor(history.length),
+              band: model.confidence.band,
+              flags: model.flags,
+              actual: scoreAll(row.stats),
+              pred: {
+                model: scoreAll(model.stat_line),
+                model_no_context: scoreAll(noContext.stat_line),
+                last3,
+                season_avg: baselineScores(seasonRows),
+                sleeper: sleeperLine
+                  ? Object.fromEntries(SCORINGS.map((s) => [s, scoreSleeperStatLine(sleeperLine, s)]))
+                  : null,
+              },
+              stat_actual: statLine(row.stats),
+              stat_pred: {
+                model: statLine(model.stat_line),
+                model_no_context: statLine(noContext.stat_line),
+                last3: meanStatLine(recent),
+                season_avg: meanStatLine(seasonRows),
+              },
+              relevance_eligible: relevance.eligible,
+              relevance_opportunities: relevance.average_opportunities,
+              relevance_games: relevance.games,
+              sd_hat_ppr: null,
+            };
+            const acc = residuals.get(`${horizon}|${row.position}|${record.band}`);
+            if (acc && acc.n >= MIN_RESIDUALS_FOR_INTERVAL) {
+              const meanRes = acc.sum / acc.n;
+              record.sd_hat_ppr = Math.sqrt(Math.max(0, acc.sumsq / acc.n - meanRes * meanRes));
+            }
+            weekRecords.push(record);
+
+            // The scoring check is about the actual, so it counts each player-week once, not once per horizon.
+            if (horizon === hs[0] && Number.isFinite(row.reported_ppr)) {
+              const diff = Math.abs(record.actual.ppr - row.reported_ppr);
+              meta.scoring_check.n += 1;
+              meta.scoring_check.abs_diff_sum += diff;
+              if (diff <= 0.5) meta.scoring_check.within_half_point += 1;
+              meta.scoring_check.max_abs_diff = Math.max(meta.scoring_check.max_abs_diff, diff);
+            }
+          }
+        }
+        for (const h of hs) {
+          const byKey = new Map();
+          for (const record of weekRecords) {
+            if (record.horizon !== h) continue;
+            const key = `${record.position}|${record.band}`;
+            const delta = byKey.get(key) || { n: 0, sum: 0, sumsq: 0 };
+            const residual = record.actual.ppr - record.pred.model.ppr;
+            delta.n += 1;
+            delta.sum += residual;
+            delta.sumsq += residual * residual;
+            byKey.set(key, delta);
+          }
+          pendingResiduals.get(h).push({ ordinal, byKey });
         }
         records.push(...weekRecords);
       }
@@ -276,6 +361,7 @@ async function walkForward({ source, testSeasons, warmupSeasons = 2, positions =
         histories.get(row.player_id).push({
           season,
           week,
+          ordinal,
           team: row.team,
           stats: row.stats,
           opp: row.opp || null,
@@ -584,7 +670,91 @@ function shipRuleForPosition(records) {
   };
 }
 
-function evaluate(records, { positions = POSITIONS } = {}) {
+/**
+ * Per-stat scorecard rows keyed (position, stat, horizon, universe, season): MAE, RMSE and bias of each predictor's
+ * stat forecast. Every number is conditional on the player playing the target week (no historical availability).
+ * `model` uses the game line of the target week, `model_no_context` does not; the backtest sees closing lines at
+ * every horizon, so `model` is optimistic at h >= 3 against what will exist live.
+ */
+function statScorecard(records, { positions = POSITIONS } = {}) {
+  const universes = {
+    relevant: (r) => r.relevance_eligible === true,
+    all: () => true,
+  };
+  const groups = new Map();
+  for (const record of records) {
+    if (!record.stat_pred) continue;
+    const horizon = record.horizon ?? 1;
+    for (const [universe, inUniverse] of Object.entries(universes)) {
+      if (!inUniverse(record)) continue;
+      const key = `${record.position}|${horizon}|${universe}|${record.season}`;
+      if (!groups.has(key))
+        groups.set(key, { position: record.position, horizon, universe, season: record.season, rows: [] });
+      groups.get(key).rows.push(record);
+    }
+  }
+  const rows = [];
+  for (const group of groups.values()) {
+    if (!positions.includes(group.position)) continue;
+    for (const stat of STATS_BY_POSITION[group.position] || []) {
+      const predictors = {};
+      for (const predictor of STAT_PREDICTORS) {
+        const errors = group.rows
+          .filter((r) => r.stat_pred[predictor])
+          .map((r) => r.stat_pred[predictor][stat] - r.stat_actual[stat]);
+        if (!errors.length) continue;
+        predictors[predictor] = {
+          n: errors.length,
+          mae: round(mean(errors.map(Math.abs))),
+          rmse: round(Math.sqrt(mean(errors.map((e) => e * e)))),
+          bias: round(mean(errors)),
+        };
+      }
+      if (Object.keys(predictors).length) {
+        rows.push({
+          position: group.position,
+          stat,
+          horizon: group.horizon,
+          universe: group.universe,
+          season: group.season,
+          n: group.rows.length,
+          predictors,
+        });
+      }
+    }
+  }
+  rows.sort(
+    (a, b) =>
+      a.position.localeCompare(b.position) ||
+      a.stat.localeCompare(b.stat) ||
+      a.horizon - b.horizon ||
+      a.universe.localeCompare(b.universe) ||
+      a.season - b.season,
+  );
+  return {
+    labels: {
+      version: "statline-scorecard-v1",
+      key: ["position", "stat", "horizon", "universe", "season"],
+      metrics:
+        "mae; rmse = sqrt(mean squared error); bias = mean(predicted - actual), positive means the forecast ran high",
+      units: "the stat's own units (yards, catches, touchdowns), not fantasy points",
+      conditional_on_playing: true,
+      universes: {
+        relevant: RELEVANCE_POLICY.version,
+        all: "every player who played the target week",
+      },
+      predictors: STAT_PREDICTORS,
+      horizon_meaning: "h = target week minus forecast origin week; h = 1 is the next game",
+      environment_note:
+        "model uses the closing game line of the target week at every horizon (optimistic for h >= 3); model_no_context does not",
+      provider: "no stat-line provider baseline in held-out seasons",
+    },
+    rows,
+  };
+}
+
+function evaluate(allRecords, { positions = POSITIONS } = {}) {
+  const records = allRecords.filter((r) => (r.horizon ?? 1) === 1); // the points tables are the next-game forecast
   const universes = {
     relevant: records.filter((r) => r.relevance_eligible === true),
     all: records,
@@ -622,10 +792,11 @@ async function runBacktest({
   testSeasons,
   warmupSeasons = 2,
   positions = POSITIONS,
+  horizons = [1],
   onProgress,
   now = () => new Date(),
 }) {
-  const { records, meta } = await walkForward({ source, testSeasons, warmupSeasons, positions, onProgress });
+  const { records, meta } = await walkForward({ source, testSeasons, warmupSeasons, positions, horizons, onProgress });
   const check = meta.scoring_check;
   const results = evaluate(records, { positions });
   const positionDecisions = {};
@@ -662,6 +833,7 @@ async function runBacktest({
       test_seasons: [...new Set(testSeasons)].sort((a, b) => a - b),
       warmup_seasons: warmupSeasons,
       positions,
+      horizons: [...new Set(horizons)].sort((a, b) => a - b),
       scorings: SCORINGS,
       scoring_presets: Object.fromEntries(
         Object.entries(SCORING_PRESETS).map(([k, v]) => [k, v.rules.map((r) => `${r.event_key}=${r.value}`)]),
@@ -692,9 +864,10 @@ async function runBacktest({
         note: "Omen's recomputed PPR from stat lines against nflverse fantasy_points_ppr (two-point conversions are not modelled).",
       },
       sleeper: meta.sleeper,
-      records: records.length,
+      records: records.filter((r) => (r.horizon ?? 1) === 1).length,
     },
     results,
+    stat_scorecard: statScorecard(records, { positions }),
     position_decisions: positionDecisions,
   };
 }
@@ -862,6 +1035,7 @@ function renderMarkdown(report) {
 module.exports = {
   BANDS,
   BASELINES,
+  HORIZONS,
   PAIRED_EVIDENCE_POLICY,
   PREDICTORS,
   RELEVANCE_POLICY,
@@ -876,6 +1050,8 @@ module.exports = {
   renderMarkdown,
   runBacktest,
   spearman,
+  statScorecard,
+  STATS_BY_POSITION,
   walkForward,
   relevanceFromHistory,
   shipRuleForPosition,

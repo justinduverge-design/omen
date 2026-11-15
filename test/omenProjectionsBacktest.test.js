@@ -608,3 +608,185 @@ test("the script parses its flags strictly and forces a read-only session", () =
   assert.equal(config.user, "omen_warehouse_read");
   assert.throws(() => poolConfig({ ...args, socket: null }, {}), /url-file/);
 });
+
+const {
+  RB_CARRY_STEP,
+  SHIFT_WEEK,
+  TEST_SEASON,
+  WEEKS,
+  WR_TARGET_STEP,
+  YARDS_PER_CARRY,
+  buildSightStatlineWorld,
+} = require("./fixtures/sightStatlineFixture");
+
+const close = (actual, expected, message) =>
+  assert.ok(Math.abs(actual - expected) < 1e-3, `${message}: ${actual} vs ${expected}`);
+const sum = (values) => values.reduce((a, b) => a + b, 0);
+
+function horizonComparable(records) {
+  return records.map((r) => ({
+    season: r.season,
+    week: r.week,
+    horizon: r.horizon,
+    id: r.player_id,
+    pred: r.pred,
+    stat_pred: r.stat_pred,
+    band: r.band,
+    sd: r.sd_hat_ppr,
+    bucket: r.bucket,
+    flags: r.flags,
+  }));
+}
+
+test("no leakage at h = 1..4: changing data at and after the forecast origin moves no projection made from before it", async () => {
+  const world = makeWorld();
+  const tainted = JSON.parse(JSON.stringify(world));
+  const originWeek = 6; // the first week the forecaster has NOT seen: facts through week 5 only
+  for (const row of tainted[2023].playerWeeks) {
+    if (row.week >= originWeek) {
+      for (const key of Object.keys(row.stats)) row.stats[key] = row.stats[key] * 10 + 5;
+    }
+  }
+  const options = { testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"], horizons: [1, 2, 3, 4] };
+  const a = await walkForward({ source: sourceFor(world), ...options });
+  const b = await walkForward({ source: sourceFor(tainted), ...options });
+  for (const h of [1, 2, 3, 4]) {
+    // Origin = target week - h. Forecasts whose origin week is before 6 cannot have seen the changed weeks.
+    const pick = (records, keep) => horizonComparable(records.filter((r) => r.horizon === h && keep(r.week - h)));
+    const left = pick(a.records, (origin) => origin < originWeek);
+    assert.ok(left.length > 100, `h=${h} has forecasts to compare`);
+    assert.ok(
+      left.some((r) => r.week >= originWeek),
+      `h=${h}: some of them target weeks that were changed, so the check is not vacuous`,
+    );
+    assert.deepEqual(
+      left,
+      pick(b.records, (origin) => origin < originWeek),
+      `h=${h}`,
+    );
+    // Forecasts made from origin week 6 DO see the changed data.
+    assert.notDeepEqual(
+      pick(a.records, (origin) => origin === originWeek),
+      pick(b.records, (origin) => origin === originWeek),
+      `h=${h} sees data once the origin reaches it`,
+    );
+  }
+});
+
+test("walkForward with the default horizon is unchanged and every record says h = 1", async () => {
+  const options = { testSeasons: [2023], warmupSeasons: 2, positions: ["RB", "WR", "TE"] };
+  const single = await walkForward({ source: sourceFor(makeWorld()), ...options });
+  const multi = await walkForward({ source: sourceFor(makeWorld()), ...options, horizons: [1, 2, 3, 4] });
+  assert.ok(single.records.every((r) => r.horizon === 1));
+  assert.equal(multi.records.length, single.records.length * 4);
+  assert.deepEqual(
+    multi.records.filter((r) => r.horizon === 1),
+    single.records,
+  );
+  await assert.rejects(() => walkForward({ source: sourceFor(makeWorld()), ...options, horizons: [0] }), TypeError);
+});
+
+test("stat scorecard on the fixture season matches the hand-worked answer per position, stat, horizon and universe", async () => {
+  const report = await runBacktest({
+    source: sourceFor(buildSightStatlineWorld()),
+    testSeasons: [TEST_SEASON],
+    warmupSeasons: 2,
+    positions: ["WR", "RB"],
+    horizons: [1, 2, 3, 4],
+    now: () => new Date("2026-11-14T00:00:00Z"),
+  });
+  assert.deepEqual(report.meta.horizons, [1, 2, 3, 4]);
+  const card = report.stat_scorecard;
+  assert.equal(card.labels.conditional_on_playing, true);
+  assert.deepEqual(card.labels.key, ["position", "stat", "horizon", "universe", "season"]);
+  assert.match(card.labels.environment_note, /optimistic for h >= 3/);
+  const row = (position, stat, horizon, universe) => {
+    const found = card.rows.filter(
+      (r) =>
+        r.position === position &&
+        r.stat === stat &&
+        r.horizon === horizon &&
+        r.universe === universe &&
+        r.season === TEST_SEASON,
+    );
+    assert.equal(found.length, 1, `${position} ${stat} h${horizon} ${universe}`);
+    return found[0];
+  };
+
+  // Known answer for last3. A step of size s from SHIFT_WEEK: every target week whose origin is before the step is
+  // short by s (h of them), then by 2s/3, then s/3, then exact. Over the 18 target weeks:
+  //   sum |error| = s (h + 1),  sum error^2 = s^2 (h + 5/9)
+  // Only the shifted players err: the low-usage receiver stays flat and is forecast perfectly.
+  const cases = [
+    ["WR", "targets", { relevant: 4, all: 5 }, WR_TARGET_STEP, 4],
+    ["RB", "carries", { relevant: 2, all: 2 }, RB_CARRY_STEP, 2],
+    ["RB", "rushing_yards", { relevant: 2, all: 2 }, RB_CARRY_STEP * YARDS_PER_CARRY, 2],
+  ];
+  for (const [position, stat, players, step, shifted] of cases) {
+    for (const h of [1, 2, 3, 4]) {
+      for (const universe of ["relevant", "all"]) {
+        const r = row(position, stat, h, universe);
+        const share = shifted / players[universe];
+        const tag = `${position} ${stat} h${h} ${universe} last3`;
+        assert.equal(r.n, players[universe] * WEEKS, `${tag} n`);
+        assert.equal(r.predictors.last3.n, r.n);
+        close(r.predictors.last3.mae, (share * step * (h + 1)) / WEEKS, `${tag} mae`);
+        close(r.predictors.last3.bias, (-share * step * (h + 1)) / WEEKS, `${tag} bias`);
+        close(r.predictors.last3.rmse, Math.sqrt((share * step * step * (h + 5 / 9)) / WEEKS), `${tag} rmse`);
+      }
+    }
+  }
+  // Literal values, so the closed form above cannot drift from the numbers a reader sees.
+  assert.deepEqual(row("WR", "targets", 1, "relevant").predictors.last3, {
+    n: 72,
+    mae: 0.3333,
+    rmse: 0.8819,
+    bias: -0.3333,
+  });
+  assert.deepEqual(row("WR", "targets", 4, "relevant").predictors.last3, {
+    n: 72,
+    mae: 0.8333,
+    rmse: 1.5092,
+    bias: -0.8333,
+  });
+  assert.equal(row("WR", "targets", 2, "all").n, 90);
+  assert.equal(row("WR", "targets", 2, "relevant").n, 72, "the low-usage receiver is outside the relevant universe");
+
+  // season_avg, worked by hand: the mean of this season's games through the origin (last season's if none yet).
+  // Every shifted receiver errs by the same amount whatever their level, because the step is the same.
+  for (const h of [1, 2, 3, 4]) {
+    const errors = [];
+    for (let week = 1; week <= WEEKS; week += 1) {
+      const origin = week - h;
+      const seen = Array.from({ length: Math.max(0, origin) }, (_, i) => (i + 1 >= SHIFT_WEEK ? WR_TARGET_STEP : 0));
+      const forecast = origin >= 1 ? sum(seen) / seen.length : 0;
+      errors.push(forecast - (week >= SHIFT_WEEK ? WR_TARGET_STEP : 0));
+    }
+    const seasonAvg = row("WR", "targets", h, "relevant").predictors.season_avg;
+    close(seasonAvg.bias, sum(errors) / WEEKS, `season_avg bias h${h}`);
+    close(seasonAvg.mae, sum(errors.map(Math.abs)) / WEEKS, `season_avg mae h${h}`);
+  }
+
+  // The model is scored on the same rows: finite everywhere, and identical with and without context because the
+  // fixture has no betting lines.
+  for (const r of card.rows) {
+    for (const p of ["model", "model_no_context", "last3", "season_avg"]) {
+      const m = r.predictors[p];
+      assert.ok(m && Number.isFinite(m.mae) && Number.isFinite(m.rmse) && Number.isFinite(m.bias), `${p} finite`);
+      assert.ok(m.rmse >= m.mae - 1e-9);
+    }
+    assert.deepEqual(r.predictors.model, r.predictors.model_no_context);
+  }
+  assert.ok(
+    row("WR", "targets", 1, "relevant").predictors.model.bias < 0,
+    "a rise the model could not know about is under-forecast",
+  );
+  // Quarterback-only stats stay off the receiver tables.
+  assert.equal(
+    card.rows.some((r) => r.position === "WR" && r.stat === "passing_yards"),
+    false,
+  );
+  // The points tables stay the next-game forecast: other horizons do not dilute them.
+  assert.equal(report.results.all.positions.WR.n, 90);
+  assert.equal(report.meta.records, 126);
+});
