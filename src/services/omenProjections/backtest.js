@@ -1031,14 +1031,18 @@ function renderMarkdown(report) {
     for (const position of positions) {
       lines.push(`### ${position}`);
       lines.push("");
-      lines.push(`| stat | horizon | universe | season | n | ${card.labels.predictors.map((p) => `${p} n | ${p} MAE | ${p} RMSE | ${p} bias`).join(" | ")} |`);
+      lines.push(
+        `| stat | horizon | universe | season | n | ${card.labels.predictors.map((p) => `${p} n | ${p} MAE | ${p} RMSE | ${p} bias`).join(" | ")} |`,
+      );
       lines.push(`|---|---:|---|---:|---:|${card.labels.predictors.map(() => "---:|---:|---:|---:").join("|")}|`);
       for (const row of card.rows.filter((entry) => entry.position === position)) {
         const metrics = card.labels.predictors.flatMap((predictor) => {
           const values = row.predictors[predictor];
           return ["n", "mae", "rmse", "bias"].map((metric) => values?.[metric] ?? "-");
         });
-        lines.push(`| ${row.stat} | ${row.horizon} | ${row.universe} | ${row.season} | ${row.n} | ${metrics.join(" | ")} |`);
+        lines.push(
+          `| ${row.stat} | ${row.horizon} | ${row.universe} | ${row.season} | ${row.n} | ${metrics.join(" | ")} |`,
+        );
       }
       lines.push("");
     }

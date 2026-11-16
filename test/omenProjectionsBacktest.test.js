@@ -808,14 +808,26 @@ test("Markdown prints every per-stat scorecard value under its position", async 
   for (const table of tables) {
     const [position, ...lines] = table.trim().split("\n");
     const rows = lines.filter((line) => line.startsWith("| "));
-    const headers = rows.shift().split("|").slice(1, -1).map((cell) => cell.trim());
+    const headers = rows
+      .shift()
+      .split("|")
+      .slice(1, -1)
+      .map((cell) => cell.trim());
     assert.deepEqual(headers.slice(0, 5), ["stat", "horizon", "universe", "season", "n"]);
     for (const line of rows) {
-      const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+      const cells = line
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cell.trim());
       const [stat, horizon, universe, season, n] = cells;
-      const row = report.stat_scorecard.rows.find((r) =>
-        r.position === position && r.stat === stat && r.horizon === Number(horizon) &&
-        r.universe === universe && r.season === Number(season));
+      const row = report.stat_scorecard.rows.find(
+        (r) =>
+          r.position === position &&
+          r.stat === stat &&
+          r.horizon === Number(horizon) &&
+          r.universe === universe &&
+          r.season === Number(season),
+      );
       assert.ok(row, `${position} ${stat} ${horizon} ${universe} ${season}`);
       assert.equal(Number(n), row.n);
       const predictors = report.stat_scorecard.labels.predictors;
