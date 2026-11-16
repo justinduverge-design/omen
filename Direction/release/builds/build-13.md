@@ -28,6 +28,7 @@ Add each PR here as it merges (number, area, title).
 | #795 | Dependencies | `@opentelemetry/core` override 2.8 → 3.0 to match `sdk-trace` 3 (#791 broke 3 tracing tests); the witness keeps `timezone.utc` so it runs on python 3.9 (#790's ruff rewrite needed 3.11) |
 | #796 | Provider evidence | B13-EVIDENCE-DATES: reconciled stale provider evidence dates and five capability classes, with a matrix generator and test, so Build 13 reflects current evidence |
 | #797 | Release | B13-ESPN-NEW-ACCOUNT: fresh ESPN login proof checklist (account, connect, ingestion, sanitized evidence, legacy row) |
+| #890 | Sight | VC-OMEN-G3: the backtest Markdown report prints the per-stat scorecard, one table per position with MAE, RMSE and bias per predictor (test and harness only; no number changed) |
 | #798 | Environments | Item 1b: cloud setup tells a cancel from a failure and moves to Node 24; the build-package guard accepts the branch name until `merge-pr.sh` fills in the number; dispatched cloud runs don't stop to ask; keystores gitignored; launch recipes in `Blueprints/handoffs/2026-10-27-environments-closeout.md` |
 | #852 | CI | Environments card 3: the fallback deploy job reads the Tailscale and deploy-key secrets from a `production` environment limited to the `production` branch, not repo secrets; Justin creates the environment |
 | #854 | CI | Environments card 3: the primary deploy job (KVM1 self-hosted runner) also runs in the `production` environment, so GitHub refuses it from any branch but `production`; no secret moves |
