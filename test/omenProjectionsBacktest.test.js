@@ -790,3 +790,43 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
   assert.equal(report.results.all.positions.WR.n, 90);
   assert.equal(report.meta.records, 126);
 });
+
+test("Markdown prints every per-stat scorecard value under its position", async () => {
+  const report = await runBacktest({
+    source: sourceFor(buildSightStatlineWorld()),
+    testSeasons: [TEST_SEASON],
+    warmupSeasons: 2,
+    positions: ["WR", "RB"],
+    horizons: [1, 2, 3, 4],
+  });
+  const section = renderMarkdown(report).split("## Per-stat scorecard\n")[1].split("## How to read this")[0];
+  assert.match(section, /Conditional on playing/);
+  assert.match(section, /optimistic for h >= 3/);
+  const tables = section.split(/^### /m).slice(1);
+  assert.equal(tables.length, 2);
+  const rendered = [];
+  for (const table of tables) {
+    const [position, ...lines] = table.trim().split("\n");
+    const rows = lines.filter((line) => line.startsWith("| "));
+    const headers = rows.shift().split("|").slice(1, -1).map((cell) => cell.trim());
+    assert.deepEqual(headers.slice(0, 5), ["stat", "horizon", "universe", "season", "n"]);
+    for (const line of rows) {
+      const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+      const [stat, horizon, universe, season, n] = cells;
+      const row = report.stat_scorecard.rows.find((r) =>
+        r.position === position && r.stat === stat && r.horizon === Number(horizon) &&
+        r.universe === universe && r.season === Number(season));
+      assert.ok(row, `${position} ${stat} ${horizon} ${universe} ${season}`);
+      assert.equal(Number(n), row.n);
+      const predictors = report.stat_scorecard.labels.predictors;
+      for (const [i, predictor] of predictors.entries()) {
+        for (const [j, metric] of ["n", "mae", "rmse", "bias"].entries()) {
+          assert.equal(cells[5 + i * 4 + j], String(row.predictors[predictor]?.[metric] ?? "-"));
+        }
+      }
+      rendered.push(row);
+    }
+  }
+  assert.equal(rendered.length, report.stat_scorecard.rows.length);
+  assert.equal(new Set(rendered).size, report.stat_scorecard.rows.length);
+});
