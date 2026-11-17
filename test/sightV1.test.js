@@ -211,3 +211,292 @@ test("flex grade puts RB, WR and TE on one scale; QB, K and DEF are left out", (
   assert.equal(values.find((v) => v.entityId === "q").components.flex_grade, undefined);
   assert.equal(values.find((v) => v.entityId === "k").components.flex_grade, undefined);
 });
+
+test("VC-SIGHT-REGRADE: a zero-provider week is re-graded once rows exist, a week with comparisons is left alone, and a second run does not grade it again", async () => {
+  const { createSightAccuracyRunner } = require("../src/services/footballWarehouse/sightAccuracyRun");
+
+  const players = ["p0", "p1", "p2", "p3"];
+  const sightValues = players.map((id) => ({
+    entity_type: "player",
+    entity_id: id,
+    value: 12,
+    components: { position: "WR", production_ppg: 10 },
+  }));
+  const actualRows = players.map((id) => ({ player_id: id, ppr: 14 }));
+  const providerRows = players.map((id) => ({ player_id: id, ppr: 13 }));
+
+  // Database state
+  const dbRuns = [
+    // Week 6: previously succeeded grade had zero provider matches in every position
+    {
+      id: 201,
+      season: 2026,
+      week: 6,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 101,
+        graded_week: 6,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: {
+              n: 4,
+              sight: { corr: 0.8, mae: 2 },
+              ppg_to_date: { corr: 0.5, mae: 4 },
+              provider: { n: 0, reason: "no_stored_provider_projections" },
+            },
+          },
+        },
+      },
+    },
+    // Week 7: previously succeeded grade had comparisons (n >= 3 with provider)
+    {
+      id: 202,
+      season: 2026,
+      week: 7,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 102,
+        graded_week: 7,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: {
+              n: 4,
+              sight: { corr: 0.8, mae: 2 },
+              ppg_to_date: { corr: 0.5, mae: 4 },
+              provider: {
+                n: 4,
+                corr: 0.9,
+                mae: 1,
+                sight_corr_same_players: 0.8,
+                sight_mae_same_players: 2,
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+
+  let week6ProviderStoredCount = 4; // >= 3 stored provider projections in WR
+  const restartedRuns = [];
+
+  function makePool() {
+    const client = {
+      async query(q) {
+        const name = typeof q === "string" ? q : q.name;
+        if (name === "warehouse-metric-run-lock-v1") return { rows: [] };
+        if (name === "sight-acc-inputs-v1") return { rows: [{ ingest_event_id: 1 }] };
+        if (name === "warehouse-metric-run-existing-v1") {
+          const [, , , week, baseJson] = q.values;
+          const prior = dbRuns.find((r) => r.week === week);
+          if (!prior) return { rows: [] };
+          const base = JSON.parse(baseJson);
+          const priorBase = { ...prior.parameters };
+          delete priorBase.summary;
+          const sameParams = JSON.stringify(priorBase) === JSON.stringify(base);
+          return {
+            rows: [
+              {
+                id: prior.id,
+                state: prior.state,
+                same_parameters: sameParams,
+                input_ids: [1],
+              },
+            ],
+          };
+        }
+        if (name === "warehouse-metric-run-restart-v1") {
+          const [runId, baseJson] = q.values;
+          restartedRuns.push({ runId, base: JSON.parse(baseJson) });
+          const row = dbRuns.find((r) => r.id === runId);
+          if (row) {
+            row.state = "running";
+            row.parameters = JSON.parse(baseJson);
+          }
+          return { rows: [] };
+        }
+        if (name === "warehouse-metric-run-clear-values-v1" || name === "warehouse-metric-run-clear-inputs-v1") {
+          return { rows: [] };
+        }
+        if (name === "warehouse-metric-run-inputs-v1") return { rows: [] };
+        if (name === "sight-acc-values-v1") return { rows: sightValues };
+        if (name === "sight-acc-actual-v1") return { rows: actualRows };
+        if (name === "sight-acc-provider-v1") {
+          const [, week] = q.values;
+          if (week === 6 && week6ProviderStoredCount >= 3) {
+            return { rows: providerRows };
+          }
+          return { rows: [] };
+        }
+        if (name === "warehouse-metric-run-values-v1") return { rows: [] };
+        if (name === "warehouse-metric-run-succeed-v1") {
+          const [runId, paramsJson] = q.values;
+          const row = dbRuns.find((r) => r.id === runId);
+          if (row) {
+            row.state = "succeeded";
+            row.parameters = JSON.parse(paramsJson);
+          }
+          return { rows: [] };
+        }
+        return { rows: [] };
+      },
+      release() {},
+    };
+
+    return {
+      async connect() {
+        return client;
+      },
+      async query(q) {
+        const name = typeof q === "string" ? q : q.name;
+        if (name === "sight-acc-runs-v1") {
+          return {
+            rows: [
+              { id: 101, week: 5 }, // grades week 6
+              { id: 102, week: 6 }, // grades week 7
+            ],
+          };
+        }
+        if (name === "sight-acc-graded-v1") {
+          return {
+            rows: dbRuns
+              .filter((r) => r.state === "succeeded")
+              .map((r) => ({ week: r.week, parameters: r.parameters })),
+          };
+        }
+        if (name === "sight-acc-provider-pos-v1") {
+          const [, week] = q.values;
+          if (week === 6 && week6ProviderStoredCount > 0) {
+            return { rows: [{ football_position: "WR", n: week6ProviderStoredCount }] };
+          }
+          return { rows: [] };
+        }
+        if (name === "sight-acc-week-rows-v1") {
+          return { rows: [{ n: 150 }] };
+        }
+        return client.query(q);
+      },
+    };
+  }
+
+  const pool = makePool();
+  const runner = createSightAccuracyRunner({ pool, version: "v1" });
+
+  // RUN 1: Week 6 had zero provider rows, but now has 4 stored provider projections in WR.
+  // It should be re-graded. Week 7 (has comparisons) must be left alone.
+  const run1 = await runner.run({ season: 2026 });
+  assert.equal(run1.state, "succeeded");
+  assert.equal(run1.graded_weeks, 1);
+  assert.equal(restartedRuns.length, 1);
+  assert.equal(restartedRuns[0].runId, 201);
+  assert.equal(restartedRuns[0].base.graded_week, 6);
+
+  // Week 6 now has provider comparisons in the database
+  const updatedWeek6 = dbRuns.find((r) => r.week === 6);
+  assert.equal(updatedWeek6.state, "succeeded");
+  assert.equal(updatedWeek6.parameters.summary.positions.WR.provider.n, 4);
+  assert.ok(updatedWeek6.parameters.summary.positions.WR.provider.mae != null);
+
+  // Week 7 was never restarted or touched
+  assert.ok(!restartedRuns.some((r) => r.base.graded_week === 7));
+  const week7 = dbRuns.find((r) => r.week === 7);
+  assert.equal(week7.parameters.summary.positions.WR.provider.n, 4);
+
+  // RUN 2: Running a second time must NOT grade week 6 or week 7 again.
+  const run2 = await runner.run({ season: 2026 });
+  assert.equal(run2.state, "unchanged");
+  assert.equal(run2.graded_weeks, 0);
+  assert.equal(restartedRuns.length, 1, "no additional re-grade occurred");
+
+  // A week with zero provider matches but fewer than 3 stored provider projections is NOT re-graded
+  const lowCountDbRuns = [
+    {
+      id: 301,
+      season: 2026,
+      week: 8,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 103,
+        graded_week: 8,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: { n: 4, provider: { n: 0, reason: "no_stored_provider_projections" } },
+          },
+        },
+      },
+    },
+  ];
+  const lowCountPool = {
+    async connect() {
+      return {
+        async query() {
+          return { rows: [] };
+        },
+        release() {},
+      };
+    },
+    async query(q) {
+      const name = typeof q === "string" ? q : q.name;
+      if (name === "sight-acc-runs-v1") return { rows: [{ id: 103, week: 7 }] };
+      if (name === "sight-acc-graded-v1") return { rows: [{ week: 8, parameters: lowCountDbRuns[0].parameters }] };
+      if (name === "sight-acc-provider-pos-v1") return { rows: [{ football_position: "WR", n: 2 }] }; // only 2 stored
+      return { rows: [] };
+    },
+  };
+  const lowCountRunner = createSightAccuracyRunner({ pool: lowCountPool, version: "v1" });
+  const lowCountResult = await lowCountRunner.run({ season: 2026 });
+  assert.equal(lowCountResult.state, "unchanged");
+  assert.equal(lowCountResult.graded_weeks, 0);
+
+  // A week with any provider matches (e.g. n=1, not zero in every position) is NOT re-graded
+  const partialDbRuns = [
+    {
+      id: 401,
+      season: 2026,
+      week: 9,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 104,
+        graded_week: 9,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: { n: 4, provider: { n: 1, reason: "no_stored_provider_projections" } },
+          },
+        },
+      },
+    },
+  ];
+  const partialPool = {
+    async connect() {
+      return {
+        async query() {
+          return { rows: [] };
+        },
+        release() {},
+      };
+    },
+    async query(q) {
+      const name = typeof q === "string" ? q : q.name;
+      if (name === "sight-acc-runs-v1") return { rows: [{ id: 104, week: 8 }] };
+      if (name === "sight-acc-graded-v1") return { rows: [{ week: 9, parameters: partialDbRuns[0].parameters }] };
+      if (name === "sight-acc-provider-pos-v1") return { rows: [{ football_position: "WR", n: 5 }] };
+      return { rows: [] };
+    },
+  };
+  const partialRunner = createSightAccuracyRunner({ pool: partialPool, version: "v1" });
+  const partialResult = await partialRunner.run({ season: 2026 });
+  assert.equal(partialResult.state, "unchanged");
+  assert.equal(partialResult.graded_weeks, 0);
+});

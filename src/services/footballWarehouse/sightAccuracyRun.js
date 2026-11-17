@@ -11,10 +11,16 @@ const SIGHT_RUN_SQL = `
    WHERE r.metric_name = 'omen_sight' AND r.formula_version = $1 AND r.season = $2 AND r.state = 'succeeded'
      AND r.week IS NOT NULL ORDER BY r.week`;
 const GRADED_SQL = `
-  SELECT week FROM football.football_metric_runs
+  SELECT week, parameters FROM football.football_metric_runs
    WHERE metric_name = 'omen_sight_accuracy' AND formula_version = $1 AND season = $2 AND state = 'succeeded'`;
 const WEEK_ROWS_SQL = `
   SELECT count(*)::integer AS n FROM football.nfl_player_weekly_stats WHERE season = $1 AND week = $2 AND season_type = 'REG'`;
+const PROVIDER_POS_SQL = `
+  SELECT p.football_position, count(*)::integer AS n
+    FROM football.player_weekly_projections pr
+    JOIN football.football_players p ON p.player_id = pr.player_id
+   WHERE pr.season = $1 AND pr.week = $2 AND pr.player_id IS NOT NULL AND pr.stat_line ? 'pts_ppr'
+   GROUP BY p.football_position`;
 // Kickers and defenses are graded on Omen's own standard fantasy scoring of the graded week (kdefMetric.js).
 const KDEF_WEEK_PLAYS_SQL = `
   SELECT p.week, p.game_id, p.posteam_id, p.defteam_id, p.epa, p.play_type,
@@ -45,6 +51,24 @@ const INPUTS_SQL =
 
 const MIN_WEEK_ROWS = 100;
 
+function hasAnyComparison(summary) {
+  const positions = summary?.positions;
+  if (!positions || typeof positions !== "object") return false;
+  return Object.values(positions).some((pos) => {
+    const p = pos?.provider;
+    if (!p) return false;
+    return p.corr != null || p.mae != null || (Number.isFinite(p.n) && p.n >= 3);
+  });
+}
+
+function hasZeroProviderMatches(summary) {
+  const positions = summary?.positions;
+  if (!positions || typeof positions !== "object") return false;
+  const list = Object.values(positions);
+  if (list.length === 0) return false;
+  return list.every((pos) => (pos?.provider?.n ?? 0) === 0);
+}
+
 function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" } = {}) {
   const writer = createMetricRunWriter({ pool, transactionTimeouts });
   return {
@@ -52,15 +76,42 @@ function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" }
     async run({ season }) {
       const runs = (await pool.query({ name: "sight-acc-runs-v1", text: SIGHT_RUN_SQL, values: [version, season] }))
         .rows;
-      const graded = new Set(
-        (await pool.query({ name: "sight-acc-graded-v1", text: GRADED_SQL, values: [version, season] })).rows.map(
-          (r) => r.week,
-        ),
+      const gradedRows = (
+        await pool.query({ name: "sight-acc-graded-v1", text: GRADED_SQL, values: [version, season] })
+      ).rows;
+      const graded = new Map(
+        gradedRows.map((r) => {
+          const params = typeof r.parameters === "string" ? JSON.parse(r.parameters) : r.parameters;
+          return [r.week, { ...r, parameters: params }];
+        }),
       );
+      const regradedWeeks = new Set();
       const results = [];
       for (const run of runs) {
         const week = run.week + 1;
-        if (graded.has(week) || week > 18) continue;
+        if (week > 18) continue;
+        const prior = graded.get(week);
+        let isRegrade = false;
+        if (prior) {
+          const summary = prior.parameters?.summary;
+          if (hasAnyComparison(summary)) continue;
+          if (!hasZeroProviderMatches(summary)) continue;
+          if (prior.parameters?.regrade || regradedWeeks.has(week)) continue;
+          let hasStoredProjections = false;
+          try {
+            const counts = await pool.query({
+              name: "sight-acc-provider-pos-v1",
+              text: PROVIDER_POS_SQL,
+              values: [season, week],
+            });
+            hasStoredProjections = (counts.rows || []).some((r) => Number(r.n) >= 3);
+          } catch {
+            hasStoredProjections = false;
+          }
+          if (!hasStoredProjections) continue;
+          isRegrade = true;
+          regradedWeeks.add(week);
+        }
         const rows =
           (await pool.query({ name: "sight-acc-week-rows-v1", text: WEEK_ROWS_SQL, values: [season, week] })).rows[0]
             ?.n ?? 0;
@@ -77,9 +128,11 @@ function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" }
                 text: INPUTS_SQL,
                 values: [season, week],
               });
+              const parameters = { metric: "SIGHT_ACCURACY", version, sight_run_id: Number(run.id), graded_week: week };
+              if (isRegrade) parameters.regrade = true;
               return {
                 ingestEventIds: inputs.rows.map((r) => Number(r.ingest_event_id)),
-                parameters: { metric: "SIGHT_ACCURACY", version, sight_run_id: Number(run.id), graded_week: week },
+                parameters,
               };
             },
             async computeValues(client) {
@@ -165,7 +218,8 @@ function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" }
           }),
         );
       }
-      return { state: results.length ? "succeeded" : "unchanged", graded_weeks: results.length };
+      const succeeded = results.filter((r) => r.state === "succeeded");
+      return { state: succeeded.length ? "succeeded" : "unchanged", graded_weeks: succeeded.length };
     },
   };
 }

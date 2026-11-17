@@ -112,10 +112,13 @@ test("summary: computed and graded weeks per version, Sight against the provider
 
   const v1 = out.versions.v1;
   assert.deepEqual(v1.computed, { weeks: 2, latest_week: 9, latest_change_at: "2026-11-06T12:21:00.000Z", failed: [] });
-  assert.deepEqual(v1.graded.weeks, [
-    { week: 9, n: 40, sight_mae: 6.5, provider_mae: 6, beat: false },
-    { week: 10, n: 10, sight_mae: 4, provider_mae: 6, beat: true },
-  ]);
+  assert.deepEqual(
+    v1.graded.weeks.map(({ provider_matched, provider_reason, ...week }) => week),
+    [
+      { week: 9, n: 40, sight_mae: 6.5, provider_mae: 6, beat: false },
+      { week: 10, n: 10, sight_mae: 4, provider_mae: 6, beat: true },
+    ],
+  );
   // (40*6.5 + 10*4) / 50 = 6.0 against (40*6 + 10*6) / 50 = 6.0
   assert.deepEqual(v1.graded.season, { n: 50, sight_mae: 6, provider_mae: 6, weeks_compared: 2, weeks_beat: 1 });
   assert.deepEqual(v1.graded.by_position, {
@@ -127,6 +130,36 @@ test("summary: computed and graded weeks per version, Sight against the provider
   assert.deepEqual(v2.computed.failed, [{ week: 9, code: "values_invalid" }]);
   assert.deepEqual(v2.graded.failed, [{ week: 10, code: "unrecognized" }]);
   assert.equal(v2.graded.season, null);
+});
+
+test("graded weeks report provider matches and explain missing comparisons", () => {
+  const e = evidence();
+  e.runs.push({
+    metric: "omen_sight_accuracy",
+    version: "v1",
+    season: 2026,
+    week: 11,
+    state: "succeeded",
+    positions: { QB: { provider: { n: 0, reason: "no_stored_provider_projections" } } },
+  });
+  e.runs.push({
+    metric: "omen_sight_accuracy",
+    version: "v1",
+    season: 2026,
+    week: 12,
+    state: "succeeded",
+    positions: { QB: { provider: { n: 2, reason: "no_stored_provider_projections" } } },
+  });
+  const weeks = summarize(e, { nowMs: NOW }).versions.v1.graded.weeks;
+  assert.deepEqual(
+    weeks.map(({ week, provider_matched, provider_reason }) => ({ week, provider_matched, provider_reason })),
+    [
+      { week: 9, provider_matched: 40, provider_reason: null },
+      { week: 10, provider_matched: 12, provider_reason: null },
+      { week: 11, provider_matched: 0, provider_reason: "no_stored_provider_projections" },
+      { week: 12, provider_matched: 2, provider_reason: "no_stored_provider_projections" },
+    ],
+  );
 });
 
 test("summary carries no entity ids, no free text and no keys a grader didn't vouch for", () => {
