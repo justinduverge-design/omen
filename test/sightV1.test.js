@@ -437,7 +437,12 @@ test("VC-SIGHT-REGRADE: a zero-provider week is re-graded once rows exist, a wee
   ];
   const lowCountPool = {
     async connect() {
-      return { async query() { return { rows: [] }; }, release() {} };
+      return {
+        async query() {
+          return { rows: [] };
+        },
+        release() {},
+      };
     },
     async query(q) {
       const name = typeof q === "string" ? q : q.name;
@@ -475,7 +480,12 @@ test("VC-SIGHT-REGRADE: a zero-provider week is re-graded once rows exist, a wee
   ];
   const partialPool = {
     async connect() {
-      return { async query() { return { rows: [] }; }, release() {} };
+      return {
+        async query() {
+          return { rows: [] };
+        },
+        release() {},
+      };
     },
     async query(q) {
       const name = typeof q === "string" ? q : q.name;
