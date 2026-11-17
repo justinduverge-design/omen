@@ -360,7 +360,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
               store: req.app?.get?.("decisionExplanationStore"),
               log: logger,
             },
-          )
+          ).catch(() => null)
         : null;
 
     return res.json(

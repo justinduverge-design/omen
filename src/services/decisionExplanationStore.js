@@ -22,7 +22,12 @@ const BOUNDED_BUDGET_MS = 150;
 
 const parse = (raw) => (typeof raw === "string" ? JSON.parse(raw) : raw || null);
 
-async function getBounded(storeOrHash, hashOrBudget = BOUNDED_BUDGET_MS, budgetOrOptions = BOUNDED_BUDGET_MS, maybeOptions = {}) {
+async function getBounded(
+  storeOrHash,
+  hashOrBudget = BOUNDED_BUDGET_MS,
+  budgetOrOptions = BOUNDED_BUDGET_MS,
+  maybeOptions = {},
+) {
   let store;
   let hash;
   let budgetMs;

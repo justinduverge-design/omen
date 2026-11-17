@@ -221,7 +221,12 @@ test("live helper: cache rejected returns fallback null without throwing or re-e
 
 test("live helper: resilience - store error returns fallback null gracefully, logs warning, and does not throw", async () => {
   const warnings = [];
-  const warnLog = { info() {}, warn(msg, meta) { warnings.push({ msg, meta }); } };
+  const warnLog = {
+    info() {},
+    warn(msg, meta) {
+      warnings.push({ msg, meta });
+    },
+  };
   const throwingStore = {
     async get() {
       const err = new Error("Redis connection lost");

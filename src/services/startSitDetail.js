@@ -467,9 +467,7 @@ function buildStartSitDetail({
       evidence,
       // Additive, v2 only: at most three ranked statements built deterministically from `evidence`.
       ...(whyStatements ? { why_statements: whyStatements } : {}),
-      ...(readyExplanation && typeof readyExplanation === "string"
-        ? { decision_explanation: readyExplanation }
-        : {}),
+      ...(readyExplanation && typeof readyExplanation === "string" ? { decision_explanation: readyExplanation } : {}),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,

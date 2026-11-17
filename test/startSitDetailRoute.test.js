@@ -995,10 +995,7 @@ test("Sleeper stat lines are requested in parallel with usage, not after it", as
 test("live mode: response site integration (Step 3)", async () => {
   const { buildExplanationInput } = require("../src/services/decisionExplanation");
   const { createMemoryDecisionExplanationStore } = require("../src/services/decisionExplanationStore");
-  const {
-    setDefaultDecisionExplanationStore,
-    setDefaultLogger,
-  } = require("../src/services/decisionExplanationShadow");
+  const { setDefaultDecisionExplanationStore, setDefaultLogger } = require("../src/services/decisionExplanationShadow");
   const { getStartSitDecisionArgs } = require("../src/services/startSitDetail");
 
   const origMode = process.env.DECISION_EXPLANATIONS_MODE;
