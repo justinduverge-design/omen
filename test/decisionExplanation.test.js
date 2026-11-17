@@ -7,9 +7,18 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { buildExplanationInput, writeExplanation, mode } = require("../src/services/decisionExplanation");
-const { createMemoryDecisionExplanationStore } = require("../src/services/decisionExplanationStore");
+const {
+  createMemoryDecisionExplanationStore,
+  getBounded,
+  BOUNDED_BUDGET_MS,
+  RESULT_TTL_SECONDS,
+} = require("../src/services/decisionExplanationStore");
 const { drainOnce, inQuietWindow } = require("../src/services/decisionExplanationWorker");
-const { shadowDecisionExplanation } = require("../src/services/decisionExplanationShadow");
+const {
+  shadowDecisionExplanation,
+  queueDecisionExplanation,
+  getLiveDecisionExplanation,
+} = require("../src/services/decisionExplanationShadow");
 
 const WHY = [
   { rank: 1, text: "Bijan Robinson has 21.7 carries per game over the last 3 games.", basis: "observed" },
@@ -164,4 +173,148 @@ test("a number word with no matching digit is still rejected", async () => {
   const r = validateGroundedText("Smith has 9 carries over the last three games.", { name: "Smith", f: "9 carries" });
   assert.equal(r.ok, false);
   assert.ok(r.reasons.includes("ungrounded_number_word:three"));
+});
+
+test("live helper: cache hit returns grounded explanation text", async () => {
+  const store = createMemoryDecisionExplanationStore();
+  const input = buildExplanationInput(ARGS);
+  await store.put(input.hash, {
+    version: input.version,
+    type: input.type,
+    ok: true,
+    text: "Start Bijan Robinson over Tony Pollard: he has 21.7 carries per game.",
+    created_at: new Date().toISOString(),
+  });
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  const text = await getLiveDecisionExplanation(ARGS, { env, store, log: silent });
+  assert.equal(text, "Start Bijan Robinson over Tony Pollard: he has 21.7 carries per game.");
+});
+
+test("live helper: cache miss enqueues input and returns null immediately", async () => {
+  const store = createMemoryDecisionExplanationStore();
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  const text = await getLiveDecisionExplanation(ARGS, { env, store, log: silent });
+  assert.equal(text, null);
+  await new Promise((resolve) => setImmediate(resolve));
+  const dequeued = await store.dequeue(10);
+  assert.equal(dequeued.length, 1);
+  assert.equal(dequeued[0].hash, buildExplanationInput(ARGS).hash);
+});
+
+test("live helper: cache rejected returns fallback null without throwing or re-enqueuing", async () => {
+  const store = createMemoryDecisionExplanationStore();
+  const input = buildExplanationInput(ARGS);
+  await store.put(input.hash, {
+    version: input.version,
+    type: input.type,
+    ok: false,
+    text: null,
+    created_at: new Date().toISOString(),
+  });
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  const text = await getLiveDecisionExplanation(ARGS, { env, store, log: silent });
+  assert.equal(text, null);
+  await new Promise((resolve) => setImmediate(resolve));
+  const dequeued = await store.dequeue(10);
+  assert.equal(dequeued.length, 0);
+});
+
+test("live helper: resilience - store error returns fallback null gracefully, logs warning, and does not throw", async () => {
+  const warnings = [];
+  const warnLog = { info() {}, warn(msg, meta) { warnings.push({ msg, meta }); } };
+  const throwingStore = {
+    async get() {
+      const err = new Error("Redis connection lost");
+      err.code = "ECONNREFUSED";
+      throw err;
+    },
+    async enqueue() {},
+  };
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  const text = await getLiveDecisionExplanation(ARGS, { env, store: throwingStore, log: warnLog });
+  assert.equal(text, null);
+  assert.ok(warnings.length >= 1);
+  assert.match(warnings[0].msg, /failed/i);
+});
+
+test("step 2b: store whose get never resolves returns 'not ready' within the budget", async () => {
+  const hangingStore = {
+    async get() {
+      return new Promise(() => {}); // never resolves
+    },
+  };
+  const started = Date.now();
+  const res = await getBounded(hangingStore, "somehash", 40);
+  const elapsed = Date.now() - started;
+  assert.equal(res, "not ready");
+  assert.ok(elapsed >= 35 && elapsed < 250, `elapsed ms: ${elapsed}`);
+});
+
+test("step 2b: timer is cleared when read finishes first (no leaked timer)", async () => {
+  let cleared = false;
+  const origClearTimeout = global.clearTimeout;
+  global.clearTimeout = (t) => {
+    cleared = true;
+    return origClearTimeout(t);
+  };
+  try {
+    const store = createMemoryDecisionExplanationStore();
+    await store.put("fast_hash", { ok: true, text: "fast" });
+    const res = await getBounded(store, "fast_hash", 150);
+    assert.deepEqual(res, { ok: true, text: "fast" });
+    assert.equal(cleared, true);
+  } finally {
+    global.clearTimeout = origClearTimeout;
+  }
+});
+
+test("step 2b: slow store does not delay live decision explanation beyond budget", async () => {
+  const slowStore = {
+    async get() {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      return { ok: true, text: "slow" };
+    },
+    async enqueue() {},
+  };
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  const started = Date.now();
+  const text = await getLiveDecisionExplanation(ARGS, { env, store: slowStore, budgetMs: 40, log: silent });
+  const elapsed = Date.now() - started;
+  assert.equal(text, null);
+  assert.ok(elapsed >= 35 && elapsed < 250, `elapsed ms: ${elapsed}`);
+});
+
+test("stale and version check: mismatched version or expired timestamp returns fallback null", async () => {
+  const store = createMemoryDecisionExplanationStore();
+  const input = buildExplanationInput(ARGS);
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+
+  // Mismatched version
+  await store.put(input.hash, {
+    version: "old-version.v0",
+    ok: true,
+    text: "Mismatched version text",
+    created_at: new Date().toISOString(),
+  });
+  assert.equal(await getLiveDecisionExplanation(ARGS, { env, store, log: silent }), null);
+
+  // Expired timestamp
+  const expiredDate = new Date(Date.now() - (RESULT_TTL_SECONDS + 100) * 1000).toISOString();
+  await store.put(input.hash, {
+    version: input.version,
+    ok: true,
+    text: "Expired text",
+    created_at: expiredDate,
+  });
+  assert.equal(await getLiveDecisionExplanation(ARGS, { env, store, log: silent }), null);
+});
+
+test("queueDecisionExplanation enqueues in live mode as well as shadow mode", async () => {
+  const store = createMemoryDecisionExplanationStore();
+  const env = { DECISION_EXPLANATIONS_MODE: "live" };
+  queueDecisionExplanation(ARGS, { env, store, log: silent });
+  await new Promise((resolve) => setImmediate(resolve));
+  const dequeued = await store.dequeue(10);
+  assert.equal(dequeued.length, 1);
+  assert.equal(dequeued[0].hash, buildExplanationInput(ARGS).hash);
 });
