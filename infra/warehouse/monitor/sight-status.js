@@ -101,10 +101,18 @@ function weekGrade(positions) {
   let n = 0;
   let sight = 0;
   let provider = 0;
+  let providerMatched = 0;
+  let hasProviderCount = false;
+  let missingProvider = false;
   const byPosition = {};
   for (const [pos, p] of Object.entries(positions || {})) {
     if (!POSITION.test(pos)) continue;
     const pn = int(p?.provider?.n);
+    if (pn != null && pn >= 0) {
+      providerMatched += pn;
+      hasProviderCount = true;
+    }
+    if (p?.provider?.reason === "no_stored_provider_projections") missingProvider = true;
     const sm = num(p?.provider?.sight_mae_same_players);
     const pm = num(p?.provider?.mae);
     if (!pn || sm == null || pm == null) continue;
@@ -113,7 +121,13 @@ function weekGrade(positions) {
     provider += pn * pm;
     byPosition[pos] = { n: pn, sight: sm, provider: pm };
   }
-  return n ? { n, sight_mae: sight / n, provider_mae: provider / n, byPosition } : { n: 0, byPosition };
+  const providerInfo = {
+    provider_matched: hasProviderCount ? providerMatched : null,
+    provider_reason: !n && missingProvider ? "no_stored_provider_projections" : null,
+  };
+  return n
+    ? { n, sight_mae: sight / n, provider_mae: provider / n, byPosition, ...providerInfo }
+    : { n: 0, byPosition, ...providerInfo };
 }
 
 /** Evidence (rows, journal, switches) -> the published report. Pure, so tests can drive every case. */
@@ -148,6 +162,8 @@ function summarize(evidence, { nowMs = Date.now() } = {}) {
         sight_mae: round(w.sight_mae ?? null),
         provider_mae: round(w.provider_mae ?? null),
         beat: w.n ? w.sight_mae < w.provider_mae : null,
+        provider_matched: w.provider_matched,
+        provider_reason: w.provider_reason,
       };
       grades.set(row, w);
       g.weeks.push(row);
