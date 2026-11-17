@@ -1,5 +1,8 @@
 "use strict";
 
+process.env.SUPABASE_URL ||= "https://example.supabase.co";
+process.env.SUPABASE_SERVICE_KEY ||= "test-key";
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
@@ -26,10 +29,23 @@ function fakeFetch(content, { status = 200 } = {}) {
   return impl;
 }
 
-test("mode is off unless explicitly shadow", () => {
+test("mode is off unless explicitly shadow or live", () => {
   assert.equal(mode({}), "off");
   assert.equal(mode({ DECISION_EXPLANATIONS_MODE: "on" }), "off");
   assert.equal(mode({ DECISION_EXPLANATIONS_MODE: "shadow" }), "shadow");
+  assert.equal(mode({ DECISION_EXPLANATIONS_MODE: "live" }), "live");
+});
+
+test("cron execution drains in live and shadow mode, skips when off", async () => {
+  const { main } = require("../src/omen_decision_explanation_cron");
+  assert.deepEqual(await main({ env: { DECISION_EXPLANATIONS_MODE: "off" } }), { skipped: "off" });
+  assert.deepEqual(await main({ env: {} }), { skipped: "off" });
+  const liveResult = await main({ env: { DECISION_EXPLANATIONS_MODE: "live" } });
+  assert.equal(liveResult.processed, 0);
+  assert.equal(typeof liveResult.written, "number");
+  const shadowResult = await main({ env: { DECISION_EXPLANATIONS_MODE: "shadow" } });
+  assert.equal(shadowResult.processed, 0);
+  assert.equal(typeof shadowResult.written, "number");
 });
 
 test("input keeps the decision and non-limitation reasons, hashed by facts only", () => {
