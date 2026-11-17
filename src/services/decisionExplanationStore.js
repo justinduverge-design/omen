@@ -18,7 +18,65 @@ const RESULT_TTL_SECONDS = 8 * 24 * 60 * 60; // one NFL week plus a day
 const PENDING_TTL_SECONDS = 6 * 60 * 60;
 const MAX_QUEUE = 2000;
 
+const BOUNDED_BUDGET_MS = 150;
+
 const parse = (raw) => (typeof raw === "string" ? JSON.parse(raw) : raw || null);
+
+async function getBounded(storeOrHash, hashOrBudget = BOUNDED_BUDGET_MS, budgetOrOptions = BOUNDED_BUDGET_MS, maybeOptions = {}) {
+  let store;
+  let hash;
+  let budgetMs;
+  let options;
+
+  if (storeOrHash && typeof storeOrHash.get === "function") {
+    store = storeOrHash;
+    hash = hashOrBudget;
+    budgetMs = typeof budgetOrOptions === "number" ? budgetOrOptions : BOUNDED_BUDGET_MS;
+    options = typeof budgetOrOptions === "object" && budgetOrOptions !== null ? budgetOrOptions : maybeOptions;
+  } else {
+    store = this;
+    hash = storeOrHash;
+    budgetMs = typeof hashOrBudget === "number" ? hashOrBudget : BOUNDED_BUDGET_MS;
+    options = typeof budgetOrOptions === "object" && budgetOrOptions !== null ? budgetOrOptions : {};
+  }
+
+  if (!store || typeof store.get !== "function") {
+    return "not ready";
+  }
+
+  const log = options?.log;
+  let timer = null;
+  try {
+    const getPromise = Promise.resolve().then(() => store.get(hash));
+    // The losing get promise gets a no-op .catch, so a timeout leaves no unhandled rejection
+    getPromise.catch(() => {});
+
+    const timeoutPromise = new Promise((resolve) => {
+      timer = setTimeout(() => {
+        resolve("not ready");
+      }, budgetMs);
+      if (typeof timer?.unref === "function") timer.unref();
+    });
+
+    const result = await Promise.race([getPromise, timeoutPromise]);
+    return result;
+  } catch (error) {
+    if (log && typeof log.warn === "function") {
+      log.warn("decision explanation store read failed", { error: error?.message });
+    } else {
+      try {
+        const { logger } = require("../middleware/logging");
+        logger.warn("decision explanation store read failed", { error: error?.message });
+      } catch {}
+    }
+    return "not ready";
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  }
+}
 
 function createMemoryDecisionExplanationStore() {
   const results = new Map();
@@ -28,6 +86,9 @@ function createMemoryDecisionExplanationStore() {
     kind: "memory",
     async get(hash) {
       return results.has(hash) ? { ...results.get(hash) } : null;
+    },
+    async getBounded(hash, budgetMs, options) {
+      return getBounded(this, hash, budgetMs, options);
     },
     async put(hash, record) {
       results.set(hash, { ...record });
@@ -57,6 +118,9 @@ function createRedisDecisionExplanationStore({ redis }) {
     kind: "redis",
     async get(hash) {
       return parse(await redis.get(`${PREFIX}result:${hash}`));
+    },
+    async getBounded(hash, budgetMs, options) {
+      return getBounded(this, hash, budgetMs, options);
     },
     async put(hash, record) {
       await redis.set(`${PREFIX}result:${hash}`, JSON.stringify(record), { ex: RESULT_TTL_SECONDS });
@@ -100,6 +164,9 @@ function createNoopDecisionExplanationStore() {
     async get() {
       return null;
     },
+    async getBounded(hash, budgetMs, options) {
+      return getBounded(this, hash, budgetMs, options);
+    },
     async put() {},
     async enqueue() {
       return false;
@@ -125,6 +192,8 @@ module.exports = {
   QUEUE_KEY,
   RESULT_TTL_SECONDS,
   MAX_QUEUE,
+  BOUNDED_BUDGET_MS,
+  getBounded,
   createDefaultDecisionExplanationStore,
   createMemoryDecisionExplanationStore,
   createNoopDecisionExplanationStore,

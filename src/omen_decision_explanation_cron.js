@@ -10,7 +10,7 @@ const { createDefaultDecisionExplanationStore } = require("./services/decisionEx
 const { drainOnce } = require("./services/decisionExplanationWorker");
 
 async function main({ env = process.env } = {}) {
-  if (mode(env) !== "shadow") {
+  if (mode(env) === "off") {
     logger.info("Decision explanations off; nothing to do");
     return { skipped: "off" };
   }

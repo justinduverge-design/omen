@@ -29,7 +29,13 @@ const { getAuthenticatedEspnCredentials } = require("../services/espnAuth");
 const { getCurrentNflWeekContext, suppressLiveFootballData } = require("../services/nflSchedule");
 const { isOmenReadyConnection } = require("../services/omenReadiness");
 const { readConnectionsWithSelection, resolveActiveConnection } = require("../services/activeSelection");
-const { CONTRACT_VERSION, CONTRACT_VERSION_V2, buildStartSitDetail } = require("../services/startSitDetail");
+const {
+  CONTRACT_VERSION,
+  CONTRACT_VERSION_V2,
+  buildStartSitDetail,
+  prefetchStartSitDecisionExplanation,
+} = require("../services/startSitDetail");
+const { mode: decisionExplanationMode } = require("../services/decisionExplanation");
 const { getUsageBundle, resolveGsis } = require("../services/playerUsage");
 const { getSeasonBundle } = require("../services/fantasyMetrics/fantasyMetricsData");
 const {
@@ -331,6 +337,32 @@ router.get("/detail", requireAuth, async (req, res, next) => {
     ).catch(() => null);
 
     await attachSight({ roster: loaded.roster });
+    const decisionExplanation =
+      decisionExplanationMode() === "live"
+        ? await prefetchStartSitDecisionExplanation(
+            {
+              roster: loaded.roster,
+              platform: connection.platform,
+              leagueId: connection.league_id,
+              week: resolvedWeek,
+              season: context.season,
+              scoringFormat: loaded.scoringFormat,
+              slot: req.query.slot ? String(req.query.slot) : null,
+              offSeason: suppressLiveFootballData(),
+              contractVersion,
+              usage,
+              weeklyUsage,
+              teamSystem,
+              breakdowns,
+              fantasyMetrics,
+            },
+            {
+              store: req.app?.get?.("decisionExplanationStore"),
+              log: logger,
+            },
+          )
+        : null;
+
     return res.json(
       buildStartSitDetail({
         usage,
@@ -338,6 +370,7 @@ router.get("/detail", requireAuth, async (req, res, next) => {
         teamSystem,
         breakdowns,
         fantasyMetrics,
+        decisionExplanation,
         roster: loaded.roster,
         platform: connection.platform,
         leagueId: connection.league_id,
