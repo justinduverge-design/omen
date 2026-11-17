@@ -51,22 +51,17 @@ const INPUTS_SQL =
 
 const MIN_WEEK_ROWS = 100;
 
-function hasAnyComparison(summary) {
+function hasMaeComparison(summary) {
   const positions = summary?.positions;
   if (!positions || typeof positions !== "object") return false;
   return Object.values(positions).some((pos) => {
     const p = pos?.provider;
     if (!p) return false;
-    return p.corr != null || p.mae != null || (Number.isFinite(p.n) && p.n >= 3);
+    const n = Number(p.n);
+    const sm = typeof p.sight_mae_same_players === "number" && Number.isFinite(p.sight_mae_same_players);
+    const pm = typeof p.mae === "number" && Number.isFinite(p.mae);
+    return n > 0 && sm && pm;
   });
-}
-
-function hasZeroProviderMatches(summary) {
-  const positions = summary?.positions;
-  if (!positions || typeof positions !== "object") return false;
-  const list = Object.values(positions);
-  if (list.length === 0) return false;
-  return list.every((pos) => (pos?.provider?.n ?? 0) === 0);
 }
 
 function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" } = {}) {
@@ -94,8 +89,7 @@ function createSightAccuracyRunner({ pool, transactionTimeouts, version = "v1" }
         let isRegrade = false;
         if (prior) {
           const summary = prior.parameters?.summary;
-          if (hasAnyComparison(summary)) continue;
-          if (!hasZeroProviderMatches(summary)) continue;
+          if (hasMaeComparison(summary)) continue;
           if (prior.parameters?.regrade || regradedWeeks.has(week)) continue;
           let hasStoredProjections = false;
           try {
