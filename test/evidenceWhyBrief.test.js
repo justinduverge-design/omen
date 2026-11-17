@@ -51,3 +51,26 @@ test("brief: a swap with no projections yields the honest not-enough-evidence st
   assert.deepEqual(only.evidence, []);
   assert.equal(statementsAreGrounded([only], []), true);
 });
+
+test("brief: live recommendation uses grounded explanation in why_it_matters on hit; deterministic reasonsFor on miss", () => {
+  const hitResponse = mapLineupSwapToMvpMove({
+    roster: { team_key: "t1", week: 4, source: "sleeper", slots: { starters: [], bench: [] } },
+    swap: SWAP,
+    connection: { platform: "sleeper", league_id: "L1" },
+    connectedPlatforms: [{ platform: "sleeper" }],
+    decisionExplanation: "Starter Wideout projects 15.2 points over Bench Wideout's 13.1 at WR.",
+  });
+  assert.equal(
+    hitResponse.recommendation.explanation.why_it_matters,
+    "Starter Wideout projects 15.2 points over Bench Wideout's 13.1 at WR.",
+  );
+
+  const missResponse = mapLineupSwapToMvpMove({
+    roster: { team_key: "t1", week: 4, source: "sleeper", slots: { starters: [], bench: [] } },
+    swap: SWAP,
+    connection: { platform: "sleeper", league_id: "L1" },
+    connectedPlatforms: [{ platform: "sleeper" }],
+    decisionExplanation: null,
+  });
+  assert.match(missResponse.recommendation.explanation.why_it_matters, /Your best lineup gains 2\.1 points a week/);
+});

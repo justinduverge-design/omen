@@ -13,8 +13,11 @@ const {
   BOUNDED_BUDGET_MS,
   RESULT_TTL_SECONDS,
 } = require("./decisionExplanationStore");
-// Lazy, like tradeSearchPool.js: keeps this module loadable in tests without the logger stack.
-const defaultLog = () => require("../middleware/logging").logger;
+let defaultLogger = null;
+const defaultLog = () => defaultLogger || require("../middleware/logging").logger;
+function setDefaultLogger(logger) {
+  defaultLogger = logger;
+}
 
 let defaultStore = null;
 const storeFor = () => (defaultStore ||= createDefaultDecisionExplanationStore());
@@ -52,16 +55,15 @@ async function getLiveDecisionExplanation(
   if (!input) return null;
 
   const target = store || storeFor();
-  const logger = log || defaultLog();
 
   let record;
   try {
     record =
       typeof target.getBounded === "function"
-        ? await target.getBounded(input.hash, budgetMs, { log: logger })
-        : await getBounded(target, input.hash, budgetMs, { log: logger });
+        ? await target.getBounded(input.hash, budgetMs, { log })
+        : await getBounded(target, input.hash, budgetMs, { log });
   } catch (error) {
-    logger.warn("decision explanation live read failed", { error: error?.message });
+    (log || defaultLog()).warn("decision explanation live read failed", { error: error?.message });
     return null;
   }
 
@@ -126,8 +128,14 @@ function queueDecisionExplanation(args, deps) {
   shadowDecisionExplanation(args, deps).catch(() => {});
 }
 
+function setDefaultDecisionExplanationStore(store) {
+  defaultStore = store;
+}
+
 module.exports = {
   shadowDecisionExplanation,
   queueDecisionExplanation,
   getLiveDecisionExplanation,
+  setDefaultDecisionExplanationStore,
+  setDefaultLogger,
 };
