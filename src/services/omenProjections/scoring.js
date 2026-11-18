@@ -8,8 +8,8 @@
  * scored in any league's rules. The three presets below are the backtest's reference scorings only.
  */
 
-const { calculateContractScore } = require("../scoringContract");
-const { SLEEPER_EVENT_MAP } = require("../scoringRuleSnapshot");
+const { inspectScoringContract } = require("../scoringContract");
+const { SLEEPER_EVENT_MAP, scoreStatLine: scoreFacts } = require("../scoringRuleSnapshot");
 
 const RULESET_VERSION = "omen-scoring-contract-v1";
 
@@ -58,7 +58,16 @@ function statLineToFacts(statLine) {
 function scoreStatLine(statLine, scoring = "ppr") {
   const resolved = typeof scoring === "string" ? SCORING_PRESETS[scoring] : scoring;
   if (!resolved) throw new TypeError(`unknown scoring preset: ${scoring}`);
-  return calculateContractScore(resolved, statLineToFacts(statLine)).points;
+  return scoreProjectionFacts(statLineToFacts(statLine), resolved);
+}
+
+function scoreProjectionFacts(facts, contract) {
+  const inspection = inspectScoringContract(contract);
+  if (inspection.coverage_state !== "supported") {
+    throw new Error(`unsupported scoring contract: ${inspection.coverage_state}`);
+  }
+  // Preserve contract-engine behavior for existing custom range/threshold callers.
+  return scoreFacts(facts, contract, { scoreZeroRanges: true }).points;
 }
 
 /**
@@ -81,7 +90,7 @@ function sleeperStatLineToFacts(sleeperLine) {
 function scoreSleeperStatLine(sleeperLine, scoring = "ppr") {
   const resolved = typeof scoring === "string" ? SCORING_PRESETS[scoring] : scoring;
   if (!resolved) throw new TypeError(`unknown scoring preset: ${scoring}`);
-  return calculateContractScore(resolved, sleeperStatLineToFacts(sleeperLine)).points;
+  return scoreProjectionFacts(sleeperStatLineToFacts(sleeperLine), resolved);
 }
 
 /**

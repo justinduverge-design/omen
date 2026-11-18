@@ -20,7 +20,7 @@
  */
 
 const crypto = require("node:crypto");
-const { EVENT_KEYS, SCORING_CONTRACT_VERSION } = require("./scoringContract");
+const { EVENT_KEYS, OPERATORS, SCORING_CONTRACT_VERSION, calculateContractScore } = require("./scoringContract");
 
 /**
  * Sleeper publishes the user's own league settings on the league object Omen
@@ -235,6 +235,7 @@ function deriveSleeperRules(settings) {
   const rules = [];
   const unmapped = [];
   const fieldGoalBands = {};
+  const conversions = {};
 
   for (const [key, rawValue] of Object.entries(settings || {})) {
     const value = finite(rawValue);
@@ -243,6 +244,11 @@ function deriveSleeperRules(settings) {
       continue;
     }
     if (SLEEPER_IGNORED_KEYS.has(key)) continue;
+
+    if (["pass_2pt", "rush_2pt", "rec_2pt"].includes(key)) {
+      conversions[key] = value;
+      continue;
+    }
 
     if (SLEEPER_FG_BANDS[key]) {
       // Collected and resolved together below: whether a set of bands is reproducible
@@ -262,6 +268,15 @@ function deriveSleeperRules(settings) {
     // A points-allowed tier, a yardage bonus, a return-yard rule, or anything
     // Sleeper adds later. Only a non-zero one changes a score.
     if (value !== 0) unmapped.push(key);
+  }
+
+  if (Object.keys(conversions).length) {
+    const values = ["pass_2pt", "rush_2pt", "rec_2pt"].map((key) => conversions[key] ?? 0);
+    if (values.every((value) => value === values[0])) {
+      rules.push({ event_key: "two_point_conversions", operator: "per_event", value: values[0] });
+    } else {
+      unmapped.push(...Object.keys(conversions).filter((key) => conversions[key] !== 0));
+    }
   }
 
   if (Object.keys(fieldGoalBands).length) {
@@ -402,7 +417,7 @@ function snapshot({ platform, coverageState, rules = [], unmapped = [], reason =
  * @returns a snapshot whose `coverage_state` is one of the contract's seven
  *   states. Only `supported` may ever be described as league-exact.
  */
-function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
+function deriveSnapshot({ platform, leagueSettings = null } = {}) {
   if (platform === "sleeper") {
     if (!leagueSettings || typeof leagueSettings !== "object" || !Object.keys(leagueSettings).length) {
       return snapshot({
@@ -501,6 +516,65 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
   });
 }
 
+// An aggregate 0–39 count cannot distinguish a paid sub-band from an omitted
+// one. Keep existing snapshot consumers unchanged while flagging this for the
+// projection scorer, which receives aggregate facts.
+function deriveScoringSnapshot(input = {}) {
+  const result = deriveSnapshot(input);
+  let bands = null;
+  let bandMap = null;
+  if (input.platform === "sleeper") {
+    bands = input.leagueSettings || {};
+    bandMap = SLEEPER_FG_BANDS;
+  } else if (input.platform === "yahoo") {
+    const entries = input.leagueSettings?.stat_modifiers?.stats;
+    const list = Array.isArray(entries) ? entries : Object.values(entries || {});
+    bands = Object.fromEntries(list.map((entry) => entry?.stat || entry)
+      .filter((stat) => stat && stat.stat_id != null).map((stat) => [String(stat.stat_id), stat.value]));
+    bandMap = YAHOO_FG_BANDS;
+  }
+  if (bandMap) {
+    const missingBands = [];
+    for (const event of new Set(Object.values(bandMap))) {
+      const keys = Object.keys(bandMap).filter((key) => bandMap[key] === event);
+      const values = keys.map((key) => finite(bands[key] ?? 0));
+      if (values.some((value) => value !== values[0])) missingBands.push(event);
+    }
+    if (missingBands.length) result.projection_unmapped_rules = missingBands;
+  }
+  return result;
+}
+
+/** Score canonical event facts against a contract or derived snapshot. Pass the complete
+ * snapshot for provider leagues, as its unmapped metadata is not in the contract alone.
+ * Missing facts are zero;
+ * extra facts have no bearing on which league rules are understood. A partial score is
+ * returned alongside the rules that prevent it being called league-exact. */
+function scoreStatLine(facts, scoring, { scoreZeroRanges = false } = {}) {
+  const contract = scoring?.contract || scoring;
+  if (!contract || !Array.isArray(contract.rules) || contract.ruleset_version !== SCORING_CONTRACT_VERSION) {
+    throw new TypeError("a versioned scoring contract or snapshot is required");
+  }
+  if (!["supported", "ambiguous"].includes(scoring.coverage_state)) {
+    throw new Error(`unsupported scoring contract: ${scoring.coverage_state || "missing"}`);
+  }
+  const unmapped = new Set([...(scoring.unmapped_rules || []), ...(scoring.projection_unmapped_rules || [])]);
+  const rules = [];
+  for (const rule of contract.rules) {
+    if (scoring.projection_unmapped_rules?.includes(rule?.event_key)) continue;
+    if (!EVENT_KEYS.has(rule?.event_key) || !OPERATORS.has(rule?.operator)) {
+      unmapped.add(rule?.event_key || "unknown_rule");
+    } else {
+      rules.push(rule);
+    }
+  }
+  const allZero = rules.every((rule) => Number(rule.value) === 0 || Number(facts?.[rule.event_key] ?? 0) === 0);
+  const points = rules.length && (!allZero || scoreZeroRanges)
+    ? calculateContractScore({ ...contract, coverage_state: "supported", rules }, facts || {}).points
+    : 0;
+  return { points, unmapped_rules: [...unmapped].sort() };
+}
+
 module.exports = {
   ESPN_EVENT_MAP,
   SLEEPER_EVENT_MAP,
@@ -513,4 +587,5 @@ module.exports = {
   deriveScoringSnapshot,
   deriveSleeperRules,
   hashOf,
+  scoreStatLine,
 };
