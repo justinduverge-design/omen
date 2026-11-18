@@ -16,9 +16,9 @@
  *      is multiplied by THIS Yahoo league's own scoring rules (`/league/{key}/settings`
  *      `stat_modifiers`, mapped by `scoringRuleSnapshot.deriveYahooRules`). Sleeper's own
  *      `pts_ppr` total is never used: it is PPR and this league may not be.
- *   3. If the league carries a rule Omen cannot map, the number is still computed from the rules
- *      Omen does know, but it is labelled `approximate`, and only for the positions that rule can
- *      touch (a points-allowed tier does not make a running back's number approximate).
+ *   3. Approximate scoring is retired: if the league carries a rule Omen cannot map, or any
+ *      rule is unknown, no projections are made and the response reports `unknown_rules` instead
+ *      of guessing approximate numbers.
  *   4. If the league's rules cannot be read, there is NO projection. A PPR guess for a league whose
  *      scoring is unknown can flip a start/sit call, so the engine keeps saying "cannot rank".
  *
@@ -29,7 +29,7 @@
  */
 
 const sleeperAdapter = require("../adapters/sleeper");
-const { deriveScoringSnapshot, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
+const { deriveScoringSnapshot, scoreStatLine, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
 const { normalizeName } = require("./playerCrosswalk");
 const { getCurrentNflWeekContext } = require("./nflSchedule");
 
@@ -132,23 +132,28 @@ function affectedTypes(unmappedRule, byStat) {
 /**
  * Read this Yahoo league's scoring and reduce it to what projection scoring needs.
  * Returns `{ values: Map(event_key -> points), approximateFor: Set(type), unmapped: [...] }` or null
- * when the rules could not be read.
+ * when the rules could not be read. If rules are unmapped or ambiguous, reports reason: "unknown_rules".
  */
 function scoringFromSettings(settings) {
   const snapshot = deriveScoringSnapshot({ platform: "yahoo", leagueSettings: settings });
-  if (snapshot.coverage_state !== "supported" && snapshot.coverage_state !== "ambiguous") return null;
+  if (!snapshot || snapshot.coverage_state === "unsupported") return null;
+  if (snapshot.coverage_state === "ambiguous" || (snapshot.unmapped_rules && snapshot.unmapped_rules.length > 0)) {
+    return {
+      values: null,
+      approximateFor: new Set(),
+      unmapped: [...(snapshot.unmapped_rules || [])],
+      reason: "unknown_rules",
+      coverage_state: snapshot.coverage_state,
+    };
+  }
+  if (snapshot.coverage_state !== "supported") return null;
   const rules = snapshot.contract?.rules || [];
   if (!rules.length) return null;
   const values = new Map();
   for (const rule of rules) {
     if (rule.operator === "per_event" && Number.isFinite(rule.value)) values.set(rule.event_key, rule.value);
   }
-  const byStat = positionTypesByStat(settings);
-  const approximateFor = new Set();
-  for (const unmapped of snapshot.unmapped_rules || []) {
-    for (const type of affectedTypes(unmapped, byStat)) approximateFor.add(type);
-  }
-  return { values, approximateFor, unmapped: [...(snapshot.unmapped_rules || [])] };
+  return { values, approximateFor: new Set(), unmapped: [] };
 }
 
 async function leagueScoring(client, leagueKey, { now = Date.now() } = {}) {
@@ -167,26 +172,6 @@ async function leagueScoring(client, leagueKey, { now = Date.now() } = {}) {
   return value;
 }
 
-/**
- * A stat line scored under league rules. Null when no stat in the line is scored by a rule Omen
- * knows, because "nothing to score" must not read as "projects zero".
- */
-function scoreStatLine(statLine, values) {
-  if (!statLine || typeof statLine !== "object") return null;
-  let total = 0;
-  let scored = 0;
-  for (const [key, quantity] of Object.entries(statLine)) {
-    if (key.startsWith("pts_")) continue;
-    const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
-    if (!event) continue;
-    const perUnit = values.get(event);
-    const count = Number(quantity);
-    if (perUnit == null || !Number.isFinite(count)) continue;
-    total += count * perUnit;
-    scored += 1;
-  }
-  return scored ? round2(total) : null;
-}
 
 /**
  * The same scoring as `scoreStatLine`, one part per scored stat: `{ stat, quantity, points_per, points }`,
@@ -349,6 +334,7 @@ const BUDGET_MS_EXCEEDED = Symbol("budget_exceeded");
 async function load({ client, leagueKey, season, week, deps }) {
   const scoring = await (deps.leagueScoring || leagueScoring)(client, leagueKey);
   if (!scoring) return { reason: "scoring_unreadable" };
+  if (scoring.reason) return { reason: scoring.reason };
   const [statLines, sleeperPlayers] = await Promise.all([
     (deps.fetchStatLines || sleeperAdapter.fetchSleeperProjectionStatLines)(season, week),
     (deps.fetchPlayers || sleeperAdapter.fetchSleeperPlayers)(),
@@ -394,7 +380,6 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   const index = yahooIndex(sleeperPlayers);
   const playingTeams = teamsWithProjections(statLines, sleeperPlayers);
   let projected = 0;
-  let approximate = false;
   for (const player of projectable) {
     const yahooId = String(player.yahoo_id ?? player.player_id);
     let sleeperId = index.get(yahooId);
@@ -413,11 +398,9 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
       }
       continue;
     }
-    const basis = scoring.approximateFor.has(positionTypeOf(player)) ? BASIS_APPROX : BASIS_LEAGUE;
-    if (basis === BASIS_APPROX) approximate = true;
     player.projected_points = points;
     player.projection_source = SOURCE;
-    player.projection_basis = basis;
+    player.projection_basis = BASIS_LEAGUE;
     // Not enumerable: the breakdown reads it in-process, and it never rides along in a response.
     Object.defineProperty(player, "projection_parts", {
       value: statLineParts(statLines?.[sleeperId], scoring.values),
@@ -430,7 +413,7 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   return {
     available: projected > 0,
     source: SOURCE,
-    scoring_basis: projected > 0 ? (approximate ? BASIS_APPROX : BASIS_LEAGUE) : null,
+    scoring_basis: projected > 0 ? BASIS_LEAGUE : null,
     players_total: total,
     players_with_projection: projected,
     reason: projected > 0 ? null : "no_matching_projections",

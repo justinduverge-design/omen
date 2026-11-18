@@ -137,4 +137,5 @@ module.exports = {
   SCORING_CONTRACT_VERSION,
   calculateContractScore,
   inspectScoringContract,
+  scoreStatLine: (...args) => require("./scoringRuleSnapshot").scoreStatLine(...args),
 };

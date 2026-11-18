@@ -914,7 +914,9 @@ function mapWaiverPickupToMvpMove({
  * Yahoo publishes no player projections. When Omen filled them in (yahooProjections.js: Sleeper's
  * public stat line scored with the Yahoo league's own rules) the response must say so, and must say
  * "approximate" when the league has a scoring rule Omen cannot reproduce. Never claims the number
- * is Yahoo's, and never calls approximate scoring exact.
+ * is Yahoo's, and never calls approximate scoring exact. Approximate scoring is retired in live
+ * yahooProjections.js (unknown rules say so instead of guessing); this label remains for backward
+ * compatibility with mock and historical approximate payloads.
  */
 function yahooProjectionDisclosure(meta) {
   if (!meta || meta.available !== true) return null;

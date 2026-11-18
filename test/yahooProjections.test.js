@@ -60,19 +60,24 @@ test("Sleeper's own pts_* totals are never used, and an unscorable line is null,
   assert.equal(scoreStatLine(null, ppr.values), null);
 });
 
-test("a rule for defence only makes the league approximate for nobody who is projected from offensive stats", () => {
+test("unknown rules are reported unmapped with reason unknown_rules rather than guessing approximate points", () => {
   const settings = settingsWith([...PPR_MODIFIERS, stat(50, 10)], [category(50, "DT"), category(11, "O")]);
   const scoring = scoringFromSettings(settings);
   assert.deepEqual(scoring.unmapped, ["stat_50"]);
-  assert.equal(scoring.approximateFor.size, 0);
+  assert.equal(scoring.reason, "unknown_rules");
+  assert.equal(scoring.values, null);
 });
 
-test("an unmapped offensive rule, or one whose type is unknown, makes the totals approximate", () => {
+test("an unmapped offensive rule, or one whose type is unknown, says so instead of guessing", () => {
   const offensive = scoringFromSettings(settingsWith([...PPR_MODIFIERS, stat(57, 2)], [category(57, "O")]));
-  assert.deepEqual([...offensive.approximateFor], ["O"]);
+  assert.deepEqual(offensive.unmapped, ["stat_57"]);
+  assert.equal(offensive.reason, "unknown_rules");
+  assert.equal(offensive.values, null);
 
   const unknownType = scoringFromSettings(settingsWith([...PPR_MODIFIERS, stat(57, 2)]));
-  assert.deepEqual([...unknownType.approximateFor].sort(), ["K", "O"]);
+  assert.deepEqual(unknownType.unmapped, ["stat_57"]);
+  assert.equal(unknownType.reason, "unknown_rules");
+  assert.equal(unknownType.values, null);
 });
 
 test("unreadable settings give no scoring at all", () => {
@@ -171,9 +176,9 @@ test("when the league's scoring cannot be read there are no projections, never a
   assert.equal(calls.statLines, 0, "no Sleeper read is made without rules to score it");
 });
 
-test("an approximate league labels only the positions its unmapped rule touches", async () => {
+test("a league with unknown rules says so instead of guessing approximate totals", async () => {
   const settings = settingsWith([...PPR_MODIFIERS, stat(29, 1), stat(57, 2)], [category(57, "O")]);
-  const { client, deps } = fixture({
+  const { client, deps, calls } = fixture({
     settings,
     sleeperPlayers: {
       "S-K": { yahoo_id: 7, full_name: "Kay Kicker", position: "K" },
@@ -187,10 +192,12 @@ test("an approximate league labels only the positions its unmapped rule touches"
   ];
   const meta = await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
 
-  assert.equal(roster[0].projected_points, 3);
-  assert.equal(roster[0].projection_basis, "league_scoring");
-  assert.equal(roster[1].projection_basis, "approximate_scoring");
-  assert.equal(meta.scoring_basis, "approximate_scoring");
+  assert.equal(meta.reason, "unknown_rules");
+  assert.equal(meta.available, false);
+  assert.equal(meta.players_with_projection, 0);
+  assert.equal(roster[0].projected_points, null);
+  assert.equal(roster[1].projected_points, null);
+  assert.equal(calls.statLines, 0, "no Sleeper read is made for unknown rules");
 });
 
 test("league rules are read once per league, not once per call", async () => {
