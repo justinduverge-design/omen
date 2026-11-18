@@ -440,3 +440,17 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - #790 ruff (ours). Dependency bumps, founder merges via `scripts/merge-pr.sh`: #791 opentelemetry
   sdk-trace 3.0.0 (major: check), #789 frontend-runtime, #788 android, #787 docker/login-action,
   #786 setup-uv, #785 tailscale action, #784 vite.
+
+### B13-STATLINE-AUTHORITY-SAFETY — stat authority fails closed until margins are set
+- **Status:** READY
+- **Task:** omen.backend
+- **Area:** forecast_backtest
+- **Blocked by:** None
+- **Priority:** P2
+- **Goal:** the per-stat forecast-authority path elects no leader until each stat has a margin set from the first scorecard, and never reads a stat block without a `horizons` map for another horizon.
+- **Context:** fresh review of ee3e5a6a (Vision, 2026-11-18); design note `Blueprints/specs/football-data/sight-statline-design-v1.md` section 5 (yards cannot reuse 0.15 points; open question 4, paired verdict against both baselines).
+- **Constraints:** stay in `src/services/forecastAuthority.js` and `test/forecastAuthority.test.js`; the points path used by `sightRepository.readAuthority` must not change.
+- **Done when:** a stat row with no stat margin resolves `unresolved`; a stat block without `horizons` returns nothing for h>1; tests pin the points receipt (`stat: null`, horizon default) and the legacy fallbacks.
+- **Check:** `npm test` passes, including the new cases.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 60 turns, 4M tokens
