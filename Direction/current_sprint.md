@@ -454,3 +454,8 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 - **Check:** `npm test` passes, including the new cases.
 - **Stop when:** done, blocked (say why), or the budget is spent.
 - **Run budget:** 60 turns, 4M tokens
+
+### B13-LEAGUE-SCORING split (Vision, 2026-11-18)
+Two Antigravity attempts failed fresh review (card/b13-league-scoring-1118, card/b13-league-scoring-2). The card is split:
+- **Step A (Codex: two Antigravity attempts at this logic failed review):** one scorer in `scoringRuleSnapshot.js` returns `{points, unmapped_rules}`. A stat the league does not score (attempts, targets, snaps) is NOT unknown; only a league rule Omen cannot map is. All-zero lines score 0, not null. `omenProjections/scoring.js` uses it with one preset table; every alias and preset tested. Fixture leagues (Sleeper, ESPN standard, ESPN custom, Yahoo) score to hand-computed totals.
+- **Step B:** Yahoo keeps scoring positions whose rules are known and flags only affected players; `unknown_rules` reason set and shown through `omenHold.js`; tests through `enrichYahooPlayers`.
