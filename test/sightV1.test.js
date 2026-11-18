@@ -456,11 +456,105 @@ test("VC-SIGHT-REGRADE: a zero-provider week is re-graded once rows exist, a wee
   const lowCountResult = await lowCountRunner.run({ season: 2026 });
   assert.equal(lowCountResult.state, "unchanged");
   assert.equal(lowCountResult.graded_weeks, 0);
+});
 
-  // A week with any provider matches (e.g. n=1, not zero in every position) is NOT re-graded
-  const partialDbRuns = [
+test("OMEN-SIGHT-REGRADE-2: old-grade-with-matches-but-no-MAE (re-grades once), already-has-MAE (skipped), zero matches (unchanged)", async () => {
+  const { createSightAccuracyRunner } = require("../src/services/footballWarehouse/sightAccuracyRun");
+  const { weekGrade } = require("../infra/warehouse/monitor/sight-status");
+
+  const players = ["p0", "p1", "p2", "p3"];
+  const sightValues = players.map((id) => ({
+    entity_type: "player",
+    entity_id: id,
+    value: 12,
+    components: { position: "WR", production_ppg: 10 },
+  }));
+  const actualRows = players.map((id) => ({ player_id: id, ppr: 14 }));
+  const providerRows = players.map((id) => ({ player_id: id, ppr: 13 }));
+
+  const dbRuns = [
+    // Week 6: old grade whose positions have provider matches but no sight_mae_same_players
     {
-      id: 401,
+      id: 501,
+      season: 2026,
+      week: 6,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 101,
+        graded_week: 6,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: {
+              n: 4,
+              sight: { corr: 0.8, mae: 2 },
+              ppg_to_date: { corr: 0.5, mae: 4 },
+              provider: {
+                n: 4,
+                corr: 0.9,
+                mae: 1,
+                sight_corr_same_players: 0.8,
+                // no sight_mae_same_players (written by old grader)
+              },
+            },
+          },
+        },
+      },
+    },
+    // Week 7: already has MAE (sight_mae_same_players and provider mae)
+    {
+      id: 502,
+      season: 2026,
+      week: 7,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 102,
+        graded_week: 7,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: {
+              n: 4,
+              sight: { corr: 0.8, mae: 2 },
+              ppg_to_date: { corr: 0.5, mae: 4 },
+              provider: {
+                n: 4,
+                corr: 0.9,
+                mae: 1,
+                sight_corr_same_players: 0.8,
+                sight_mae_same_players: 2,
+              },
+            },
+          },
+        },
+      },
+    },
+    // Week 8: zero provider matches, and zero stored projections in warehouse (unchanged)
+    {
+      id: 503,
+      season: 2026,
+      week: 8,
+      state: "succeeded",
+      parameters: {
+        metric: "SIGHT_ACCURACY",
+        version: "v1",
+        sight_run_id: 103,
+        graded_week: 8,
+        summary: {
+          outcome: "graded",
+          positions: {
+            WR: { n: 4, provider: { n: 0, reason: "no_stored_provider_projections" } },
+          },
+        },
+      },
+    },
+    // Week 9: old grade with provider matches but no provider mae
+    {
+      id: 504,
       season: 2026,
       week: 9,
       state: "succeeded",
@@ -472,31 +566,179 @@ test("VC-SIGHT-REGRADE: a zero-provider week is re-graded once rows exist, a wee
         summary: {
           outcome: "graded",
           positions: {
-            WR: { n: 4, provider: { n: 1, reason: "no_stored_provider_projections" } },
+            WR: {
+              n: 4,
+              sight: { corr: 0.8, mae: 2 },
+              ppg_to_date: { corr: 0.5, mae: 4 },
+              provider: {
+                n: 4,
+                corr: 0.9,
+                sight_corr_same_players: 0.8,
+                sight_mae_same_players: 2,
+                // no provider.mae
+              },
+            },
           },
         },
       },
     },
   ];
-  const partialPool = {
-    async connect() {
-      return {
-        async query() {
+
+  // Before re-grade:
+  // Week 6 reports n === 0 in weekGrade because sight_mae_same_players is missing
+  assert.equal(weekGrade(dbRuns[0].parameters.summary.positions).n, 0);
+  // Week 7 reports n === 4 in weekGrade because both MAEs exist
+  assert.equal(weekGrade(dbRuns[1].parameters.summary.positions).n, 4);
+  // Week 8 reports n === 0 in weekGrade because provider matches are 0
+  assert.equal(weekGrade(dbRuns[2].parameters.summary.positions).n, 0);
+  // Week 9 reports n === 0 in weekGrade because provider mae is missing
+  assert.equal(weekGrade(dbRuns[3].parameters.summary.positions).n, 0);
+
+  const restartedRuns = [];
+
+  function makePool() {
+    const client = {
+      async query(q) {
+        const name = typeof q === "string" ? q : q.name;
+        if (name === "warehouse-metric-run-lock-v1") return { rows: [] };
+        if (name === "sight-acc-inputs-v1") return { rows: [{ ingest_event_id: 1 }] };
+        if (name === "warehouse-metric-run-existing-v1") {
+          const [, , , week, baseJson] = q.values;
+          const prior = dbRuns.find((r) => r.week === week);
+          if (!prior) return { rows: [] };
+          const base = JSON.parse(baseJson);
+          const priorBase = { ...prior.parameters };
+          delete priorBase.summary;
+          const sameParams = JSON.stringify(priorBase) === JSON.stringify(base);
+          return {
+            rows: [
+              {
+                id: prior.id,
+                state: prior.state,
+                same_parameters: sameParams,
+                input_ids: [1],
+              },
+            ],
+          };
+        }
+        if (name === "warehouse-metric-run-restart-v1") {
+          const [runId, baseJson] = q.values;
+          restartedRuns.push({ runId, base: JSON.parse(baseJson) });
+          const row = dbRuns.find((r) => r.id === runId);
+          if (row) {
+            row.state = "running";
+            row.parameters = JSON.parse(baseJson);
+          }
           return { rows: [] };
-        },
-        release() {},
-      };
-    },
-    async query(q) {
-      const name = typeof q === "string" ? q : q.name;
-      if (name === "sight-acc-runs-v1") return { rows: [{ id: 104, week: 8 }] };
-      if (name === "sight-acc-graded-v1") return { rows: [{ week: 9, parameters: partialDbRuns[0].parameters }] };
-      if (name === "sight-acc-provider-pos-v1") return { rows: [{ football_position: "WR", n: 5 }] };
-      return { rows: [] };
-    },
-  };
-  const partialRunner = createSightAccuracyRunner({ pool: partialPool, version: "v1" });
-  const partialResult = await partialRunner.run({ season: 2026 });
-  assert.equal(partialResult.state, "unchanged");
-  assert.equal(partialResult.graded_weeks, 0);
+        }
+        if (name === "warehouse-metric-run-clear-values-v1" || name === "warehouse-metric-run-clear-inputs-v1") {
+          return { rows: [] };
+        }
+        if (name === "warehouse-metric-run-inputs-v1") return { rows: [] };
+        if (name === "sight-acc-values-v1") return { rows: sightValues };
+        if (name === "sight-acc-actual-v1") return { rows: actualRows };
+        if (name === "sight-acc-provider-v1") return { rows: providerRows };
+        if (name === "warehouse-metric-run-values-v1") return { rows: [] };
+        if (name === "warehouse-metric-run-succeed-v1") {
+          const [runId, paramsJson] = q.values;
+          const row = dbRuns.find((r) => r.id === runId);
+          if (row) {
+            row.state = "succeeded";
+            row.parameters = JSON.parse(paramsJson);
+          }
+          return { rows: [] };
+        }
+        return { rows: [] };
+      },
+      release() {},
+    };
+
+    return {
+      async connect() {
+        return client;
+      },
+      async query(q) {
+        const name = typeof q === "string" ? q : q.name;
+        if (name === "sight-acc-runs-v1") {
+          return {
+            rows: [
+              { id: 101, week: 5 }, // grades week 6
+              { id: 102, week: 6 }, // grades week 7
+              { id: 103, week: 7 }, // grades week 8
+              { id: 104, week: 8 }, // grades week 9
+            ],
+          };
+        }
+        if (name === "sight-acc-graded-v1") {
+          return {
+            rows: dbRuns
+              .filter((r) => r.state === "succeeded")
+              .map((r) => ({ week: r.week, parameters: r.parameters })),
+          };
+        }
+        if (name === "sight-acc-provider-pos-v1") {
+          const [, week] = q.values;
+          // Week 6 and 9 have stored projections (4 rows)
+          if (week === 6 || week === 9) {
+            return { rows: [{ football_position: "WR", n: 4 }] };
+          }
+          // Week 8 has zero stored projections
+          return { rows: [] };
+        }
+        if (name === "sight-acc-week-rows-v1") {
+          return { rows: [{ n: 150 }] };
+        }
+        return client.query(q);
+      },
+    };
+  }
+
+  const pool = makePool();
+  const runner = createSightAccuracyRunner({ pool, version: "v1" });
+
+  // RUN 1:
+  // Week 6 and Week 9 had provider matches but no MAE -> both re-grade once!
+  // Week 7 already has MAE -> skipped!
+  // Week 8 has zero matches and zero stored projections -> unchanged!
+  const run1 = await runner.run({ season: 2026 });
+  assert.equal(run1.state, "succeeded");
+  assert.equal(run1.graded_weeks, 2);
+  assert.equal(restartedRuns.length, 2);
+  assert.equal(restartedRuns[0].runId, 501);
+  assert.equal(restartedRuns[0].base.graded_week, 6);
+  assert.equal(restartedRuns[1].runId, 504);
+  assert.equal(restartedRuns[1].base.graded_week, 9);
+
+  // Week 6 and 9 now have both sight_mae_same_players and provider mae, so weekGrade reports n > 0
+  const updatedWeek6 = dbRuns.find((r) => r.week === 6);
+  assert.equal(updatedWeek6.state, "succeeded");
+  assert.ok(updatedWeek6.parameters.regrade);
+  assert.ok(updatedWeek6.parameters.summary.positions.WR.provider.sight_mae_same_players != null);
+  assert.ok(updatedWeek6.parameters.summary.positions.WR.provider.mae != null);
+  assert.equal(weekGrade(updatedWeek6.parameters.summary.positions).n, 4);
+
+  const updatedWeek9 = dbRuns.find((r) => r.week === 9);
+  assert.equal(updatedWeek9.state, "succeeded");
+  assert.ok(updatedWeek9.parameters.regrade);
+  assert.ok(updatedWeek9.parameters.summary.positions.WR.provider.sight_mae_same_players != null);
+  assert.ok(updatedWeek9.parameters.summary.positions.WR.provider.mae != null);
+  assert.equal(weekGrade(updatedWeek9.parameters.summary.positions).n, 4);
+
+  // Week 7 was never restarted or touched (already-has-MAE was skipped)
+  assert.ok(!restartedRuns.some((r) => r.base.graded_week === 7));
+  const week7 = dbRuns.find((r) => r.week === 7);
+  assert.equal(week7.parameters.regrade, undefined);
+  assert.equal(weekGrade(week7.parameters.summary.positions).n, 4);
+
+  // Week 8 was never restarted or touched (zero matches, unchanged)
+  assert.ok(!restartedRuns.some((r) => r.base.graded_week === 8));
+  const week8 = dbRuns.find((r) => r.week === 8);
+  assert.equal(week8.parameters.regrade, undefined);
+  assert.equal(weekGrade(week8.parameters.summary.positions).n, 0);
+
+  // RUN 2: Running a second time must NOT grade any week again
+  const run2 = await runner.run({ season: 2026 });
+  assert.equal(run2.state, "unchanged");
+  assert.equal(run2.graded_weeks, 0);
+  assert.equal(restartedRuns.length, 2, "no additional re-grade occurred");
 });

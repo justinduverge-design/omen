@@ -991,3 +991,79 @@ test("Sleeper stat lines are requested in parallel with usage, not after it", as
     true,
   );
 });
+
+test("live mode: response site integration (Step 3)", async () => {
+  const { buildExplanationInput } = require("../src/services/decisionExplanation");
+  const { createMemoryDecisionExplanationStore } = require("../src/services/decisionExplanationStore");
+  const { setDefaultDecisionExplanationStore, setDefaultLogger } = require("../src/services/decisionExplanationShadow");
+  const { getStartSitDecisionArgs } = require("../src/services/startSitDetail");
+
+  const origMode = process.env.DECISION_EXPLANATIONS_MODE;
+  setDefaultLogger({ info() {}, warn() {}, error() {} });
+  try {
+    const fastOpts = snOptions({
+      getUsageBundle: async () => ({ usage: new Map(), weekly: new Map() }),
+    });
+
+    // 1. Under DECISION_EXPLANATIONS_MODE=off: output has no decision_explanation, identical to snapshot
+    process.env.DECISION_EXPLANATIONS_MODE = "off";
+    const appOff = buildApp(fastOpts);
+    const resOff = await request(appOff, SN_URL, { "x-contract-record": "skip" });
+    assert.equal(resOff.status, 200);
+    assert.equal(resOff.body.decision_explanation, undefined);
+    assert.ok(Array.isArray(resOff.body.why) && resOff.body.why.length >= 1);
+    assert.ok(Array.isArray(resOff.body.why_statements) && resOff.body.why_statements.length >= 1);
+
+    // 2. Under DECISION_EXPLANATIONS_MODE=live with cache miss: deterministic why and why_statements, no delay
+    process.env.DECISION_EXPLANATIONS_MODE = "live";
+    const storeMiss = createMemoryDecisionExplanationStore();
+    setDefaultDecisionExplanationStore(storeMiss);
+    const appMiss = buildApp(fastOpts);
+    const t0 = Date.now();
+    const resMiss = await request(appMiss, SN_URL, { "x-contract-record": "skip" });
+    const elapsed = Date.now() - t0;
+    assert.equal(resMiss.status, 200);
+    assert.equal(resMiss.body.decision_explanation, undefined);
+    assert.deepEqual(stable(resMiss.body.why), stable(resOff.body.why));
+    assert.deepEqual(stable(resMiss.body.why_statements), stable(resOff.body.why_statements));
+    assert.ok(elapsed < 200, `cache miss responded without delay: ${elapsed}ms`);
+    assert.equal(resMiss.status, 200);
+    assert.equal(resMiss.body.decision_explanation, undefined);
+    assert.deepEqual(stable(resMiss.body.why), stable(resOff.body.why));
+    assert.deepEqual(stable(resMiss.body.why_statements), stable(resOff.body.why_statements));
+    assert.ok(elapsed < 200, `cache miss responded without delay: ${elapsed}ms`);
+
+    // 3. Under DECISION_EXPLANATIONS_MODE=live with stored hit: contains grounded explanation
+    const storeHit = createMemoryDecisionExplanationStore();
+    const args = getStartSitDecisionArgs({
+      roster: ROSTER,
+      contractVersion: CONTRACT_VERSION_V2,
+      scoringFormat: "0.5 PPR",
+      week: 7,
+      season: 2026,
+    });
+    assert.ok(args, "decision args should be produced for ROSTER");
+    const input = buildExplanationInput(args);
+    await storeHit.put(input.hash, {
+      version: input.version,
+      type: input.type,
+      ok: true,
+      text: "Start DeVonta Smith over Chris Olave: higher projected output in 0.5 PPR.",
+      created_at: new Date().toISOString(),
+    });
+    setDefaultDecisionExplanationStore(storeHit);
+    const appHit = buildApp(fastOpts);
+    const resHit = await request(appHit, SN_URL, { "x-contract-record": "skip" });
+    assert.equal(resHit.status, 200);
+    assert.equal(
+      resHit.body.decision_explanation,
+      "Start DeVonta Smith over Chris Olave: higher projected output in 0.5 PPR.",
+    );
+    assert.deepEqual(stable(resHit.body.why), stable(resOff.body.why));
+    assert.deepEqual(stable(resHit.body.why_statements), stable(resOff.body.why_statements));
+    assert.equal(resHit.body.contract_version, "start-sit-detail.v2");
+  } finally {
+    process.env.DECISION_EXPLANATIONS_MODE = origMode;
+    setDefaultDecisionExplanationStore(null);
+  }
+});

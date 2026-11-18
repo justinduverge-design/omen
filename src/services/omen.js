@@ -15,7 +15,8 @@ const { getAuthenticatedYahooClient } = require("./yahooAuth");
 const rosterSvc = require("./roster");
 const optimizer = require("./optimizer");
 const { buildEvidenceWhy } = require("./evidenceWhy");
-const { queueDecisionExplanation } = require("./decisionExplanationShadow");
+const { queueDecisionExplanation, getLiveDecisionExplanation } = require("./decisionExplanationShadow");
+const { mode: decisionExplanationMode } = require("./decisionExplanation");
 const { assessConfidence, bandFromScore, bandSentence, mvpLabelForBand, scoreForBand } = require("./confidencePolicy");
 const omenSelector = require("./omenSelector");
 const { isOmenReadyConnection } = require("./omenReadiness");
@@ -1397,7 +1398,16 @@ function swapEvidenceRows({ swap, startPlayer, sitPlayer }) {
   return rows;
 }
 
-function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }) {
+function mapLineupSwapToMvpMove({
+  roster,
+  swap,
+  connection,
+  connectedPlatforms,
+  decisionExplanation = null,
+  decision_explanation = null,
+  storedExplanation = null,
+  explanationText = null,
+}) {
   const platform = connection.platform || roster.source || "unknown";
   const platformLabel = displayPlatform(platform);
   const startPlayer = findRosterPlayer(roster, swap.to.player_key);
@@ -1427,6 +1437,12 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     decision: `Start ${primary.name} over ${comparison.name} at ${rosterSlot}.`,
     why: swapWhy,
   });
+  const readyExplanation = decisionExplanation || decision_explanation || storedExplanation || explanationText || null;
+  const whyItMatters =
+    (readyExplanation && typeof readyExplanation === "string" ? readyExplanation : null) ||
+    reasonsFor({ gain: startPlayer, lose: sitPlayer, lineupGain: delta }).join(" ") ||
+    `${primary.name} is the better ${rosterSlot} option this week in your ${platformLabel} lineup.`;
+
   response.recommendation = {
     id: `live_omen_start_sit_${swap.to.player_key || "unknown"}`,
     type: "start_sit",
@@ -1447,9 +1463,7 @@ function mapLineupSwapToMvpMove({ roster, swap, connection, connectedPlatforms }
     explanation: {
       summary: endSentence(`Your best live move is to start ${primary.name} over ${comparison.name}.`),
       // Reasons first (moveReasons.js): availability and Omen's read, the point gap last.
-      why_it_matters:
-        reasonsFor({ gain: startPlayer, lose: sitPlayer, lineupGain: delta }).join(" ") ||
-        `${primary.name} is the better ${rosterSlot} option this week in your ${platformLabel} lineup.`,
+      why_it_matters: whyItMatters,
       risk: `Risk is ${riskLevel} because this recommendation uses roster and projection math, not waiver availability or trade-acceptance forecasting.`,
       confidence: bandSentence(
         bandFromScore(confidenceScore),
@@ -2246,6 +2260,23 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
     );
   }
 
+  let decisionExplanation = null;
+  if (decisionExplanationMode() === "live") {
+    try {
+      const startPlayer = findRosterPlayer(roster, selected.swap.to.player_key);
+      const sitPlayer = findRosterPlayer(roster, selected.swap.from.player_key);
+      const rosterSlot = selected.swap.slot || sitPlayer?.selected_position || sitPlayer?.position || "lineup";
+      const primary = playerForMvp(startPlayer, selected.swap.to);
+      const comparison = playerForMvp(sitPlayer, selected.swap.from);
+      const swapWhy = buildEvidenceWhy(swapEvidenceRows({ swap: selected.swap, startPlayer, sitPlayer }));
+      decisionExplanation = await getLiveDecisionExplanation({
+        type: "start_sit",
+        decision: `Start ${primary.name} over ${comparison.name} at ${rosterSlot}.`,
+        why: swapWhy,
+      });
+    } catch {}
+  }
+
   const result = {
     status: 200,
     body: mapLineupSwapToMvpMove({
@@ -2253,6 +2284,7 @@ async function buildLiveOmenMvpMoveForUserInner(userId, requested, scope) {
       swap: selected.swap,
       connection,
       connectedPlatforms,
+      decisionExplanation,
     }),
   };
   if (waiverSignal) result.body.signals.waivers = waiverSignal;

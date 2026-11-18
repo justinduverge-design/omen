@@ -26,7 +26,9 @@ const MAX_REASONS = 3;
 const DECISION_TYPES = Object.freeze(["start_sit", "waiver", "trade"]);
 
 function mode(env = process.env) {
-  return env.DECISION_EXPLANATIONS_MODE === "shadow" ? "shadow" : "off";
+  if (env.DECISION_EXPLANATIONS_MODE === "live") return "live";
+  if (env.DECISION_EXPLANATIONS_MODE === "shadow") return "shadow";
+  return "off";
 }
 
 function clean(value) {

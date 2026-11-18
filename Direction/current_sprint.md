@@ -208,7 +208,7 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 
 ### B13-ERROR-TRACKING — crashes and server errors visible again
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — which error-tracking tool (no paid spend)
+- **Blocked by:** None (Vision decided 2026-11-17 (Justin: only money is his): GlitchTip, self-hosted and free, already in the stack; no paid spend)
 - **Priority:** P1
 - **Done when:** a forced test crash on iOS and a server error each show up within minutes.
 
@@ -256,7 +256,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 ### B13-ALERT-GLITCHTIP-DOWN — bring the GlitchTip/OTel/Vector stack back on Command Center
 - **Status:** VERIFIED
 - **Evidence:** 2026-10-29: founder added `cgroup_enable=memory` to the boot line and rebooted; all five containers up; the dispatcher signature dropped `GlitchTip: status=0`; GlitchTip now surfaces issue #2 (ESPN API 404), which is a new, separate item
-- **Blocked by:** FOUNDER_APPROVAL — a Pi action (restart or rebuild the `Exited (127)` containers); pairs with `B13-ERROR-TRACKING`
+- **Blocked by:** None (Vision decided 2026-11-17 (Justin: only money is his): restart or rebuild the `Exited (127)` containers on Command Center, a host action within Vision's housekeeping; pairs with `B13-ERROR-TRACKING`)
 - **Priority:** P1
 - **Owner:** founder executes; an agent writes the runbook step (why exit 127, the exact restart, how to prove it)
 - **Done when:** the five containers are up, Kuma `GlitchTip` reads 1, and the line leaves the alert with one RECOVERY.
@@ -274,7 +274,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-SIGNATURE-STABLE — the signature is the check's identity, not its reason text
 - **Status:** READY
-- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Blocked by:** None (repo work); deploy approved by Vision 2026-11-17 through the normal Omen release
 - **Priority:** P1
 - **Evidence:** #809 recorded the repeat-alert causes. The dispatcher still builds its signature from rendered lines.
 - **Done when:** the signature keys on each line's identity only (`check` + `result` for Steward/Sentinel, monitor
@@ -286,7 +286,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-SEVERITY — WARNING is not sent as CRITICAL
 - **Status:** READY
-- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Blocked by:** None (repo work); deploy approved by Vision 2026-11-17 through the normal Omen release
 - **Priority:** P2
 - **Evidence:** #817 landed the owner map. The dispatcher still emits a fixed CRITICAL change header.
 - **Done when:** the header names the highest severity present. WARNING-only changes go out without the CRITICAL
@@ -296,7 +296,7 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-ACK — ack/snooze file the founder edits; quiet until expiry, then loud again
 - **Status:** READY
-- **Blocked by:** None (repo work); deploy is FOUNDER_APPROVAL
+- **Blocked by:** None (repo work); deploy approved by Vision 2026-11-17 through the normal Omen release
 - **Priority:** P1
 - **Evidence:** #817 added owner and runbook annotations. The dispatcher still needs ack-file handling.
 - **Done when:** `/etc/slops-alerting/acks` (check, expiry, note) mutes a line from alerts and reminders until the
@@ -307,13 +307,13 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-ALERT-RECALL-SLEEP — the Mac's recall monitors stop paging every night
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — choose: Kuma maintenance window for the Mac's sleep hours, or drop recall from the dispatcher's Kuma read (Kuma still shows it)
+- **Blocked by:** None (Vision decided 2026-11-17 (Justin: only money is his): drop recall from the dispatcher's Kuma read so it stops paging; Kuma keeps showing it)
 - **Priority:** P2
 - **Done when:** a night of Mac sleep produces no CRITICAL/RECOVERY pair, and a recall outage while the Mac is awake still alerts.
 
 ### B13-ALERT-POSTURE-DRIFT — accept or fix KVM1/KVM2 posture drift
 - **Status:** READY
-- **Blocked by:** FOUNDER_APPROVAL — whether the drifted units, containers and listeners become the new baseline
+- **Blocked by:** None (Vision decided 2026-11-17 (Justin: only money is his): drift tied to a deliberate act on record becomes the new baseline; anything unexplained is removed or reported)
 - **Priority:** P2
 - **Done when:** the drift is either fixed or written into the posture baseline, and both posture checks read HEALTHY.
 
@@ -354,18 +354,18 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 
 ### B13-HEAL-REMEDIATOR-SHADOW — `slops-remediator` runs for a week reporting "would have run"
 - **Claim:** Claude Code, branch `heal/remediator-shadow` (stacked on `heal/signing`), 2026-10-30
-- **Status:** IN_PROGRESS (shadow week running since 2026-10-31, ends no earlier than 2026-11-07)
+- **Status:** VERIFIED (shadow week done; the `slops-remediator` lane bar passed in ops/promote 2026-11-17; the live step is B13-HEAL-LIVE)
 - **Evidence so far:** merged #822 and #828; deployed on Command Center 2026-10-31 with founder approval (user `slops-remediator`, timer every 5 min, `/var/lib/slops-alerting` 0750 for its group). It accepted signed bundle seq 20 and runs with `Result=success`. Deploy found two gaps, fixed in #828.
 - **On-Pi safety checks:** 2026-11-02, `ssh command-center python3 - < ops/remediation/slops-heal-safety-test` ran the deployed remediator against a copy of the live signed bundle: all 4 passed (real bundle accepted, tampered copy refused, kill switch stops and resumes, retry cap escalates after 2 with its owner).
 - **Reboot check:** 2026-11-02 21:47 supervised reboot of Command Center. The timer came back active and the state survived (`highest-seq` still 20; the ledger was empty before and after, since no alert matched a playbook). The safety tests passed 4/4 again after the reboot.
 - **Left:** a week of Discord shadow reports (to 2026-11-07).
-- **Blocked by:** the shadow week
+- **Blocked by:** None
 - **Priority:** P2
 - **Done when:** a week of shadow reports in Discord. The refusal, kill-switch, cap and reboot tests pass on the Pi.
 
 ### B13-HEAL-LIVE — turn on actions for the v1 vocabulary
 - **Status:** READY
-- **Blocked by:** B13-HEAL-REMEDIATOR-SHADOW; FOUNDER_APPROVAL
+- **Blocked by:** None (Vision decided 2026-11-17 (Justin: only money is his): the shadow week is done and the bar passed in ops/promote; the on-Pi safety checks passed (refusal, kill switch, retry cap, owner escalation); actions run with the kill switch and the cap)
 - **Priority:** P2
 - **Done when:** a forced container stop is restored and reported, and a permanently broken target escalates with its owner after hitting its cap.
 
