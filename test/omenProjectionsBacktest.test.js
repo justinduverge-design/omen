@@ -610,12 +610,18 @@ test("the script parses its flags strictly and forces a read-only session", () =
 });
 
 const {
+  PLAYERS,
+  QB_ATTEMPT_STEP,
   RB_CARRY_STEP,
   SHIFT_WEEK,
+  TE_TARGET_STEP,
   TEST_SEASON,
+  WARMUP_SEASONS,
   WEEKS,
   WR_TARGET_STEP,
+  YARDS_PER_ATTEMPT,
   YARDS_PER_CARRY,
+  YARDS_PER_TARGET_TE,
   buildSightStatlineWorld,
 } = require("./fixtures/sightStatlineFixture");
 
@@ -691,7 +697,7 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
     source: sourceFor(buildSightStatlineWorld()),
     testSeasons: [TEST_SEASON],
     warmupSeasons: 2,
-    positions: ["WR", "RB"],
+    positions: ["QB", "RB", "WR", "TE"],
     horizons: [1, 2, 3, 4],
     now: () => new Date("2026-11-14T00:00:00Z"),
   });
@@ -718,9 +724,13 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
   //   sum |error| = s (h + 1),  sum error^2 = s^2 (h + 5/9)
   // Only the shifted players err: the low-usage receiver stays flat and is forecast perfectly.
   const cases = [
-    ["WR", "targets", { relevant: 4, all: 5 }, WR_TARGET_STEP, 4],
+    ["QB", "attempts", { relevant: 2, all: 3 }, QB_ATTEMPT_STEP, 2],
+    ["QB", "passing_yards", { relevant: 2, all: 3 }, QB_ATTEMPT_STEP * YARDS_PER_ATTEMPT, 2],
     ["RB", "carries", { relevant: 2, all: 2 }, RB_CARRY_STEP, 2],
     ["RB", "rushing_yards", { relevant: 2, all: 2 }, RB_CARRY_STEP * YARDS_PER_CARRY, 2],
+    ["WR", "targets", { relevant: 4, all: 5 }, WR_TARGET_STEP, 4],
+    ["TE", "targets", { relevant: 2, all: 3 }, TE_TARGET_STEP, 2],
+    ["TE", "receiving_yards", { relevant: 2, all: 3 }, TE_TARGET_STEP * YARDS_PER_TARGET_TE, 2],
   ];
   for (const [position, stat, players, step, shifted] of cases) {
     for (const h of [1, 2, 3, 4]) {
@@ -737,6 +747,21 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
     }
   }
   // Literal values, so the closed form above cannot drift from the numbers a reader sees.
+  assert.deepEqual(row("QB", "attempts", 1, "relevant").predictors.last3, {
+    n: 36,
+    mae: 0.4444,
+    rmse: 1.1759,
+    bias: -0.4444,
+  });
+  assert.deepEqual(row("QB", "attempts", 4, "relevant").predictors.last3, {
+    n: 36,
+    mae: 1.1111,
+    rmse: 2.0123,
+    bias: -1.1111,
+  });
+  assert.equal(row("QB", "attempts", 2, "all").n, 54);
+  assert.equal(row("QB", "attempts", 2, "relevant").n, 36, "the low-usage quarterback is outside the relevant universe");
+
   assert.deepEqual(row("WR", "targets", 1, "relevant").predictors.last3, {
     n: 72,
     mae: 0.3333,
@@ -752,19 +777,42 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
   assert.equal(row("WR", "targets", 2, "all").n, 90);
   assert.equal(row("WR", "targets", 2, "relevant").n, 72, "the low-usage receiver is outside the relevant universe");
 
+  assert.deepEqual(row("TE", "targets", 1, "relevant").predictors.last3, {
+    n: 36,
+    mae: 0.2222,
+    rmse: 0.5879,
+    bias: -0.2222,
+  });
+  assert.deepEqual(row("TE", "targets", 4, "relevant").predictors.last3, {
+    n: 36,
+    mae: 0.5556,
+    rmse: 1.0062,
+    bias: -0.5556,
+  });
+  assert.equal(row("TE", "targets", 2, "all").n, 54);
+  assert.equal(row("TE", "targets", 2, "relevant").n, 36, "the low-usage tight end is outside the relevant universe");
+
   // season_avg, worked by hand: the mean of this season's games through the origin (last season's if none yet).
-  // Every shifted receiver errs by the same amount whatever their level, because the step is the same.
-  for (const h of [1, 2, 3, 4]) {
-    const errors = [];
-    for (let week = 1; week <= WEEKS; week += 1) {
-      const origin = week - h;
-      const seen = Array.from({ length: Math.max(0, origin) }, (_, i) => (i + 1 >= SHIFT_WEEK ? WR_TARGET_STEP : 0));
-      const forecast = origin >= 1 ? sum(seen) / seen.length : 0;
-      errors.push(forecast - (week >= SHIFT_WEEK ? WR_TARGET_STEP : 0));
+  // Every shifted player errs by the same amount whatever their level, because the step is the same.
+  const seasonAvgCases = [
+    ["QB", "attempts", QB_ATTEMPT_STEP],
+    ["RB", "carries", RB_CARRY_STEP],
+    ["WR", "targets", WR_TARGET_STEP],
+    ["TE", "targets", TE_TARGET_STEP],
+  ];
+  for (const [position, stat, step] of seasonAvgCases) {
+    for (const h of [1, 2, 3, 4]) {
+      const errors = [];
+      for (let week = 1; week <= WEEKS; week += 1) {
+        const origin = week - h;
+        const seen = Array.from({ length: Math.max(0, origin) }, (_, i) => (i + 1 >= SHIFT_WEEK ? step : 0));
+        const forecast = origin >= 1 ? sum(seen) / seen.length : 0;
+        errors.push(forecast - (week >= SHIFT_WEEK ? step : 0));
+      }
+      const seasonAvg = row(position, stat, h, "relevant").predictors.season_avg;
+      close(seasonAvg.bias, sum(errors) / WEEKS, `${position} ${stat} season_avg bias h${h}`);
+      close(seasonAvg.mae, sum(errors.map(Math.abs)) / WEEKS, `${position} ${stat} season_avg mae h${h}`);
     }
-    const seasonAvg = row("WR", "targets", h, "relevant").predictors.season_avg;
-    close(seasonAvg.bias, sum(errors) / WEEKS, `season_avg bias h${h}`);
-    close(seasonAvg.mae, sum(errors.map(Math.abs)) / WEEKS, `season_avg mae h${h}`);
   }
 
   // The model is scored on the same rows: finite everywhere, and identical with and without context because the
@@ -781,14 +829,35 @@ test("stat scorecard on the fixture season matches the hand-worked answer per po
     row("WR", "targets", 1, "relevant").predictors.model.bias < 0,
     "a rise the model could not know about is under-forecast",
   );
-  // Quarterback-only stats stay off the receiver tables.
-  assert.equal(
-    card.rows.some((r) => r.position === "WR" && r.stat === "passing_yards"),
-    false,
+  assert.ok(
+    row("QB", "attempts", 1, "relevant").predictors.model.bias < 0,
+    "a rise the model could not know about is under-forecast",
   );
+  assert.ok(
+    row("TE", "targets", 1, "relevant").predictors.model.bias < 0,
+    "a rise the model could not know about is under-forecast",
+  );
+  assert.ok(
+    row("RB", "carries", 1, "relevant").predictors.model.bias < 0,
+    "a rise the model could not know about is under-forecast",
+  );
+
+  // Position-specific stats stay on their own tables.
+  assert.equal(card.rows.some((r) => r.position === "WR" && r.stat === "passing_yards"), false);
+  assert.equal(card.rows.some((r) => r.position === "TE" && r.stat === "passing_yards"), false);
+  assert.equal(card.rows.some((r) => r.position === "RB" && r.stat === "passing_yards"), false);
+  assert.equal(card.rows.some((r) => r.position === "QB" && r.stat === "receiving_yards"), false);
+  assert.ok(card.rows.some((r) => r.position === "QB" && r.stat === "passing_yards"));
+  assert.ok(card.rows.some((r) => r.position === "TE" && r.stat === "receiving_yards"));
+  assert.ok(card.rows.some((r) => r.position === "RB" && r.stat === "rushing_yards"));
+  assert.ok(card.rows.some((r) => r.position === "WR" && r.stat === "receiving_yards"));
+
   // The points tables stay the next-game forecast: other horizons do not dilute them.
+  assert.equal(report.results.all.positions.QB.n, 54);
+  assert.equal(report.results.all.positions.RB.n, 36);
   assert.equal(report.results.all.positions.WR.n, 90);
-  assert.equal(report.meta.records, 126);
+  assert.equal(report.results.all.positions.TE.n, 54);
+  assert.equal(report.meta.records, 234);
 });
 
 test("Markdown prints every per-stat scorecard value under its position", async () => {
@@ -796,14 +865,14 @@ test("Markdown prints every per-stat scorecard value under its position", async 
     source: sourceFor(buildSightStatlineWorld()),
     testSeasons: [TEST_SEASON],
     warmupSeasons: 2,
-    positions: ["WR", "RB"],
+    positions: ["QB", "RB", "WR", "TE"],
     horizons: [1, 2, 3, 4],
   });
   const section = renderMarkdown(report).split("## Per-stat scorecard\n")[1].split("## How to read this")[0];
   assert.match(section, /Conditional on playing/);
   assert.match(section, /optimistic for h >= 3/);
   const tables = section.split(/^### /m).slice(1);
-  assert.equal(tables.length, 2);
+  assert.equal(tables.length, 4);
   const rendered = [];
   for (const table of tables) {
     const [position, ...lines] = table.trim().split("\n");

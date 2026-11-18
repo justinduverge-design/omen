@@ -15,20 +15,32 @@ const WARMUP_SEASONS = Object.freeze([2022, 2023]);
 const TEST_SEASON = 2024;
 const SHIFT_WEEK = 10;
 const WEEKS = 18;
-const WR_TARGET_STEP = 3;
+const QB_ATTEMPT_STEP = 4;
+const YARDS_PER_ATTEMPT = 7;
 const RB_CARRY_STEP = 3;
 const YARDS_PER_CARRY = 4;
+const WR_TARGET_STEP = 3;
+const TE_TARGET_STEP = 2;
+const YARDS_PER_TARGET_TE = 7;
 
 const PLAYERS = Object.freeze([
   // `base` is the weekly volume before the step. `shifted: false` keeps a player flat all season.
+  { id: "fixture:qb1", position: "QB", team: "AAA", base: 30, shifted: true },
+  { id: "fixture:qb2", position: "QB", team: "BBB", base: 34, shifted: true },
+  // Ten attempts a game is below the QB relevance threshold (20): in the `all` universe only.
+  { id: "fixture:qb3-low-usage", position: "QB", team: "CCC", base: 10, shifted: false },
+  { id: "fixture:rb1", position: "RB", team: "FFF", base: 10, shifted: true },
+  { id: "fixture:rb2", position: "RB", team: "GGG", base: 12, shifted: true },
   { id: "fixture:wr1", position: "WR", team: "AAA", base: 6, shifted: true },
   { id: "fixture:wr2", position: "WR", team: "BBB", base: 7, shifted: true },
   { id: "fixture:wr3", position: "WR", team: "CCC", base: 8, shifted: true },
   { id: "fixture:wr4", position: "WR", team: "DDD", base: 9, shifted: true },
   // Two targets a game is below the WR relevance threshold (4): in the `all` universe only.
   { id: "fixture:wr5-low-usage", position: "WR", team: "EEE", base: 2, shifted: false },
-  { id: "fixture:rb1", position: "RB", team: "FFF", base: 10, shifted: true },
-  { id: "fixture:rb2", position: "RB", team: "GGG", base: 12, shifted: true },
+  { id: "fixture:te1", position: "TE", team: "DDD", base: 5, shifted: true },
+  { id: "fixture:te2", position: "TE", team: "EEE", base: 6, shifted: true },
+  // One target a game is below the TE relevance threshold (3): in the `all` universe only.
+  { id: "fixture:te3-low-usage", position: "TE", team: "FFF", base: 1, shifted: false },
 ]);
 
 function statsFor(player, week, season) {
@@ -48,9 +60,27 @@ function statsFor(player, week, season) {
     receiving_tds: 0,
     fumbles_lost: 0,
   };
+  if (player.position === "QB") {
+    const attempts = player.base + (stepped ? QB_ATTEMPT_STEP : 0);
+    return {
+      ...zero,
+      attempts,
+      completions: Math.floor(attempts * 0.6),
+      passing_yards: attempts * YARDS_PER_ATTEMPT,
+    };
+  }
   if (player.position === "RB") {
     const carries = player.base + (stepped ? RB_CARRY_STEP : 0);
     return { ...zero, carries, rushing_yards: carries * YARDS_PER_CARRY };
+  }
+  if (player.position === "TE") {
+    const targets = player.base + (stepped ? TE_TARGET_STEP : 0);
+    return {
+      ...zero,
+      targets,
+      receptions: Math.floor(targets / 2),
+      receiving_yards: targets * YARDS_PER_TARGET_TE,
+    };
   }
   const targets = player.base + (stepped ? WR_TARGET_STEP : 0);
   return { ...zero, targets, receptions: Math.floor(targets / 2), receiving_yards: targets * 6 };
@@ -81,12 +111,16 @@ function buildSightStatlineWorld() {
 
 module.exports = {
   PLAYERS,
+  QB_ATTEMPT_STEP,
   RB_CARRY_STEP,
   SHIFT_WEEK,
+  TE_TARGET_STEP,
   TEST_SEASON,
   WARMUP_SEASONS,
   WEEKS,
   WR_TARGET_STEP,
+  YARDS_PER_ATTEMPT,
   YARDS_PER_CARRY,
+  YARDS_PER_TARGET_TE,
   buildSightStatlineWorld,
 };
