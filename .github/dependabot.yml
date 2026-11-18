@@ -1,3 +1,7 @@
+# PAUSED 2026-11-17 (Justin: GitHub Actions minutes are at 90% and he will not pay for CI; every Dependabot PR runs about eight
+# workflows and each rebase runs them again). `open-pull-requests-limit: 0` stops version-update PRs in every ecosystem below.
+# Security updates are separate and stay on. Restore the previous limits (npm 5, github-actions 3, frontend 5, and the others
+# as listed in git history) after the Actions minutes reset on 2026-12-01.
 # Dependabot configuration.
 #
 # LABELS: the `labels:` keys were removed on 2026-08-11. They referenced
@@ -21,7 +25,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       production-dependencies:
         dependency-type: production
@@ -35,7 +39,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
 
   - package-ecosystem: npm
     directory: "/frontend"
@@ -44,7 +48,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       frontend-runtime:
         dependency-type: production
@@ -71,7 +75,7 @@ updates:
       day: monday
       time: "09:00"
       timezone: America/New_York
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     groups:
       android-dependencies:
         patterns:

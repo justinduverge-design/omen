@@ -19,7 +19,7 @@ const optimizer = require("./optimizer");
 const { usageStatement } = require("./playerUsage");
 const { breakdownEvidence } = require("./projectionBreakdown");
 const { buildEvidenceWhy } = require("./evidenceWhy");
-const { queueDecisionExplanation } = require("./decisionExplanationShadow");
+const { queueDecisionExplanation, getLiveDecisionExplanation } = require("./decisionExplanationShadow");
 const { fantasyMetricsEvidence, gameEnvironmentEvidence } = require("./fantasyMetrics/fantasyMetricsLines");
 const { signalNoiseSummary } = require("./signalNoise");
 const { CAPABILITY_CONTRACT } = require("./decisionCapabilities");
@@ -326,6 +326,8 @@ function buildStartSitDetail({
   teamSystem = null,
   breakdowns = null,
   fantasyMetrics = null,
+  decisionExplanation = null,
+  decision_explanation = null,
 } = {}) {
   const context = {
     platform,
@@ -440,6 +442,8 @@ function buildStartSitDetail({
       why: whyStatements,
     });
 
+  const readyExplanation = decisionExplanation || decision_explanation || null;
+
   const result = envelope({
     context,
     state: starterOut ? STATES.PLAYER_UNAVAILABLE : delta < CLOSE_DECISION_DELTA ? STATES.CLOSE : STATES.CLEAR,
@@ -463,6 +467,7 @@ function buildStartSitDetail({
       evidence,
       // Additive, v2 only: at most three ranked statements built deterministically from `evidence`.
       ...(whyStatements ? { why_statements: whyStatements } : {}),
+      ...(readyExplanation && typeof readyExplanation === "string" ? { decision_explanation: readyExplanation } : {}),
       // §5.3: the user may switch slots. These are the other slots that have one.
       alternatives: ordered.slice(1, 4).map((rec) => ({
         slot: rec.slot,
@@ -515,6 +520,72 @@ function withCapabilities(result, { scoringFormat, contractVersion }) {
   return attachDecisionReceipt(response, context);
 }
 
+function getStartSitDecisionArgs({
+  roster,
+  slot = null,
+  offSeason = false,
+  contractVersion = CONTRACT_VERSION,
+  scoringFormat = null,
+  usage = null,
+  weeklyUsage = null,
+  teamSystem = null,
+  breakdowns = null,
+  fantasyMetrics = null,
+  week = null,
+} = {}) {
+  if (offSeason) return null;
+  const starters = Array.isArray(roster?.slots?.starters) ? roster.slots.starters : [];
+  const bench = Array.isArray(roster?.slots?.bench) ? roster.slots.bench : [];
+  if (!starters.length || !bench.length) return null;
+
+  const all = optimizer.evaluateLineup(roster, { minDelta: Number.NEGATIVE_INFINITY });
+  const scoped = slot ? all.filter((rec) => String(rec.slot).toUpperCase() === String(slot).toUpperCase()) : all;
+  if (!scoped.length) return null;
+
+  const ordered = [...scoped].sort(
+    (a, b) =>
+      Number(OUT_STATUSES.has(normalizedStatus(b.from.status))) -
+        Number(OUT_STATUSES.has(normalizedStatus(a.from.status))) || b.delta - a.delta,
+  );
+  const top = ordered[0];
+  if (top.delta <= 0 && !OUT_STATUSES.has(normalizedStatus(top.from.status))) return null;
+
+  const start = playerView(top.to, roster);
+  const sit = playerView(top.from, roster);
+  const delta = Math.abs(Number(top.delta));
+  const starterOut = OUT_STATUSES.has(normalizedStatus(sit.status));
+
+  const resolvedWeek = week == null ? null : Number(week ?? roster?.week);
+  const evidence = buildEvidence({
+    start,
+    sit,
+    delta,
+    scoringFormat,
+    usage,
+    teamSystem,
+    breakdowns,
+    weeklyUsage,
+    signal: contractVersion === CONTRACT_VERSION_V2,
+    starterOut,
+    fantasyMetrics: fantasyMetrics ? { ...fantasyMetrics, week: resolvedWeek } : null,
+  });
+
+  const whyStatements = contractVersion === CONTRACT_VERSION_V2 ? buildEvidenceWhy(evidence) : null;
+  if (!whyStatements) return null;
+
+  return {
+    type: "start_sit",
+    decision: `Start ${start.name} over ${sit.name} at ${top.slot}.`,
+    why: whyStatements,
+  };
+}
+
+async function prefetchStartSitDecisionExplanation(params, deps) {
+  const args = getStartSitDecisionArgs(params);
+  if (!args) return null;
+  return getLiveDecisionExplanation(args, deps);
+}
+
 module.exports = {
   CLOSE_DECISION_DELTA,
   CONTRACT_VERSION,
@@ -524,4 +595,6 @@ module.exports = {
   buildEvidence,
   buildStartSitDetail,
   confidenceLabel,
+  getStartSitDecisionArgs,
+  prefetchStartSitDecisionExplanation,
 };
