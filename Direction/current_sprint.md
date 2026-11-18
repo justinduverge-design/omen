@@ -74,6 +74,16 @@ walks the build on his phone and uploads it.
   and why this player got it.
 - **Context:** `build-13.md` device-walk follow-ups ("Explain football terms such as EPA"); roadmap step 6
   ("explain the Omen grade better"). The grade comes from Sight (`src/services/sightEnrichment.js`).
+- **Justin decision 3 (2026-11-18), the text to show** (from `footballWarehouse/sightV1.js` line 155):
+  "The Omen grade, 0 to 100, says how next week looks for this player compared with the other players at his position who have a real workload.
+  Omen first works out how many points it expects him to score next week, from his role (how much of the offense runs
+  through him), how well he uses it, his scoring so far, and the game ahead (opponent, Vegas total, weather). Then it
+  ranks that number against the position: 50 is the average week among those players, and every 10 points above or below is one
+  big step better or worse. So 70 is a clearly strong week and 30 a weak one. It is a read on next week, not a judgment
+  of the player's career." (QB/RB/WR/TE. Kickers and defenses use the same 0-100 scale from their own measures, `kdefMetric.js`; the card adds one line for them.)
+- **Name clash to fix here:** the ring's grade (`sight.grade`) and the season rating line "RB Omen Grade 73.5"
+  (`player.rating`, RAT-RB/WR/TE/QB, role + efficiency season to date) share the name. Vision's call: the ring keeps
+  "Omen grade"; the rating line is shown as "Season rating" (`OmenPlayerRating.familyName`). One name per number.
 - **Constraints:** copy from what the server already sends; no new model. Behaviour change, so founder-merge.
 - **Done when:** the grade and every abbreviated stat on the decision screens have contextual help.
 - **Check:** `npm test` passes; the iOS unit tests pass; screenshots of the help on the grade and on EPA in the PR.
@@ -101,7 +111,9 @@ ranked by the points it gains the user's team over the coming weeks, scored by t
 a confidence and a one-line reason. The order is forecast → scoring → plays → screens.
 
 ### B13-SIGHT-STATLINE — per-stat forecasts for the coming weeks
-- **Status:** READY
+- **Status:** IN PROGRESS (Vision, 2026-11-18). Done on `vision/lanes-1201`: fixture scorecard QB/RB/WR/TE (bc76e0c7) and
+  per stat/position/horizon forecast authority (d458b3f8). Left: the production stat-line forecast itself, which is plays-engine
+  step 0 inside Sight (B13-PROJECTIONS-ONE).
 - **Task:** omen.backend
 - **Blocked by:** None
 - **Priority:** P1
@@ -119,9 +131,10 @@ a confidence and a one-line reason. The order is forecast → scoring → plays 
 - **Run budget:** 150 turns, 10M tokens
 
 ### B13-LEAGUE-SCORING — score the stat line with each league's own rules
-- **Status:** READY
+- **Status:** DONE on `vision/lanes-1201` (Vision, 2026-11-18): step A one scorer (388b0bf6), step B Yahoo per player (53123f96),
+  test fix a9bb1e2c; each passed a fresh review. Ships in the December big PR.
 - **Task:** omen.backend
-- **Blocked by:** TASK-B13-SIGHT-STATLINE — the stat-line forecast must exist
+- **Blocked by:** None (step 0 of the stat-line forecast is B13-PROJECTIONS-ONE)
 - **Priority:** P1
 - **Goal:** one scorer turns a stat line into fantasy points under any Sleeper, ESPN (custom included) or Yahoo league's rules.
 - **Context:** `Blueprints/specs/a6-scoring-coverage-matrix.md`; the provider capability matrix (scoring rules row).
@@ -459,3 +472,29 @@ or when it stays quiet, never what it *does*. Pi deploys are founder-gated.
 Two Antigravity attempts failed fresh review (card/b13-league-scoring-1118, card/b13-league-scoring-2). The card is split:
 - **Step A (Codex: two Antigravity attempts at this logic failed review):** one scorer in `scoringRuleSnapshot.js` returns `{points, unmapped_rules}`. A stat the league does not score (attempts, targets, snaps) is NOT unknown; only a league rule Omen cannot map is. All-zero lines score 0, not null. `omenProjections/scoring.js` uses it with one preset table; every alias and preset tested. Fixture leagues (Sleeper, ESPN standard, ESPN custom, Yahoo) score to hand-computed totals.
 - **Step B:** Yahoo keeps scoring positions whose rules are known and flags only affected players; `unknown_rules` reason set and shown through `omenHold.js`; tests through `enrichYahooPlayers`.
+
+### B13-PROJECTIONS-ONE — one projection system: Sight; retire `services/omenProjections/` as a model
+- **Status:** READY (Justin decision 1, 2026-11-18; Valor-Core record `inventory/2026-11-18-one-projection-system.md`)
+- **Task:** omen.backend (Codex: cross-file)
+- **Blocked by:** None
+- **Priority:** P1
+- **Goal:** Sight (`src/services/footballWarehouse/sight*`) is the only thing in Omen that projects a player; `services/omenProjections/` no longer exists as a second model.
+- **Context:** the record above; `inventory/omen-capabilities.md` gap 3. omenProjections has no route, cron or service importer (only `scripts/omen-projections-backtest.js` and its tests).
+- **Constraints:** class: refactor, no behaviour change (agent merge after fresh review). Move, do not rewrite. (1) `omenProjections/scoring.js` is the league scorer, not a projection: move it to `src/services/scoring/` and update its one importer, `test/scoringContract.test.js`. (2) The stat-line method (`projectPlayerWeek`, `priors`, `constants`) and the walk-forward `backtest.js` + `pgSource.js` move under `footballWarehouse/` as Sight's stat-line layer (`sightStatline*.js`), versioned behind `SIGHT_VERSION`, so B13-SIGHT-STATLINE and plays step 0 build there. (3) `challenger.js` is retired: `sightEnrichment` crosswind already does provider-vs-Omen gaps. (4) Delete `src/services/omenProjections/`; no behaviour change for users; production flags unchanged.
+- **Done when:** `git grep omenProjections -- src scripts test` returns nothing; full `npm test` green; one projection path in the capability inventory.
+- **Check:** `npm test` in `~/.worktrees/omen-lanes` (full, read before push); the grep above. A check that didn't run is NOT RUN.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
+
+### B13-TWO-NUMBERS — every player shows the league's projection and Omen's, side by side
+- **Status:** READY (Justin decision 2, 2026-11-18)
+- **Task:** omen.backend, then omen.native-ui
+- **Blocked by:** B13-PROJECTIONS-ONE
+- **Priority:** P1
+- **Goal:** wherever a player appears, the app shows two numbers: "League: 10.4 (ESPN)" and "Omen: 12.1". On Yahoo, which publishes no projection, the first reads "League (Omen-derived): 10.4" and is never shown as Yahoo's.
+- **Context:** `sightEnrichment.js` already has both (`providerPointsOf(player)` and `sight_points`); plays design section 5 fields `league_projection`, `omen_expects`, `league_projection_source` (`provider` | `omen_derived`); Yahoo derivation in `yahooProjections.js`.
+- **Constraints:** class: behaviour change (API and UI), fresh review and full suite before merge. Server adds `league_projection`, `league_projection_source`, `league_projection_provider` to the compact `sight` block; the same fields feed `plays[].players[]` (one source). Null stays null and shows "no projection", never 0. No new model.
+- **Done when:** Desk, Start/Sit, Waivers, Trade and the player page show both numbers with the source label; a Yahoo fixture shows the derived label.
+- **Check:** `npm test` (sightEnrichment and yahooProjections tests assert the three fields and the Yahoo label); iOS unit tests; screenshots of ESPN and Yahoo players.
+- **Stop when:** done, blocked (say why), or the budget is spent.
+- **Run budget:** 150 turns, 10M tokens
