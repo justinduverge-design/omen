@@ -8,6 +8,7 @@ const {
   deriveScoringSnapshot,
   deriveSleeperRules,
   hashOf,
+  scoreStatLine,
 } = require("../src/services/scoringRuleSnapshot");
 const { calculateContractScore } = require("../src/services/scoringContract");
 const { RECONCILIATION_STATES, reconcileMoveScoring } = require("../src/services/scoringReconciliation");
@@ -23,6 +24,63 @@ const HALF_PPR = {
   rec_td: 6,
   fum_lost: -2,
 };
+
+test("fixture league rules reproduce published player totals", () => {
+  // Synthetic fixtures: 250 pass yards, 2 pass TD, 1 interception, 20 rush
+  // yards, 4 catches, 40 receiving yards, 1 receiving TD and 1 lost fumble.
+  const facts = { passing_yards: 250, passing_touchdowns: 2, passing_interceptions: 1,
+    rushing_yards: 20, receiving_receptions: 4, receiving_yards: 40,
+    receiving_touchdowns: 1, fumbles_lost: 1, attempts: 35, targets: 6, snaps: 60 };
+  const espn = (rec, passTd) => ({ scoringSettings: { scoringItems: [
+    [3, 0.04], [4, passTd], [20, -2], [24, 0.1], [53, rec], [42, 0.1], [43, 6], [72, -2],
+  ].map(([statId, points]) => ({ statId, points })) } });
+  const yahoo = { stat_modifiers: { stats: [
+    [4, 0.04], [5, 4], [6, -2], [9, 0.1], [11, 1], [12, 0.1], [13, 6], [18, -2],
+  ].map(([stat_id, value]) => ({ stat: { stat_id, value } })) } };
+  for (const [platform, leagueSettings, published] of [
+    ["sleeper", HALF_PPR, 28], // 10 + 8 - 2 + 2 + 2 + 4 + 6 - 2
+    ["espn", espn(0, 4), 26],
+    ["espn", espn(1, 6), 34],
+    ["yahoo", yahoo, 30],
+  ]) {
+    const snapshot = deriveScoringSnapshot({ platform, leagueSettings });
+    assert.equal(snapshot.coverage_state, "supported");
+    assert.deepEqual(scoreStatLine(facts, snapshot), { points: published, unmapped_rules: [] }, platform);
+    assert.deepEqual(scoreStatLine(Object.fromEntries(Object.keys(facts).map((key) => [key, 0])), snapshot),
+      { points: 0, unmapped_rules: [] });
+  }
+});
+
+test("only unrecognized league rules are reported alongside the known partial score", () => {
+  const snapshot = deriveScoringSnapshot({ platform: "sleeper", leagueSettings: { rec: 1, mystery_bonus: 3 } });
+  assert.deepEqual(scoreStatLine({ receiving_receptions: 2, targets: 9, unknown_stat: 1 }, snapshot),
+    { points: 2, unmapped_rules: ["mystery_bonus"] });
+  assert.deepEqual(scoreStatLine({}, snapshot), { points: 0, unmapped_rules: ["mystery_bonus"] });
+});
+
+test("unavailable rules cannot masquerade as a zero-point league", () => {
+  const snapshot = deriveScoringSnapshot({ platform: "sleeper", leagueSettings: null });
+  assert.throws(() => scoreStatLine({}, snapshot), /unsupported scoring contract: pending/);
+});
+
+test("Sleeper conversion rules are collapsed only when all three rates agree", () => {
+  const same = deriveScoringSnapshot({ platform: "sleeper", leagueSettings: { pass_2pt: 2, rush_2pt: 2, rec_2pt: 2 } });
+  assert.deepEqual(scoreStatLine({ two_point_conversions: 2 }, same), { points: 4, unmapped_rules: [] });
+  const different = deriveScoringSnapshot({ platform: "sleeper", leagueSettings: { pass_2pt: 2, rush_2pt: 3 } });
+  assert.deepEqual(scoreStatLine({ two_point_conversions: 2 }, different),
+    { points: 0, unmapped_rules: ["pass_2pt", "rush_2pt"] });
+});
+
+test("incomplete field-goal sub-bands do not price an aggregate count", () => {
+  for (const [platform, leagueSettings] of [
+    ["sleeper", { fgm_0_19: 3 }],
+    ["yahoo", { stat_modifiers: { stats: [{ stat: { stat_id: 19, value: 3 } }] } }],
+  ]) {
+    const snapshot = deriveScoringSnapshot({ platform, leagueSettings });
+    assert.deepEqual(scoreStatLine({ field_goals_made_0_39: 1 }, snapshot),
+      { points: 0, unmapped_rules: ["field_goals_made_0_39"] });
+  }
+});
 
 // --- Sleeper derivation -----------------------------------------------------
 
