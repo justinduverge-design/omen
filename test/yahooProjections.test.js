@@ -47,24 +47,24 @@ test("scoring a stat line with PPR rules reproduces the PPR total, and half-PPR 
   const ppr = scoringFromSettings(settingsWith(PPR_MODIFIERS));
   assert.equal(ppr.approximateFor.size, 0);
   // 6 rec + 8.0 yds + 3.0 td - 0.2 fum
-  assert.equal(scoreStatLine(WR_LINE, ppr.values), 16.8);
+  assert.equal(scoreStatLine(WR_LINE, ppr), 16.8);
 
   const half = scoringFromSettings(settingsWith(PPR_MODIFIERS.map((m) => (m.stat.stat_id === 11 ? stat(11, 0.5) : m))));
-  assert.equal(scoreStatLine(WR_LINE, half.values), 13.8);
+  assert.equal(scoreStatLine(WR_LINE, half), 13.8);
 });
 
 test("Sleeper's own pts_* totals are never used, and an unscorable line is null, not zero", () => {
   const ppr = scoringFromSettings(settingsWith(PPR_MODIFIERS));
-  assert.equal(scoreStatLine({ pts_ppr: 20 }, ppr.values), null);
-  assert.equal(scoreStatLine({ gp: 1, bonus_rec_te: 3 }, ppr.values), null);
-  assert.equal(scoreStatLine(null, ppr.values), null);
+  assert.equal(scoreStatLine({ pts_ppr: 20 }, ppr), null);
+  assert.equal(scoreStatLine({ gp: 1, bonus_rec_te: 3 }, ppr), null);
+  assert.equal(scoreStatLine(null, ppr), null);
 });
 
 test("a rule for defence only makes the league approximate for nobody who is projected from offensive stats", () => {
   const settings = settingsWith([...PPR_MODIFIERS, stat(50, 10)], [category(50, "DT"), category(11, "O")]);
   const scoring = scoringFromSettings(settings);
   assert.deepEqual(scoring.unmapped, ["stat_50"]);
-  assert.equal(scoring.approximateFor.size, 0);
+  assert.deepEqual([...scoring.approximateFor], ["DT"]);
 });
 
 test("an unmapped offensive rule, or one whose type is unknown, makes the totals approximate", () => {
@@ -72,7 +72,7 @@ test("an unmapped offensive rule, or one whose type is unknown, makes the totals
   assert.deepEqual([...offensive.approximateFor], ["O"]);
 
   const unknownType = scoringFromSettings(settingsWith([...PPR_MODIFIERS, stat(57, 2)]));
-  assert.deepEqual([...unknownType.approximateFor].sort(), ["K", "O"]);
+  assert.deepEqual([...unknownType.approximateFor].sort(), ["DT", "K", "O"]);
 });
 
 test("unreadable settings give no scoring at all", () => {
@@ -137,6 +137,33 @@ test("Yahoo players are projected through the Sleeper id, scored with the league
     players_with_projection: 2,
     reason: null,
   });
+});
+
+
+test("a defense-only unknown rule leaves offense exact and names the unscored defense rule", async () => {
+  const { client, deps } = fixture({ settings: settingsWith([...PPR_MODIFIERS, stat(50, 10)], [category(50, "DT")]) });
+  const roster = [
+    { player_id: "111", name: "Wes Receiver", position: "WR", projected_points: null },
+    { player_id: "555", name: "Team Defence", position: "DEF", projected_points: null },
+  ];
+  const meta = await enrichYahooPlayers(roster, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.equal(roster[0].projected_points, 16.8);
+  assert.equal(roster[0].projection_basis, "league_scoring");
+  assert.equal(roster[0].projection_unmapped_rules, undefined);
+  assert.equal(roster[1].projected_points, null);
+  assert.equal(roster[1].projection_basis, "unscored");
+  assert.deepEqual(roster[1].projection_unmapped_rules, ["stat_50"]);
+  assert.equal(roster[1].projection_reason, "unknown_rules");
+  assert.equal(meta.scoring_basis, "league_scoring");
+});
+
+test("unknown rules explain an unscored roster in the hold copy", async () => {
+  const { client, deps } = fixture({ settings: settingsWith([...PPR_MODIFIERS, stat(50, 10)], [category(50, "DT")]) });
+  const players = [{ player_id: "555", name: "Team Defence", position: "DEF", projected_points: null }];
+  const projection_meta = await enrichYahooPlayers(players, { client, leagueKey: "L", week: 8, season: 2026, deps });
+  assert.equal(projection_meta.reason, "unknown_rules");
+  const hold = require("../src/services/omenHold").buildHold({ roster: { slots: { starters: players }, projection_meta }, platformLabel: "Yahoo" });
+  assert.match(hold.reasons[0].text, /some league scoring rules cannot be reproduced yet/);
 });
 
 test("a pairing is refused when the names disagree, the id is shared, or Sleeper has no line", async () => {
@@ -236,7 +263,7 @@ test("an unknown week, no projectable players and the kill switch all leave play
         deps,
       })
     ).reason,
-    "no_projectable_players",
+    "no_matching_projections",
   );
 
   for (const value of ["1", "true", "TRUE"]) {
@@ -255,9 +282,9 @@ test("an unknown week, no projectable players and the kill switch all leave play
 });
 
 test("projectYahooPool returns the pool with its coverage", async () => {
-  const { client } = fixture();
+  const { client, deps } = fixture();
   const pool = [{ player_id: "1", name: "Defence", position: "DEF" }];
-  const result = await projectYahooPool(client, "L", 8, pool);
+  const result = await projectYahooPool(client, "L", 8, pool, { deps });
   assert.equal(result.pool, pool);
   assert.equal(result.projectionMeta.available, false);
 });

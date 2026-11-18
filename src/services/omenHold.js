@@ -33,6 +33,7 @@ const BUILD_FAILURE_COPY = Object.freeze({
   timed_out: "the projection sources were too slow",
   provider_error: "the projection sources could not be reached",
   scoring_unreadable: "the league's scoring rules could not be read",
+  unknown_rules: "some league scoring rules cannot be reproduced yet",
   no_matching_projections: "none of your players could be matched to a projection",
 });
 
