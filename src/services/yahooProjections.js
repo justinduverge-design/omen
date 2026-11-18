@@ -29,7 +29,7 @@
  */
 
 const sleeperAdapter = require("../adapters/sleeper");
-const { deriveScoringSnapshot, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
+const { deriveScoringSnapshot, scoreStatLine, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
 const { normalizeName } = require("./playerCrosswalk");
 const { getCurrentNflWeekContext } = require("./nflSchedule");
 
@@ -168,45 +168,13 @@ async function leagueScoring(client, leagueKey, { now = Date.now() } = {}) {
 }
 
 /**
- * A stat line scored under league rules. Null when no stat in the line is scored by a rule Omen
- * knows, because "nothing to score" must not read as "projects zero".
- */
-function scoreStatLine(statLine, values) {
-  if (!statLine || typeof statLine !== "object") return null;
-  let total = 0;
-  let scored = 0;
-  for (const [key, quantity] of Object.entries(statLine)) {
-    if (key.startsWith("pts_")) continue;
-    const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
-    if (!event) continue;
-    const perUnit = values.get(event);
-    const count = Number(quantity);
-    if (perUnit == null || !Number.isFinite(count)) continue;
-    total += count * perUnit;
-    scored += 1;
-  }
-  return scored ? round2(total) : null;
-}
-
-/**
  * The same scoring as `scoreStatLine`, one part per scored stat: `{ stat, quantity, points_per, points }`,
  * keyed by Sleeper's stat name. What makes a Yahoo projection explainable stat by stat, exactly as
  * Sleeper's and ESPN's are (`projectionBreakdown.js`).
  */
 function statLineParts(statLine, values) {
-  if (!statLine || typeof statLine !== "object") return [];
-  const parts = [];
-  for (const [key, quantity] of Object.entries(statLine)) {
-    if (key.startsWith("pts_")) continue;
-    const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
-    if (!event) continue;
-    const perUnit = values.get(event);
-    const count = Number(quantity);
-    if (perUnit == null || !perUnit || !Number.isFinite(count)) continue;
-    const points = count * perUnit;
-    if (points) parts.push({ stat: key, quantity: count, points_per: perUnit, points });
-  }
-  return parts;
+  const scored = scoreStatLine(statLine, values);
+  return scored?.parts || [];
 }
 
 const yahooToSleeperMemo = new WeakMap();
@@ -401,7 +369,11 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
     if (!sleeperId) sleeperId = fallbackSleeperId(player, sleeperPlayers);
     const sleeperPlayer = sleeperId ? sleeperPlayers[sleeperId] : null;
     if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer) || !positionsAgree(player, sleeperPlayer)) continue;
-    const points = scoreStatLine(statLines?.[sleeperId], scoring.values);
+    const posType = positionTypeOf(player);
+    const scored = scoreStatLine(statLines?.[sleeperId], scoring, {
+      positionType: posType,
+    });
+    const points = scored ? scored.points : null;
     if (points == null) {
       // A player whose whole NFL team has no projection this week is on a bye: he scores zero, which is
       // a fact, and the lineup must be able to move him (a null would block the swap).
@@ -413,14 +385,18 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
       }
       continue;
     }
-    const basis = scoring.approximateFor.has(positionTypeOf(player)) ? BASIS_APPROX : BASIS_LEAGUE;
+    const isApprox = (scoring.approximateFor && scoring.approximateFor.has(posType)) || (scored.unknown && scored.unknown.length > 0);
+    const basis = isApprox ? BASIS_APPROX : BASIS_LEAGUE;
     if (basis === BASIS_APPROX) approximate = true;
     player.projected_points = points;
     player.projection_source = SOURCE;
     player.projection_basis = basis;
+    if (isApprox && scored.unknown && scored.unknown.length > 0) {
+      player.unknown_rules = scored.unknown;
+    }
     // Not enumerable: the breakdown reads it in-process, and it never rides along in a response.
     Object.defineProperty(player, "projection_parts", {
-      value: statLineParts(statLines?.[sleeperId], scoring.values),
+      value: scored.parts?.length ? scored.parts : statLineParts(statLines?.[sleeperId], scoring.values),
       enumerable: false,
       configurable: true,
     });
@@ -433,7 +409,7 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
     scoring_basis: projected > 0 ? (approximate ? BASIS_APPROX : BASIS_LEAGUE) : null,
     players_total: total,
     players_with_projection: projected,
-    reason: projected > 0 ? null : "no_matching_projections",
+    reason: projected > 0 ? null : (scoring.reason || "no_matching_projections"),
   };
 }
 

@@ -47,17 +47,22 @@ test("scoring a stat line with PPR rules reproduces the PPR total, and half-PPR 
   const ppr = scoringFromSettings(settingsWith(PPR_MODIFIERS));
   assert.equal(ppr.approximateFor.size, 0);
   // 6 rec + 8.0 yds + 3.0 td - 0.2 fum
-  assert.equal(scoreStatLine(WR_LINE, ppr.values), 16.8);
+  const result = scoreStatLine(WR_LINE, ppr.values);
+  assert.equal(result.points, 16.8);
+  assert.deepEqual(result.unknown, []);
 
   const half = scoringFromSettings(settingsWith(PPR_MODIFIERS.map((m) => (m.stat.stat_id === 11 ? stat(11, 0.5) : m))));
-  assert.equal(scoreStatLine(WR_LINE, half.values), 13.8);
+  assert.equal(scoreStatLine(WR_LINE, half.values).points, 13.8);
+  assert.deepEqual(scoreStatLine(WR_LINE, half.values).unknown, []);
 });
 
 test("Sleeper's own pts_* totals are never used, and an unscorable line is null, not zero", () => {
   const ppr = scoringFromSettings(settingsWith(PPR_MODIFIERS));
-  assert.equal(scoreStatLine({ pts_ppr: 20 }, ppr.values), null);
-  assert.equal(scoreStatLine({ gp: 1, bonus_rec_te: 3 }, ppr.values), null);
-  assert.equal(scoreStatLine(null, ppr.values), null);
+  assert.equal(scoreStatLine({ pts_ppr: 20 }, ppr.values).points, null);
+  const unscorable = scoreStatLine({ gp: 1, bonus_rec_te: 3 }, ppr.values);
+  assert.equal(unscorable.points, null);
+  assert.deepEqual(unscorable.unknown, ["bonus_rec_te"]);
+  assert.equal(scoreStatLine(null, ppr.values).points, null);
 });
 
 test("a rule for defence only makes the league approximate for nobody who is projected from offensive stats", () => {

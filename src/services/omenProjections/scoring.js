@@ -8,7 +8,7 @@
  * scored in any league's rules. The three presets below are the backtest's reference scorings only.
  */
 
-const { calculateContractScore } = require("../scoringContract");
+const { calculateContractScore, scoreStatLine: scoreStatLineCore } = require("../scoringContract");
 const { SLEEPER_EVENT_MAP } = require("../scoringRuleSnapshot");
 
 const RULESET_VERSION = "omen-scoring-contract-v1";
@@ -57,8 +57,9 @@ function statLineToFacts(statLine) {
 /** Points for a stat line under a preset name or a full scoring contract. */
 function scoreStatLine(statLine, scoring = "ppr") {
   const resolved = typeof scoring === "string" ? SCORING_PRESETS[scoring] : scoring;
-  if (!resolved) throw new TypeError(`unknown scoring preset: ${scoring}`);
-  return calculateContractScore(resolved, statLineToFacts(statLine)).points;
+  if (!resolved && typeof scoring === "string") throw new TypeError(`unknown scoring preset: ${scoring}`);
+  const result = scoreStatLineCore(statLine, resolved || scoring);
+  return result ? result.points : null;
 }
 
 /**
@@ -80,8 +81,9 @@ function sleeperStatLineToFacts(sleeperLine) {
 
 function scoreSleeperStatLine(sleeperLine, scoring = "ppr") {
   const resolved = typeof scoring === "string" ? SCORING_PRESETS[scoring] : scoring;
-  if (!resolved) throw new TypeError(`unknown scoring preset: ${scoring}`);
-  return calculateContractScore(resolved, sleeperStatLineToFacts(sleeperLine)).points;
+  if (!resolved && typeof scoring === "string") throw new TypeError(`unknown scoring preset: ${scoring}`);
+  const result = scoreStatLineCore(sleeperLine, resolved || scoring);
+  return result ? result.points : null;
 }
 
 /**

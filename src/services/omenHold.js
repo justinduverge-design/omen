@@ -34,6 +34,7 @@ const BUILD_FAILURE_COPY = Object.freeze({
   provider_error: "the projection sources could not be reached",
   scoring_unreadable: "the league's scoring rules could not be read",
   no_matching_projections: "none of your players could be matched to a projection",
+  unknown_rules: "the league has scoring rules Omen cannot reproduce",
 });
 
 function round2(value) {

@@ -8,6 +8,7 @@ const {
   deriveScoringSnapshot,
   deriveSleeperRules,
   hashOf,
+  scoreStatLine,
 } = require("../src/services/scoringRuleSnapshot");
 const { calculateContractScore } = require("../src/services/scoringContract");
 const { RECONCILIATION_STATES, reconcileMoveScoring } = require("../src/services/scoringReconciliation");
@@ -503,4 +504,176 @@ test("an unreported provider score is not read as a real zero", () => {
   });
   assert.equal(zero.state, RECONCILIATION_STATES.MISMATCH);
   assert.equal(zero.provider_points, 0);
+});
+
+// --- B13-LEAGUE-SCORING: unified scorer fixture leagues ----------------------
+
+test("B13 scorer: Sleeper fixture league scores stat line to published total", () => {
+  const sleeperLeague = {
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    rush_yd: 0.1,
+    rush_td: 6,
+    rec: 1, // PPR
+    rec_yd: 0.1,
+    rec_td: 6,
+    fum_lost: -2,
+  };
+  const statLine = {
+    pass_yd: 275, // 11.0
+    pass_td: 2,   // 8.0
+    pass_int: 1,  // -2.0
+    rush_yd: 30,  // 3.0
+    rush_td: 1,   // 6.0
+    rec: 6,       // 6.0
+    rec_yd: 72,   // 7.2
+    rec_td: 1,   // 6.0
+    fum_lost: 1,  // -2.0
+    pts_ppr: 999, // ignored
+  };
+  // Published total: 11 + 8 - 2 + 3 + 6 + 6 + 7.2 + 6 - 2 = 43.2
+  const publishedTotal = 43.2;
+  const result = scoreStatLine(statLine, { platform: "sleeper", leagueSettings: sleeperLeague });
+  assert.equal(result.points, publishedTotal);
+  assert.deepEqual(result.unknown, []);
+});
+
+test("B13 scorer: ESPN standard fixture league scores stat line to published total", () => {
+  const espnStandard = {
+    scoringSettings: {
+      scoringItems: [
+        { statId: 3, points: 0.04 }, // pass_yd (25 yds / pt)
+        { statId: 4, points: 4 },    // pass_td
+        { statId: 20, points: -2 },  // pass_int
+        { statId: 24, points: 0.1 }, // rush_yd (10 yds / pt)
+        { statId: 25, points: 6 },   // rush_td
+        { statId: 42, points: 0.1 }, // rec_yd (10 yds / pt)
+        { statId: 43, points: 6 },   // rec_td
+        { statId: 53, points: 0 },   // rec (0 in standard)
+        { statId: 72, points: -2 },  // fum_lost
+      ],
+    },
+  };
+  const wrStatLine = {
+    rec: 6,      // 6 * 0 = 0
+    rec_yd: 85,  // 85 * 0.1 = 8.5
+    rec_td: 1,   // 1 * 6 = 6
+    fum_lost: 0,
+  };
+  // Published total: 0 + 8.5 + 6 = 14.5
+  const publishedTotal = 14.5;
+  const result = scoreStatLine(wrStatLine, { platform: "espn", leagueSettings: espnStandard });
+  assert.equal(result.points, publishedTotal);
+  assert.deepEqual(result.unknown, []);
+});
+
+test("B13 scorer: ESPN custom fixture league scores stat line to published total", () => {
+  const espnCustom = {
+    scoringSettings: {
+      scoringItems: [
+        { statId: 3, points: 0.04 }, // pass_yd
+        { statId: 4, points: 6 },    // pass_td (custom 6-pt passing TD)
+        { statId: 20, points: -2 },  // pass_int
+        { statId: 24, points: 0.1 }, // rush_yd
+        { statId: 25, points: 6 },   // rush_td
+        { statId: 42, points: 0.1 }, // rec_yd
+        { statId: 43, points: 6 },   // rec_td
+        { statId: 53, points: 1.5 }, // rec (custom 1.5 PPR)
+        { statId: 72, points: -2 },  // fum_lost
+      ],
+    },
+  };
+  const qbStatLine = {
+    pass_yd: 325, // 325 * 0.04 = 13.0
+    pass_td: 3,   // 3 * 6 = 18.0 (custom 6-pt passing TD)
+    pass_int: 2,  // 2 * -2 = -4.0
+    rush_yd: 40,  // 40 * 0.1 = 4.0
+    rush_td: 1,   // 1 * 6 = 6.0
+  };
+  // Published total: 13 + 18 - 4 + 4 + 6 = 37.0
+  const qbPublishedTotal = 37.0;
+  const qbResult = scoreStatLine(qbStatLine, { platform: "espn", leagueSettings: espnCustom });
+  assert.equal(qbResult.points, qbPublishedTotal);
+  assert.deepEqual(qbResult.unknown, []);
+
+  const wrStatLine = {
+    rec: 8,       // 8 * 1.5 = 12.0
+    rec_yd: 110,  // 110 * 0.1 = 11.0
+    rec_td: 1,    // 1 * 6 = 6.0
+    fum_lost: 1,  // 1 * -2 = -2.0
+  };
+  // Published total: 12 + 11 + 6 - 2 = 27.0
+  const wrPublishedTotal = 27.0;
+  const wrResult = scoreStatLine(wrStatLine, { platform: "espn", leagueSettings: espnCustom });
+  assert.equal(wrResult.points, wrPublishedTotal);
+  assert.deepEqual(wrResult.unknown, []);
+});
+
+test("B13 scorer: Yahoo fixture league scores stat line to published total", () => {
+  const yahooLeague = {
+    stat_modifiers: {
+      stats: [
+        { stat: { stat_id: 4, value: "0.04" } },  // pass_yd
+        { stat: { stat_id: 5, value: "4" } },     // pass_td
+        { stat: { stat_id: 6, value: "-1" } },    // pass_int (Yahoo standard -1)
+        { stat: { stat_id: 9, value: "0.1" } },   // rush_yd
+        { stat: { stat_id: 10, value: "6" } },    // rush_td
+        { stat: { stat_id: 11, value: "0.5" } },  // rec (Half-PPR)
+        { stat: { stat_id: 12, value: "0.1" } },  // rec_yd
+        { stat: { stat_id: 13, value: "6" } },    // rec_td
+        { stat: { stat_id: 18, value: "-2" } },   // fum_lost
+      ],
+    },
+  };
+  const rbStatLine = {
+    rush_yd: 65, // 65 * 0.1 = 6.5
+    rush_td: 1,  // 1 * 6 = 6.0
+    rec: 4,      // 4 * 0.5 = 2.0
+    rec_yd: 35,  // 35 * 0.1 = 3.5
+    rec_td: 0,
+    fum_lost: 1, // 1 * -2 = -2.0
+  };
+  // Published total: 6.5 + 6.0 + 2.0 + 3.5 - 2.0 = 16.0
+  const publishedTotal = 16.0;
+  const result = scoreStatLine(rbStatLine, { platform: "yahoo", leagueSettings: yahooLeague });
+  assert.equal(result.points, publishedTotal);
+  assert.deepEqual(result.unknown, []);
+});
+
+test("B13 scorer: returns explicit per-rule unknown result and never silently skips a stat", () => {
+  const sleeperLeague = {
+    pass_yd: 0.04,
+    pass_td: 4,
+    pass_int: -2,
+    rush_yd: 0.1,
+    rush_td: 6,
+    rec: 1,
+    rec_yd: 0.1,
+    rec_td: 6,
+    fum_lost: -2,
+  };
+  // Stat line with an unmapped stat (bonus_rec_te)
+  const lineWithUnknownStat = {
+    rec: 5,
+    rec_yd: 60,
+    bonus_rec_te: 2, // unknown stat with quantity 2
+  };
+  const result = scoreStatLine(lineWithUnknownStat, { platform: "sleeper", leagueSettings: sleeperLeague });
+  assert.equal(result.points, 11.0); // 5 + 6.0 = 11.0
+  assert.deepEqual(result.unknown, ["bonus_rec_te"]);
+
+  // League with an unknown rule (Yahoo stat 57)
+  const yahooWithUnknown = {
+    stat_modifiers: {
+      stats: [
+        { stat: { stat_id: 11, value: "1" } },
+        { stat: { stat_id: 12, value: "0.1" } },
+        { stat: { stat_id: 57, value: "2" } }, // unmapped offensive rule
+      ],
+    },
+  };
+  const yahooResult = scoreStatLine({ rec: 4, rec_yd: 50 }, yahooWithUnknown);
+  assert.equal(yahooResult.points, 9.0); // 4 + 5.0 = 9.0
+  assert.deepEqual(yahooResult.unknown, ["stat_57"]);
 });

@@ -501,6 +501,217 @@ function deriveScoringSnapshot({ platform, leagueSettings = null } = {}) {
   });
 }
 
+const CANONICAL_PRESETS = Object.freeze({
+  standard: new Map([
+    ["passing_yards", 0.04],
+    ["passing_touchdowns", 4],
+    ["passing_interceptions", -2],
+    ["rushing_yards", 0.1],
+    ["rushing_touchdowns", 6],
+    ["receiving_receptions", 0],
+    ["receiving_yards", 0.1],
+    ["receiving_touchdowns", 6],
+    ["fumbles_lost", -2],
+  ]),
+  half_ppr: new Map([
+    ["passing_yards", 0.04],
+    ["passing_touchdowns", 4],
+    ["passing_interceptions", -2],
+    ["rushing_yards", 0.1],
+    ["rushing_touchdowns", 6],
+    ["receiving_receptions", 0.5],
+    ["receiving_yards", 0.1],
+    ["receiving_touchdowns", 6],
+    ["fumbles_lost", -2],
+  ]),
+  ppr: new Map([
+    ["passing_yards", 0.04],
+    ["passing_touchdowns", 4],
+    ["passing_interceptions", -2],
+    ["rushing_yards", 0.1],
+    ["rushing_touchdowns", 6],
+    ["receiving_receptions", 1],
+    ["receiving_yards", 0.1],
+    ["receiving_touchdowns", 6],
+    ["fumbles_lost", -2],
+  ]),
+});
+
+function resolveCanonicalEventKey(key) {
+  if (EVENT_KEYS.has(key)) return key;
+  if (SLEEPER_EVENT_MAP[key]) return SLEEPER_EVENT_MAP[key].event_key;
+  if (SLEEPER_FG_BANDS[key]) return SLEEPER_FG_BANDS[key];
+  switch (key) {
+    case "passing_tds":
+      return "passing_touchdowns";
+    case "rushing_tds":
+      return "rushing_touchdowns";
+    case "receptions":
+      return "receiving_receptions";
+    case "receiving_tds":
+      return "receiving_touchdowns";
+    default:
+      return null;
+  }
+}
+
+function extractValuesFromRules(rules) {
+  const map = new Map();
+  for (const rule of Array.isArray(rules) ? rules : []) {
+    if (rule && rule.operator === "per_event" && Number.isFinite(Number(rule.value))) {
+      map.set(rule.event_key, Number(rule.value));
+    }
+  }
+  return map;
+}
+
+function resolveRulesAndUnmapped(rulesOrLeague, options = {}) {
+  if (!rulesOrLeague) return null;
+
+  if (typeof rulesOrLeague === "string") {
+    const preset = CANONICAL_PRESETS[rulesOrLeague.toLowerCase()];
+    if (!preset) throw new TypeError(`unknown scoring preset: ${rulesOrLeague}`);
+    return { values: preset, unmappedRules: [] };
+  }
+
+  if (rulesOrLeague instanceof Map) {
+    return { values: rulesOrLeague, unmappedRules: [] };
+  }
+
+  if (rulesOrLeague.values instanceof Map) {
+    let unmapped = [...(rulesOrLeague.unmapped || [])];
+    if (rulesOrLeague.approximateFor instanceof Set && options.positionType) {
+      if (!rulesOrLeague.approximateFor.has(options.positionType)) {
+        unmapped = [];
+      }
+    }
+    return { values: rulesOrLeague.values, unmappedRules: unmapped };
+  }
+
+  if (rulesOrLeague.platform && "leagueSettings" in rulesOrLeague) {
+    const snap = deriveScoringSnapshot(rulesOrLeague);
+    return {
+      values: extractValuesFromRules(snap.contract?.rules),
+      unmappedRules: [...(snap.unmapped_rules || [])],
+      coverage_state: snap.coverage_state,
+    };
+  }
+
+  if (rulesOrLeague.contract && rulesOrLeague.coverage_state) {
+    return {
+      values: extractValuesFromRules(rulesOrLeague.contract?.rules),
+      unmappedRules: [...(rulesOrLeague.unmapped_rules || [])],
+      coverage_state: rulesOrLeague.coverage_state,
+    };
+  }
+
+  if (Array.isArray(rulesOrLeague.rules)) {
+    return {
+      values: extractValuesFromRules(rulesOrLeague.rules),
+      unmappedRules: [...(rulesOrLeague.unmapped_rules || [])],
+      coverage_state: rulesOrLeague.coverage_state || "supported",
+    };
+  }
+
+  if (rulesOrLeague.stat_modifiers || (rulesOrLeague.settings && (rulesOrLeague.league_key || Array.isArray(rulesOrLeague.settings)))) {
+    const snap = deriveScoringSnapshot({ platform: "yahoo", leagueSettings: rulesOrLeague });
+    return {
+      values: extractValuesFromRules(snap.contract?.rules),
+      unmappedRules: [...(snap.unmapped_rules || [])],
+      coverage_state: snap.coverage_state,
+    };
+  }
+
+  if (rulesOrLeague.scoringSettings || rulesOrLeague.scoringItems) {
+    const snap = deriveScoringSnapshot({ platform: "espn", leagueSettings: rulesOrLeague });
+    return {
+      values: extractValuesFromRules(snap.contract?.rules),
+      unmappedRules: [...(snap.unmapped_rules || [])],
+      coverage_state: snap.coverage_state,
+    };
+  }
+
+  if (typeof rulesOrLeague === "object") {
+    const settings = rulesOrLeague.scoring_settings || rulesOrLeague;
+    const snap = deriveScoringSnapshot({ platform: "sleeper", leagueSettings: settings });
+    return {
+      values: extractValuesFromRules(snap.contract?.rules),
+      unmappedRules: [...(snap.unmapped_rules || [])],
+      coverage_state: snap.coverage_state,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Score a player stat line with league scoring rules.
+ *
+ * Returns `{ points, unknown, parts }`:
+ * - points: total points scored from known rules (rounded to 2 decimal places), or null if no stats were scorable.
+ * - unknown: array of unmapped/unknown rules or stats affecting this score. Never silently skips a stat.
+ * - parts: breakdown of stats and points scored per stat.
+ */
+function scoreStatLine(statLine, rulesOrLeague, options = {}) {
+  if (!statLine || typeof statLine !== "object") {
+    return { points: null, unknown: [], parts: [] };
+  }
+
+  const resolved = resolveRulesAndUnmapped(rulesOrLeague, options);
+  if (!resolved) {
+    return { points: null, unknown: [], parts: [] };
+  }
+
+  const { values, unmappedRules } = resolved;
+  const unknown = new Set(unmappedRules || []);
+  if (Array.isArray(options.unmapped)) {
+    for (const u of options.unmapped) unknown.add(u);
+  }
+
+  const parts = [];
+  let total = 0;
+  let scoredCount = 0;
+
+  for (const [key, rawQuantity] of Object.entries(statLine)) {
+    if (key.startsWith("pts_") || key === "gp") continue;
+    const count = Number(rawQuantity);
+    if (!Number.isFinite(count) || count === 0) continue;
+
+    const eventKey = resolveCanonicalEventKey(key);
+    if (!eventKey) {
+      unknown.add(key);
+      continue;
+    }
+
+    if (values && values.has(eventKey)) {
+      const perUnit = values.get(eventKey);
+      if (perUnit != null && Number.isFinite(perUnit)) {
+        const points = count * perUnit;
+        total += points;
+        scoredCount += 1;
+        if (points) parts.push({ stat: key, event_key: eventKey, quantity: count, points_per: perUnit, points });
+      }
+    } else {
+      unknown.add(key);
+    }
+  }
+
+  const points = scoredCount > 0 ? (Math.round(total * 100) / 100 === 0 ? 0 : Math.round(total * 100) / 100) : null;
+  const unknownList = [...unknown].sort();
+
+  return {
+    points,
+    unknown: unknownList,
+    parts,
+    valueOf() {
+      return this.points;
+    },
+    toString() {
+      return String(this.points);
+    },
+  };
+}
+
 module.exports = {
   ESPN_EVENT_MAP,
   SLEEPER_EVENT_MAP,
@@ -513,4 +724,5 @@ module.exports = {
   deriveScoringSnapshot,
   deriveSleeperRules,
   hashOf,
+  scoreStatLine,
 };
