@@ -924,13 +924,13 @@ function yahooProjectionDisclosure(meta) {
       ? "sleeper_public_projections_yahoo_scoring_approximate"
       : "sleeper_public_projections_yahoo_scoring",
     message: approximate
-      ? "Yahoo gives no projections. These are Sleeper's public weekly projections scored with your Yahoo league's rules; the league has scoring rules Omen cannot reproduce, so the totals are approximate, not exact league scoring."
+      ? "Yahoo gives no projections. These are Sleeper's public weekly projections scored with your Yahoo league's rules; some players are affected by scoring rules Omen cannot reproduce, so their totals are approximate."
       : "Yahoo gives no projections. These are Sleeper's public weekly projections re-scored with your Yahoo league's own scoring rules.",
     dataUsed: approximate
       ? "Sleeper public projections, approximately scored with your Yahoo league rules"
       : "Sleeper public projections, scored with your Yahoo league rules",
     warning: approximate
-      ? "Projection totals are approximate: this Yahoo league has scoring rules Omen cannot yet reproduce."
+      ? "Some player projections are approximate because Omen cannot yet reproduce the scoring rules affecting them."
       : null,
   };
 }

@@ -29,7 +29,7 @@
  */
 
 const sleeperAdapter = require("../adapters/sleeper");
-const { deriveScoringSnapshot, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
+const { deriveScoringSnapshot, scoreStatLine: scoreFacts, SLEEPER_EVENT_MAP, SLEEPER_FG_BANDS } = require("./scoringRuleSnapshot");
 const { normalizeName } = require("./playerCrosswalk");
 const { getCurrentNflWeekContext } = require("./nflSchedule");
 
@@ -44,8 +44,8 @@ const RULES_TTL_MS = 30 * 60 * 1000;
 const RULES_FAILURE_TTL_MS = 60 * 1000;
 const RULES_MAX_ENTRIES = 200;
 
-// Sleeper projects these. Yahoo team defences have no player id on the Sleeper side.
-const POSITION_TYPE = Object.freeze({ QB: "O", RB: "O", WR: "O", TE: "O", K: "K" });
+// Yahoo team defenses have no Sleeper player id, but their rules still need a visible flag.
+const POSITION_TYPE = Object.freeze({ QB: "O", RB: "O", WR: "O", TE: "O", K: "K", DEF: "DT", DST: "DT" });
 
 const rulesMemo = new Map();
 
@@ -74,6 +74,9 @@ function stripYahooProjections(players) {
       player.projected_points = null;
       delete player.projection_source;
       delete player.projection_basis;
+      delete player.projection_unmapped_rules;
+      delete player.projection_reason;
+      delete player.projection_parts;
     }
   }
 }
@@ -121,10 +124,11 @@ function affectedTypes(unmappedRule, byStat) {
   if (rule.startsWith("field_goals")) return new Set(["K"]);
   const id = /^stat_(\d+)$/.exec(rule)?.[1];
   const types = id ? byStat.get(id) : null;
-  if (!types) return new Set(["O", "K"]);
+  if (!types) return new Set(["O", "K", "DT"]);
   const out = new Set();
   for (const type of types) {
-    if (type === "O" || type === "K") out.add(type);
+    if (["O", "K", "DT"].includes(type)) out.add(type);
+    else return new Set(["O", "K", "DT"]);
   }
   return out;
 }
@@ -138,17 +142,18 @@ function scoringFromSettings(settings) {
   const snapshot = deriveScoringSnapshot({ platform: "yahoo", leagueSettings: settings });
   if (snapshot.coverage_state !== "supported" && snapshot.coverage_state !== "ambiguous") return null;
   const rules = snapshot.contract?.rules || [];
-  if (!rules.length) return null;
+  if (!rules.length && !(snapshot.unmapped_rules || []).length) return null;
   const values = new Map();
   for (const rule of rules) {
     if (rule.operator === "per_event" && Number.isFinite(rule.value)) values.set(rule.event_key, rule.value);
   }
   const byStat = positionTypesByStat(settings);
   const approximateFor = new Set();
-  for (const unmapped of snapshot.unmapped_rules || []) {
+  const unmappedRules = [...new Set([...(snapshot.unmapped_rules || []), ...(snapshot.projection_unmapped_rules || [])])];
+  for (const unmapped of unmappedRules) {
     for (const type of affectedTypes(unmapped, byStat)) approximateFor.add(type);
   }
-  return { values, approximateFor, unmapped: [...(snapshot.unmapped_rules || [])] };
+  return { values, approximateFor, unmapped: unmappedRules, snapshot, byStat };
 }
 
 async function leagueScoring(client, leagueKey, { now = Date.now() } = {}) {
@@ -171,21 +176,18 @@ async function leagueScoring(client, leagueKey, { now = Date.now() } = {}) {
  * A stat line scored under league rules. Null when no stat in the line is scored by a rule Omen
  * knows, because "nothing to score" must not read as "projects zero".
  */
-function scoreStatLine(statLine, values) {
+function scoreStatLine(statLine, scoring) {
   if (!statLine || typeof statLine !== "object") return null;
-  let total = 0;
-  let scored = 0;
+  const facts = {};
+  let scored = false;
   for (const [key, quantity] of Object.entries(statLine)) {
-    if (key.startsWith("pts_")) continue;
     const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
-    if (!event) continue;
-    const perUnit = values.get(event);
     const count = Number(quantity);
-    if (perUnit == null || !Number.isFinite(count)) continue;
-    total += count * perUnit;
-    scored += 1;
+    if (!event || !Number.isFinite(count)) continue;
+    facts[event] = (facts[event] || 0) + count;
+    if (scoring.values.has(event) && !scoring.snapshot.projection_unmapped_rules?.includes(event)) scored = true;
   }
-  return scored ? round2(total) : null;
+  return scored ? round2(scoreFacts(facts, scoring.snapshot).points) : null;
 }
 
 /**
@@ -193,14 +195,15 @@ function scoreStatLine(statLine, values) {
  * keyed by Sleeper's stat name. What makes a Yahoo projection explainable stat by stat, exactly as
  * Sleeper's and ESPN's are (`projectionBreakdown.js`).
  */
-function statLineParts(statLine, values) {
+function statLineParts(statLine, scoring) {
   if (!statLine || typeof statLine !== "object") return [];
   const parts = [];
   for (const [key, quantity] of Object.entries(statLine)) {
     if (key.startsWith("pts_")) continue;
     const event = SLEEPER_EVENT_MAP[key]?.event_key || SLEEPER_FG_BANDS[key];
     if (!event) continue;
-    const perUnit = values.get(event);
+    const perUnit = scoring.values.get(event);
+    if (scoring.snapshot.projection_unmapped_rules?.includes(event)) continue;
     const count = Number(quantity);
     if (perUnit == null || !perUnit || !Number.isFinite(count)) continue;
     const points = count * perUnit;
@@ -396,12 +399,29 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
   let projected = 0;
   let approximate = false;
   for (const player of projectable) {
+    if (player.projection_source === SOURCE) {
+      player.projected_points = null;
+      delete player.projection_source;
+      delete player.projection_basis;
+      delete player.projection_parts;
+    }
+    const affected = scoring.unmapped.filter((rule) => affectedTypes(rule, scoring.byStat).has(positionTypeOf(player)));
+    delete player.projection_unmapped_rules;
+    delete player.projection_reason;
+    if (affected.length) {
+      player.projected_points = null;
+      player.projection_basis = "unscored";
+      player.projection_source = SOURCE;
+      player.projection_unmapped_rules = affected;
+      player.projection_reason = "unknown_rules";
+    }
+    if (positionTypeOf(player) === "DT") continue;
     const yahooId = String(player.yahoo_id ?? player.player_id);
     let sleeperId = index.get(yahooId);
     if (!sleeperId) sleeperId = fallbackSleeperId(player, sleeperPlayers);
     const sleeperPlayer = sleeperId ? sleeperPlayers[sleeperId] : null;
     if (!sleeperPlayer || !namesAgree(player.name, sleeperPlayer) || !positionsAgree(player, sleeperPlayer)) continue;
-    const points = scoreStatLine(statLines?.[sleeperId], scoring.values);
+    const points = scoreStatLine(statLines?.[sleeperId], scoring);
     if (points == null) {
       // A player whose whole NFL team has no projection this week is on a bye: he scores zero, which is
       // a fact, and the lineup must be able to move him (a null would block the swap).
@@ -409,18 +429,21 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
         player.projected_points = 0;
         player.projection_source = SOURCE;
         player.projection_basis = BASIS_BYE;
+        delete player.projection_unmapped_rules;
+        delete player.projection_reason;
         projected += 1;
       }
       continue;
     }
     const basis = scoring.approximateFor.has(positionTypeOf(player)) ? BASIS_APPROX : BASIS_LEAGUE;
     if (basis === BASIS_APPROX) approximate = true;
+    delete player.projection_reason;
     player.projected_points = points;
     player.projection_source = SOURCE;
     player.projection_basis = basis;
     // Not enumerable: the breakdown reads it in-process, and it never rides along in a response.
     Object.defineProperty(player, "projection_parts", {
-      value: statLineParts(statLines?.[sleeperId], scoring.values),
+      value: statLineParts(statLines?.[sleeperId], scoring),
       enumerable: false,
       configurable: true,
     });
@@ -433,7 +456,7 @@ async function enrichYahooPlayers(players, { client, leagueKey, week, season, bu
     scoring_basis: projected > 0 ? (approximate ? BASIS_APPROX : BASIS_LEAGUE) : null,
     players_total: total,
     players_with_projection: projected,
-    reason: projected > 0 ? null : "no_matching_projections",
+    reason: projected > 0 ? null : list.some((player) => player.projection_reason === "unknown_rules") ? "unknown_rules" : "no_matching_projections",
   };
 }
 
