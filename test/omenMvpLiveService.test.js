@@ -1650,7 +1650,7 @@ test("approximate Yahoo scoring is labelled approximate and never league-exact",
   const result = await service.buildLiveOmenMvpMoveForUser("user-1");
 
   assert.equal(result.body.signals.projections.source, "sleeper_public_projections_yahoo_scoring_approximate");
-  assert.match(result.body.signals.projections.message, /approximate, not exact league scoring/);
+  assert.match(result.body.signals.projections.message, /scoring rules Omen cannot reproduce, so their totals are approximate/);
   assert.ok(result.body.warnings.some((w) => /approximate/.test(w)));
   assert.ok(result.body.recommendation.explanation.data_used.some((line) => /approximately scored/.test(line)));
 });
