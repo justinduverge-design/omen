@@ -6,7 +6,7 @@ const test = require("node:test");
 const { calculateContractScore, inspectScoringContract } = require("../src/services/scoringContract");
 const { scoreStatLine: scoreFacts, SLEEPER_EVENT_MAP } = require("../src/services/scoringRuleSnapshot");
 const { SCORING_PRESETS, scoreStatLine, scoreSleeperStatLine, sleeperStatLineToFacts, statLineToFacts } =
-  require("../src/services/omenProjections/scoring");
+  require("../src/services/scoring/statLineScoring");
 
 function contract(rules, coverage = "supported") {
   return {

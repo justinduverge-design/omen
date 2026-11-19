@@ -88,8 +88,8 @@ function poolConfig(args, env) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const { Pool } = require("pg");
-  const { createPgSource } = require("../src/services/omenProjections/pgSource");
-  const { renderMarkdown, runBacktest } = require("../src/services/omenProjections/backtest");
+  const { createPgSource } = require("../src/services/footballWarehouse/sightStatlinePgSource");
+  const { renderMarkdown, runBacktest } = require("../src/services/footballWarehouse/sightStatlineBacktest");
 
   const pool = new Pool(poolConfig(args, process.env));
   try {
