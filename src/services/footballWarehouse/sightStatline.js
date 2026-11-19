@@ -8,4 +8,5 @@ module.exports = {
   ...require("./sightStatlineConstants"),
   ...require("./sightStatlinePriors"),
   ...require("./sightStatlineProject"),
+  ...require("./sightStatlineForecast"),
 };
