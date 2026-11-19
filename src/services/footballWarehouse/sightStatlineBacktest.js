@@ -507,7 +507,7 @@ const MIN_PAIRED_FOR_DISAGREEMENT = 20;
 
 /**
  * Where Omen and the provider (stored Sleeper) disagree, who was closer to what happened. This is the evidence
- * behind the "challenger" evidence row: a gap is only worth showing if the side it favours wins often enough.
+ * used by the backtest report to show whether the side a gap favours wins often enough.
  * Gap = Omen - provider, in the scoring's points. The threshold is the model's own MAE on the same paired set
  * (in-sample here; production uses the value fitted on earlier seasons and recorded in the spec's table).
  */
