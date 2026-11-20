@@ -2,8 +2,8 @@
 
 **Archived 2026-10-19.** The founder stopped paying for Figma; the canvas now lives in Claude Design
 artboards in this repo (`design/native-visual-lock-2026-09-13/` is the record, per
-`Direction/facts-of-record.md` #20). This folder keeps a picture of what the Figma file held so
-nothing is lost when access lapses. **Reference only.** Most of it predates the 2026-09-13 lock (Alegreya type,
+`Direction/facts-of-record.md` #20). This folder records parts of what the Figma file held; the removed iOS screenshot exports remain in git history.
+**Reference only.** Most of it predates the 2026-09-13 lock (Alegreya type,
 Raven Black ground), so where it disagrees with the lock, the lock wins.
 
 Exported with the Figma MCP until the Starter plan's call limit stopped it. Frames not yet saved are
