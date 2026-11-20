@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   release-pr:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     timeout-minutes: 5
     steps:
       - name: Checkout

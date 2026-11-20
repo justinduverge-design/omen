@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   production-audit:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -28,7 +28,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=low
   development-audit:
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -39,7 +39,7 @@ jobs:
       - name: Report development dependency advisories
         run: npm audit --audit-level=low
   frontend-production-audit:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -52,7 +52,7 @@ jobs:
         run: npm --prefix frontend audit --omit=dev --audit-level=low
   rust-supply-chain:
     # Inert until the first crate lands (Phase 4). Needs deny.toml at the repo root.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest   # cargo-deny-action is a Docker action; the runners have no Docker
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -64,7 +64,7 @@ jobs:
           command: check advisories bans licenses sources
   frontend-development-audit:
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -82,7 +82,7 @@ jobs:
       - development-audit
       - frontend-production-audit
       - frontend-development-audit
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, wsl]
     permissions:
       contents: read
       issues: write
