@@ -51,4 +51,4 @@ The reviewed inventory is `inventory/2026-11-20-cleanup-omen-list.md` at Valor-C
 
 ## Verification
 
-- The four source edits change comment lines only. Focused Node tests are run by the worker; Vision runs the full suite at integration.
+- The four source edits change comment lines only. Of 16 directly importing test files run with `node --test`, 11 passed and five failed: `leagueOverviewRoute`, `providerCredentialContainment`, `tradeFindRoute`, `tradeHotPath`, and `tradeSavedQueueRoute`. All five start loopback servers; a separate loopback bind probe returned `EPERM` in this sandbox. The reporter did not give a more specific failure cause. Vision runs the full suite at integration (not run here).
