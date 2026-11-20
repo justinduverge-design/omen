@@ -24,7 +24,7 @@ jobs:
         run: scripts/list-shell-scripts.sh | xargs -0 shellcheck --severity=warning --format=gcc
 
   typos:
-    runs-on: [self-hosted, wsl]
+    runs-on: [self-hosted, cc]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,7 +34,7 @@ jobs:
 
   biome:
     # JS lint + format (biome.jsonc). Blocking: lint errors and formatting drift fail the PR; warnings do not.
-    runs-on: [self-hosted, wsl]
+    runs-on: [self-hosted, cc]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

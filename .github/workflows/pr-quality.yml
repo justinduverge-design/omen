@@ -53,7 +53,7 @@ permissions:
 jobs:
   backend:
     name: Backend tests and audit
-    runs-on: [self-hosted, wsl]
+    runs-on: [self-hosted, cc]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -87,7 +87,7 @@ jobs:
 
   frontend-build:
     name: Frontend and client builds
-    runs-on: [self-hosted, wsl]
+    runs-on: [self-hosted, cc]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -106,7 +106,7 @@ jobs:
 
   boot-smoke:
     name: Server boots with SPA present
-    runs-on: [self-hosted, wsl]
+    runs-on: [self-hosted, cc]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
