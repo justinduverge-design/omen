@@ -32,14 +32,8 @@ and export), select a frame, and use Export → PNG 2x, or rerun the MCP export 
 - [ ] `25:2` Context Strip · `25:26` Matchup Spine · `25:50` Evidence Disclosure · `61:2` Help + Support
 - [ ] `67:2` Waiver Watch (Approved) · `72:2` Ledger Preview (Approved) · `73:2` Platforms Compact Row (Approved) · `74:2` League Pulse (Approved)
 
-### 04 — iOS Screens (`04-ios-screens/`)
-- [x] `17:12` M2 — iOS App Shell Contract
-- [x] `28:2` Command Center — populated, live · [x] `28:21` off-season, empty
-- [x] `30:2` Waiver Analysis — confirmed opportunity · [x] `30:24` no credible move
-- [x] `30:226` Team/league switcher — populated · [x] `30:245` empty
-- [x] `30:290` Account → Connected Leagues — mixed · [x] `30:306` provider detail (Sleeper)
-- [x] `30:354` Welcome — authenticated choice · [x] `30:367` connect a league
-- [x] `31:2` GOLDEN — Command Center · [x] `38:2` GOLDEN — Trade verdict
+### 04 — iOS Screens
+The previously exported screenshots were removed in the 2026-11-20 cleanup; git history retains them.
 - [ ] `41:2` Omen lead — clear decision · `41:24` no high-value move
 - [ ] `41:66` Start/Sit — evidence collapsed · `41:85` evidence expanded
 - [ ] `42:2` GOLDEN — Omen lead · `42:66` GOLDEN — Start/Sit
