@@ -39,11 +39,7 @@ const NON_STARTER_SLOTS = new Set(["BN", "BENCH", "IR", "TAXI"]);
  *
  * ## Why a budget rather than only a faster algorithm
  *
- * The real fix is to replace the exhaustive search with bipartite matching, which is
- * polynomial and returns the same answer. That is worth doing properly and is tracked
- * separately. This budget is the part that must be true **regardless** of how good the
- * algorithm is: no recommendation is worth blocking every other request, so the failure mode
- * becomes "no trade suggestion" instead of "no website".
+ * Lineup assignment uses Hungarian matching (see git log); this budget bounds worst-case solve time regardless of algorithm.
  */
 const TRADE_SEARCH_BUDGET_MS = 2000;
 /**

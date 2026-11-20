@@ -3,7 +3,7 @@
 /**
  * Direct Yahoo OAuth 2.0 helpers.
  *
- * Replaces the legacy Yahoo OAuth strategy with standard RFC 6749 requests through axios.
+ * Standard RFC 6749 OAuth 2.0 requests via axios.
  * Do not log authorization codes, refresh tokens, or access tokens.
  */
 

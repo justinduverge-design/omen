@@ -15,12 +15,7 @@
  *     `needWeightForPosition`, the existing "how thin is this team at this
  *     position" math.
  *
- * ## Why this file exists rather than editing the three above
- *
- * T1 (three-team trades) lands in parallel and also touches
- * `src/services/tradeValue.js` and `src/routes/trade.js`. This module only
- * *calls* the existing exports of those three services; it makes zero edits
- * to any of them, so there is nothing here for T1's branch to conflict with.
+ * Composes tradeLineup, tradeValue, and tradeLeagueContext without modifying them.
  *
  * ## The #404 lesson, applied at league scale
  *

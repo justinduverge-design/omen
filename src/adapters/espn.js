@@ -1027,11 +1027,7 @@ function espnMatchupPoints(side) {
  *    (ESPN's *delayed* projection) come back populated; the ordering below is unchanged, because
  *    it mirrors what ESPN *displays* rather than what it merely sends.
  *
- * 3. **The starter sum IS ESPN's headline number.** Its matchup header prints
- *    `formatMessage(projected, { score: totalProjectedPointsLive })` — the client-side starter
- *    sum, not the server field. So this reads in the same order ESPN displays in: sum the
- *    starters when the roster is present, and fall back to the server's stated total when it
- *    is not. The earlier version had this backwards.
+ * Reads starter sum first, falling back to server-stated total when roster is absent.
  *
  * `null` when neither answers, never `0`. ESPN publishes no projections for a season until its
  * first week goes live, and a confident zero during that window is exactly the failure recorded
