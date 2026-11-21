@@ -7,7 +7,8 @@ umask 077
 # manifest/dump pair into the isolated-restore source root.
 
 EXPECTED_HOST="model-host"
-REMOTE="omen-backup-client@omen-prod"
+REMOTE="omen-backup-client@100.115.155.19"
+REMOTE_PORT=2222
 KEY="/root/.ssh/omen-warehouse-recovery_ed25519"
 KNOWN_HOSTS="/root/.ssh/omen-warehouse-recovery_known_hosts"
 SOURCE_ROOT="/var/lib/omen/warehouse-restore-sources"
@@ -42,7 +43,7 @@ cleanup() { rm -rf -- "$stage"; }
 trap cleanup EXIT
 
 ssh_fixed() {
-  ssh -F /dev/null -i "$KEY" -o BatchMode=yes -o ConnectTimeout=20 -o IdentitiesOnly=yes \
+  ssh -F /dev/null -p "$REMOTE_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=20 -o IdentitiesOnly=yes \
     -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$REMOTE" "$@"
 }
 
