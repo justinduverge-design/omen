@@ -59,7 +59,9 @@ test("restore transfer is forced-command-only, path-fixed, host-key-pinned, and 
   assert.match(exporter, /restic dump --no-cache "\$snapshot_id" "\$SNAPSHOT_ROOT\/\$run_id\/\$filename"/);
   assert.doesNotMatch(exporter, /eval|bash -c|sh -c/);
   assert.match(receiver, /StrictHostKeyChecking=yes/);
-  assert.match(receiver, /REMOTE="omen-backup-client@omen-prod"/);
+  assert.match(receiver, /REMOTE="omen-backup-client@100\.115\.155\.19"/);
+  assert.match(receiver, /REMOTE_PORT=2222/);
+  assert.match(receiver, /ssh -F \/dev\/null -p "\$REMOTE_PORT"/);
   assert.match(receiver, /UserKnownHostsFile="\$KNOWN_HOSTS"/);
   assert.match(receiver, /target already exists/);
   assert.match(receiver, /manifest identity or dump size is invalid/);
@@ -92,7 +94,8 @@ test("scheduled backup and restore use separate timers, pinned trust, and clean 
   assert.match(retention, /--keep-weekly "\$keep_weekly"/);
   assert.match(retention, /--keep-monthly "\$keep_monthly" --prune/);
   assert.match(restore, /EXPECTED_HOST="model-host"/);
-  assert.match(restore, /REMOTE="omen-backup-client@omen-prod"/);
+  assert.match(restore, /REMOTE="omen-backup-client@100\.115\.155\.19"/);
+  assert.match(restore, /REMOTE_PORT=2222/);
   assert.match(restore, /StrictHostKeyChecking=yes/);
   assert.match(restore, /"\$REMOTE" latest/);
   assert.match(restore, /"\$RESTORER" "\$source\/manifest\.json" "\$proof"/);

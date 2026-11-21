@@ -86,6 +86,7 @@ Add each PR here as it merges (number, area, title).
 | #860 | Tests | B13-CC-PORTABLE: `npm test` passes on Command Center (umask 0002, en_GB.UTF-8): release builder sets umask 022, merge-class test compares sorted sets |
 | #849 | Guards | Fixes `main` after #847: `prQualityPaths` exempts the sample paths the new merge and release tests name, and biome formats `scripts/release-pr.mjs` and the two tests (no logic change). The first release (#848) waits on this |
 | #856 | Records | Build 13 plan (founder, 2026-11-07): a build ships Tuesday 2026-11-10 with what is ready (Lane T: B13-DESK-P2S, B13-PLAIN-WORDS, B13-TUESDAY-RECORD), then the plays engine (Lane 1: stat-line forecast → league scoring → B13-PLAYS-ENGINE → B13-PLAYS-SCREENS, B13-WIN-PROB); Lane 0 closed; B13-CC-PORTABLE added; every new card carries Task, Check and Run budget |
+| #898 | Ops | Restore proof reaches omen-prod over tailnet port 2222 (100.115.155.19), not Tailscale SSH on port 22; both scripts pin the host key. No product change. |
 | #897 | CI | Checks run on Valor's own runners (Mac for iOS, cc for Linux jobs; user ghrunner, no sudo or Docker) to save Actions minutes; Docker, Postgres-service, emulator, shellcheck and Android-SDK jobs stay on GitHub's machines (no app change) |
 
 1.0 yardstick: `Direction/omen-1.0-done.md`.

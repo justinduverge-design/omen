@@ -3,7 +3,8 @@ set -euo pipefail
 umask 077
 
 EXPECTED_HOST="model-host"
-REMOTE="omen-backup-client@omen-prod"
+REMOTE="omen-backup-client@100.115.155.19"
+REMOTE_PORT=2222
 KEY="/root/.ssh/omen-warehouse-recovery_ed25519"
 KNOWN_HOSTS="/root/.ssh/omen-warehouse-recovery_known_hosts"
 RECEIVER="/opt/omen/warehouse-restore/receive-restore-source.sh"
@@ -52,7 +53,7 @@ for tool in "$RECEIVER" "$RESTORER"; do
   [[ -x "$tool" && ! -L "$tool" ]] || { echo "warehouse scheduled restore refused: recovery tool is unavailable" >&2; exit 69; }
 done
 
-latest="$(ssh -F /dev/null -i "$KEY" -o BatchMode=yes -o ConnectTimeout=20 -o IdentitiesOnly=yes \
+latest="$(ssh -F /dev/null -p "$REMOTE_PORT" -i "$KEY" -o BatchMode=yes -o ConnectTimeout=20 -o IdentitiesOnly=yes \
   -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$KNOWN_HOSTS" "$REMOTE" latest)"
 [[ "$latest" =~ ^([0-9a-f]{64})\ (warehouse-[0-9]{8}T[0-9]{6}Z)$ ]] || {
   echo "warehouse scheduled restore refused: latest snapshot response is invalid" >&2; exit 65;
