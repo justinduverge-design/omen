@@ -30,7 +30,7 @@ concurrency:
 jobs:
   ios-screenshots:
     name: iOS screenshot · ${{ matrix.scenario }}
-    runs-on: macos-14
+    runs-on: [self-hosted, mac]
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -43,10 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Select Xcode 16.2
-        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
-        with:
-          xcode-version: "16.2"
+      # Self-hosted Mac: the installed Xcode is used; switching versions needs sudo, which ghrunner does not have.
 
       - name: Build OmenIOS.app (simulator, unsigned)
         run: |

@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   warehouse-tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cc]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,7 +43,7 @@ jobs:
   ruff:
     # Report-only: the trusted warehouse scripts are not reformatted in a tooling PR.
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, cc]
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
